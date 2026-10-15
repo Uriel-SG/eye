@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Eye</string>
+
+    <!-- Generali -->
+    <string name="action_check">Controlla</string>
+    <string name="action_cancel">Annulla</string>
+    <string name="action_close">Chiudi</string>
+    <string name="action_next">Avanti</string>
+    <string name="action_back">Indietro</string>
+    <string name="action_skip">Salta</string>
+    <string name="action_start">Inizia</string>
+    <string name="action_share">Condividi</string>
+    <string name="action_delete">Elimina</string>
+    <string name="action_open">Apri</string>
+    <string name="action_activate">Attiva</string>
+    <string name="action_not_now">Non ora</string>
+    <string name="action_show_all">Mostra tutto</string>
+    <string name="action_see_all">Vedi tutte</string>
+    <string name="cd_back">Indietro</string>
+    <string name="cd_settings">Impostazioni</string>
+    <string name="coming_soon">In arrivo</string>
+    <string name="coming_soon_body">Questa funzione arriva presto. Per ora puoi incollare o condividere il testo.</string>
+
+    <!-- Navigazione -->
+    <string name="nav_home">Home</string>
+    <string name="nav_catalog">Catalogo</string>
+    <string name="nav_history">Cronologia</string>
+    <string name="nav_settings">Impostazioni</string>
+    <string name="nav_more">Altro</string>
+
+    <!-- Onboarding -->
+    <string name="onb_title_1">Eye ti aiuta a capire se un messaggio è una truffa</string>
+    <string name="onb_body_1">Controlla SMS, link, QR code e screenshot in pochi secondi. Ti spieghiamo il perché in parole semplici e ti diciamo cosa fare.</string>
+    <string name="onb_title_2">Cosa fa e cosa non fa</string>
+    <string name="onb_does_1">Controlla solo quello che scegli tu.</string>
+    <string name="onb_does_2">Analizza sul tuo telefono.</string>
+    <string name="onb_does_3">Ti spiega i motivi e cosa fare dopo.</string>
+    <string name="onb_doesnt_1">Non legge i tuoi messaggi di nascosto.</string>
+    <string name="onb_doesnt_2">Non chiede account o registrazione.</string>
+    <string name="onb_doesnt_3">Non apre i link al posto tuo.</string>
+    <string name="onb_doesnt_4">Non può garantire che un messaggio sia sicuro.</string>
+    <string name="onb_title_3">Come controllare un messaggio</string>
+    <string name="onb_step_1">Apri il messaggio e tocca Condividi.</string>
+    <string name="onb_step_2">Scegli Eye dall\'elenco.</string>
+    <string name="onb_step_3">Leggi il verdetto e segui i consigli.</string>
+    <string name="onb_body_3">Puoi anche incollare il testo, scansionare un QR o scegliere uno screenshot.</string>
+    <string name="cd_page">Pagina %1$d di 3</string>
+    <string name="cd_step">Passo %1$d di %2$d</string>
+
+    <!-- Home -->
+    <string name="home_hero">Hai ricevuto qualcosa di strano?</string>
+    <string name="home_paste_title">Incolla o condividi</string>
+    <string name="home_paste_sub">Testo o link ricevuto</string>
+    <string name="home_qr_title">Scansiona un QR</string>
+    <string name="home_qr_sub">Non apriamo il link: lo mostriamo prima</string>
+    <string name="home_shot_title">Scegli uno screenshot</string>
+    <string name="home_shot_sub">Leggiamo il testo sul tuo telefono</string>
+    <string name="home_trending">Truffe del momento</string>
+    <string name="home_trust">Controllo sul tuo telefono. Nessun account.</string>
+    <string name="cd_check_button">Controlla, pulsante</string>
+
+    <!-- Incolla -->
+    <string name="paste_title">Incolla o condividi</string>
+    <string name="paste_hint">Incolla qui il testo o il link ricevuto</string>
+    <string name="paste_button">Incolla dagli appunti</string>
+    <string name="paste_empty">Non ci sono appunti da incollare.</string>
+    <string name="paste_too_long">Il testo è troppo lungo. Controlla una parte alla volta.</string>
+    <string name="state_checking">Sto controllando…</string>
+    <string name="state_error">Non sono riuscito a leggere il contenuto. Riprova o incolla il testo.</string>
+
+    <!-- Verdetto -->
+    <string name="verdict_title_scam">Probabile truffa</string>
+    <string name="verdict_sub_scam">Non cliccare, non rispondere, non inviare dati.</string>
+    <string name="verdict_title_suspicious">Sospetto</string>
+    <string name="verdict_sub_suspicious">Ci sono segnali strani. Verifica prima di agire.</string>
+    <string name="verdict_title_none">Nessun segnale evidente</string>
+    <string name="verdict_sub_none">Non abbiamo trovato segnali, ma non è una garanzia.</string>
+    <string name="cd_verdict">Verdetto: %1$s. %2$s</string>
+    <string name="verdict_preview">Anteprima</string>
+    <string name="verdict_why">Perché</string>
+    <string name="verdict_why_none">Non abbiamo trovato motivi di allarme in questo testo.</string>
+    <string name="verdict_todo">Cosa fare ora</string>
+    <string name="verdict_disclaimer_short">Eye è un aiuto alla decisione, non una garanzia. Nessun controllo può trovare ogni truffa. Nessun segnale non significa sicuro.</string>
+    <string name="verdict_share_card">Condividi scheda</string>
+    <string name="verdict_send_family">Manda a un familiare</string>
+    <string name="verdict_copy_report">Copia report</string>
+    <string name="verdict_report">Segnala</string>
+    <string name="verdict_wrong">Il verdetto è sbagliato?</string>
+    <string name="verdict_wrong_info">Prepariamo un messaggio. Lo invii tu, se vuoi. Non inviamo nulla in automatico. Se aggiungi il messaggio, togli nomi, numeri, indirizzi e codici.</string>
+    <string name="verdict_copied">Report copiato</string>
+    <string name="verdict_domain">Dominio:</string>
+    <string name="verdict_card_error">Non sono riuscito a creare la scheda. Riprova.</string>
+    <string name="verdict_card_show_message">Includi il messaggio (scheda e report)</string>
+    <string name="verdict_card_alt">Scheda: %1$s. %2$s</string>
+    <string name="verdict_family_one_line_scam">Non cliccare e non rispondere. Mostralo a una persona di fiducia.</string>
+    <string name="verdict_family_one_line_suspicious">Ci sono segnali strani. Chiedi a una persona di fiducia prima di fare qualcosa.</string>
+    <string name="verdict_family_one_line_none">Non abbiamo trovato segnali, ma resta prudente.</string>
+
+    <string name="todo_scam_1">Non cliccare sul link e non rispondere.</string>
+    <string name="todo_scam_2">Non dare codici, PIN, password o dati della carta.</string>
+    <string name="todo_scam_3">Se hai già inserito dati, chiama subito la tua banca al numero ufficiale.</string>
+    <string name="todo_scam_4">Segnala il messaggio ai canali ufficiali.</string>
+    <string name="todo_susp_1">Non cliccare finché non sei sicuro.</string>
+    <string name="todo_susp_2">Cerca il sito o il numero ufficiale per conto tuo, senza usare il link.</string>
+    <string name="todo_susp_3">Chiedi a un familiare o a una persona di fiducia.</string>
+    <string name="todo_none_1">Resta prudente: se ti chiedono soldi, codici o dati, fermati e verifica.</string>
+    <string name="todo_none_2">Se hai dubbi, contatta l\'ente al numero ufficiale.</string>
+
+    <string name="report_dialog_title">Segnala ai canali ufficiali</string>
+    <string name="report_dialog_body">Si aprirà il sito ufficiale nel tuo browser. Nessun dato viene inviato da Eye: la segnalazione la fai tu.</string>
+    <string name="report_open_confirm">Apri %1$s?</string>
+    <string name="share_text">Ho controllato questo messaggio con Eye: %1$s. Motivi: %2$s. Non cliccare. Verifica sempre dai canali ufficiali.</string>
+    <string name="share_text_no_reasons">nessun motivo specifico</string>
+    <string name="share_chooser">Condividi con</string>
+    <string name="wrong_subject">Segnalazione verdetto sbagliato</string>
+    <string name="wrong_body">Verdetto di Eye: %1$s\nVersione regole: %2$d\nMotivi: %3$s\n\nMessaggio (aggiungilo solo se vuoi, è facoltativo). Prima di inviare togli nomi, numeri, indirizzi e codici:\n</string>
+    <string name="report_header">Report Eye</string>
+    <string name="report_date">Data: %1$s</string>
+    <string name="report_verdict">Verdetto: %1$s</string>
+    <string name="report_rules_version">Versione regole: %1$d</string>
+    <string name="report_domains">Domini: %1$s</string>
+
+    <!-- Scheda condivisibile -->
+    <string name="card_title_scam">Questo messaggio è una probabile truffa: ecco perché</string>
+    <string name="card_title_suspicious">Questo messaggio è sospetto: ecco perché</string>
+    <string name="card_title_none">Nessun segnale evidente in questo messaggio</string>
+    <string name="card_why">Perché</string>
+    <string name="card_todo">Cosa fare</string>
+    <string name="card_disclaimer">Aiuto alla decisione, non una garanzia. Verifica sempre dai canali ufficiali.</string>
+    <string name="card_footer">Controllato con Eye · gratuita · nessun account</string>
+    <string name="card_message_hidden">Messaggio nascosto per la tua privacy</string>
+
+    <!-- Catalogo -->
+    <string name="catalog_title">Catalogo truffe</string>
+    <string name="catalog_search">Cerca una truffa</string>
+    <string name="catalog_ongoing">In corso</string>
+    <string name="catalog_updated">Aggiornato al %1$s</string>
+    <string name="catalog_recognize">Come riconoscerla</string>
+    <string name="catalog_example">Esempio di messaggio falso</string>
+    <string name="catalog_todo">Cosa fare</string>
+    <string name="catalog_report_where">Dove segnalare</string>
+    <string name="catalog_empty">Nessuna truffa trovata.</string>
+    <string name="cat_all">Tutte</string>
+    <string name="cat_sms">SMS</string>
+    <string name="cat_bank">Banca</string>
+    <string name="cat_parcel">Pacchi</string>
+    <string name="cat_toll">Pedaggi</string>
+    <string name="cat_public">Enti pubblici</string>
+    <string name="cat_qr">QR</string>
+    <string name="cat_whatsapp">WhatsApp</string>
+    <string name="cat_malware">App dannose</string>
+    <string name="cat_invest">Investimenti</string>
+    <string name="cat_shop">Acquisti online</string>
+    <string name="cat_other">Altro</string>
+
+    <!-- Cronologia -->
+    <string name="history_title">Cronologia</string>
+    <string name="history_note">Le analisi dei giorni che hai scelto in Impostazioni, più quelle che hai salvato. Solo su questo telefono.</string>
+    <string name="history_empty">Nessun controllo recente.</string>
+    <string name="history_delete_item">Elimina questo controllo</string>
+    <string name="history_off">Il salvataggio della cronologia è disattivato nelle Impostazioni.</string>
+
+    <!-- Impostazioni -->
+    <string name="settings_title">Impostazioni</string>
+    <string name="settings_family">Modalità Famiglia</string>
+    <string name="settings_family_sub">Schermate più semplici e testo grande. Il verdetto si può mandare a un familiare con Condividi.</string>
+    <string name="family_confirm_title">Attivare la Modalità Famiglia?</string>
+    <string name="family_confirm_body">L\'app diventa più semplice, con testo grande. Puoi disattivarla in Impostazioni.</string>
+    <string name="settings_text_size">Dimensione testo</string>
+    <string name="settings_text_size_sub">Si imposta nelle impostazioni di sistema.</string>
+    <string name="settings_language">Lingua</string>
+    <string name="settings_language_value">Italiano</string>
+    <string name="settings_rules">Aggiornamento regole</string>
+    <string name="settings_rules_sub">Le regole sono incluse nell’app e si aggiornano da sole quando c’è rete.</string>
+    <string name="settings_privacy">Privacy</string>
+    <string name="settings_privacy_not_doing">Cosa non facciamo: nessun accesso a SMS, rubrica o chiamate; nessun account; nessun invio dei tuoi messaggi a noi. Le notifiche vengono lette solo se attivi la Protezione automatica, e restano sul telefono.</string>
+    <string name="settings_privacy_policy">I controlli avvengono sul tuo telefono. La cronologia (se attiva) salva solo su questo telefono, in forma cifrata, il testo analizzato e il verdetto: per 7, 30 giorni o sempre (a tua scelta), e comunque finché non le togli per le analisi che segni con «Salva». Per le immagini salva solo il testo letto. Non finisce nei backup. La Protezione automatica (se la attivi) legge le notifiche delle app che scegli, le controlla sul telefono e non le salva né le invia. Eye scarica regole e campagne aggiornate da un sito pubblico, senza inviare dati tuoi. Il secondo parere AI (facoltativo) invia il testo al servizio che scegli, con la tua chiave, solo quando tocchi il pulsante.</string>
+    <string name="settings_save_history">Salva la cronologia</string>
+    <string name="settings_save_history_sub">Salva su questo telefono, cifrati, il testo controllato e il verdetto. Le analisi che segni con «Salva» restano sempre. Se la disattivi, i controlli non vengono salvati.</string>
+    <string name="settings_clear_history">Cancella cronologia ora</string>
+    <string name="settings_clear_data">Cancella dati</string>
+    <string name="settings_clear_data_confirm">Verranno cancellati la cronologia e le impostazioni, compresa l\'introduzione. Non si può annullare.</string>
+    <string name="settings_about">Informazioni</string>
+    <string name="settings_about_method">Eye usa regole spiegabili, che girano sul tuo telefono, per cercare segnali tipici delle truffe.</string>
+    <string name="settings_disclaimer_long">Eye analizza il contenuto con regole spiegabili e può sbagliare: può non riconoscere una truffa o segnalare per errore un messaggio legittimo. Il verdetto non sostituisce il tuo giudizio né il parere di banche, enti o forze dell\'ordine. Nel dubbio, contatta direttamente l\'ente al numero o al sito ufficiale.</string>
+    <string name="settings_version">Versione %1$s</string>
+    <string name="state_no_text">Non ho trovato testo nell\'immagine.</string>
+    <string name="state_ocr_unavailable">Non riesco a leggere il testo di questa immagine. Puoi incollare il testo a mano.</string>
+    <string name="qr_title">Codice QR</string>
+    <string name="qr_leads_to">Questo QR porta a:</string>
+    <string name="qr_text_content">Questo QR contiene testo, non un link:</string>
+    <string name="qr_not_opened">Il link non è stato aperto.</string>
+    <string name="settings_privacy_link">Informativa privacy</string>
+    <string name="settings_trademarks">I nomi di aziende, enti e app citati (ad esempio Poste, INPS, WhatsApp, Telegram, Gmail, Google, Anthropic, OpenAI) appartengono ai rispettivi titolari e sono usati solo a scopo descrittivo. Eye non è affiliata ad alcuno di essi.</string>
+    <string name="truncated_warning">Il testo era troppo lungo: ho controllato i primi 10.000 caratteri.</string>
+
+    <!-- Accessi rapidi -->
+    <string name="process_text_label">Verifica con Eye</string>
+    <string name="tile_label">Controlla testo copiato</string>
+    <string name="action_paste_check">Incolla e controlla</string>
+    <string name="clipboard_empty_notice">Non ho trovato testo negli appunti. Copia un messaggio e riprova.</string>
+    <string name="howto_title">Come usare Eye con WhatsApp</string>
+    <string name="howto_body">Da WhatsApp: tieni premuto il messaggio → Copia, poi usa \"Incolla e controlla\" o il riquadro rapido. Puoi anche selezionare il testo e scegliere «Verifica con Eye» dal menu. Per le immagini: screenshot → Condividi → Eye.</string>
+</resources>

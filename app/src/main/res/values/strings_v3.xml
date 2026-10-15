@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Cronologia: salvate -->
+    <string name="save_action">Salva</string>
+    <string name="saved_action">Salvata</string>
+    <string name="save_cd">Salva questa analisi: resta finché non la togli tu</string>
+    <string name="unsave_cd">Togli dalle analisi salvate</string>
+    <string name="history_filter_all">Tutte</string>
+    <string name="history_filter_saved">Salvate</string>
+    <string name="history_empty_saved">Nessuna analisi salvata. Tocca il segnalibro su un controllo per tenerlo.</string>
+    <string name="history_clear_title">Cancellare la cronologia?</string>
+    <string name="history_clear_body">Non si può annullare.</string>
+    <string name="history_clear_include_saved">Cancella anche le analisi salvate</string>
+    <string name="history_clear_all_button">Cancella tutto</string>
+
+    <!-- Protezione automatica -->
+    <string name="auto_title">Protezione automatica</string>
+    <string name="auto_sub">Eye controlla le notifiche delle app che scegli e ti avvisa se sembrano truffe. Disattivata finché non la attivi.</string>
+    <string name="auto_status_off">Disattivata.</string>
+    <string name="auto_status_active">Attiva: controllo le notifiche delle app scelte.</string>
+    <string name="auto_status_needs_access">Manca l\'accesso alle notifiche: non sto controllando nulla.</string>
+    <string name="auto_status_alerts_blocked">Attiva, ma gli avvisi di Eye sono bloccati nelle impostazioni del telefono: non potrei avvisarti.</string>
+    <string name="auto_open_system">Apri le impostazioni di sistema</string>
+    <string name="auto_open_notif_settings">Apri le impostazioni delle notifiche</string>
+    <string name="auto_revoke_hint">Per togliere del tutto l\'accesso: impostazioni di sistema, «Accesso alle notifiche».</string>
+    <string name="auto_apps_title">App da controllare</string>
+    <string name="auto_apps_none">Non ho trovato app di messaggistica comuni su questo telefono.</string>
+    <string name="auto_info_title">Prima di attivare</string>
+    <string name="auto_info_intro">La Protezione automatica usa l\'«accesso alle notifiche» di Android. Ti spieghiamo cosa fa e cosa no.</string>
+    <string name="auto_info_reads_h">Cosa legge</string>
+    <string name="auto_info_reads">Titolo e testo delle notifiche (ad esempio il nome di chi scrive e il messaggio), solo delle app di messaggi che scegli tu. Android mostra a Eye anche le notifiche delle altre app: Eye le ignora senza leggerle né conservarle.</string>
+    <string name="auto_info_stays_h">Dove resta</string>
+    <string name="auto_info_stays">Tutto resta su questo telefono. Il testo viene controllato con le regole di Eye e non viene salvato né inviato a nessuno, neanche a noi. Se Eye ti avvisa, tiene il messaggio in memoria al massimo 5 minuti, per mostrartelo quando tocchi l\'avviso.</string>
+    <string name="auto_info_alert_h">Cosa succede</string>
+    <string name="auto_info_alert">Se una notifica sembra una truffa, Eye ti mostra un avviso. Solo se lo tocchi entro 5 minuti il messaggio si apre in Eye; viene salvato in cronologia solo se la cronologia è attiva. Eye non risponde, non apre link e non cancella messaggi.</string>
+    <string name="auto_info_off_h">Come disattivare</string>
+    <string name="auto_info_off">In qualsiasi momento dall\'interruttore in Impostazioni, oppure togliendo l\'accesso alle notifiche dalle impostazioni di sistema.</string>
+    <string name="auto_info_continue">Accetto e attivo</string>
+    <string name="auto_info_next">Android ti mostrerà la pagina dell\'accesso alle notifiche: scegli Eye e consenti.</string>
+    <string name="alert_title">Possibile truffa da %1$s: non toccare link</string>
+    <string name="alert_body_scam">Eye ha trovato segnali di probabile truffa. Tocca per vedere perché.</string>
+    <string name="alert_body_suspicious">Eye ha trovato segnali sospetti. Tocca per vedere perché.</string>
+    <string name="alert_channel_high">Avvisi di truffa probabile</string>
+    <string name="alert_channel_high_desc">Quando una notifica sembra una probabile truffa.</string>
+    <string name="alert_channel_default">Avvisi di messaggi sospetti</string>
+    <string name="alert_channel_default_desc">Quando una notifica ha segnali sospetti.</string>
+    <string name="alert_expired">L\'avviso è scaduto: per sicurezza Eye non conserva il messaggio oltre 5 minuti.</string>
+
+
+    <!-- Sostieni Eye -->
+    <string name="support_title">🫶 Sostieni Eye</string>
+    <string name="support_body">Eye è nata da un’idea di Uriel-SG, per un mondo migliore 💚. È gratuita, senza pubblicità, e lo resterà. Se ti ha aiutato a evitare una truffa, o semplicemente ti piace, puoi offrire un caffè: ogni piccolo contributo aiuta a tenerla viva e aggiornata. Grazie di cuore!</string>
+
+
+    <!-- Catalogo: aggiornamento -->
+    <string name="catalog_refresh">Aggiorna</string>
+    <string name="catalog_updated_on">Aggiornato il %1$s</string>
+    <string name="catalog_update_ok">Fatto: ho aggiunto le novità.</string>
+    <string name="catalog_update_same">Sei già aggiornato.</string>
+    <string name="catalog_update_offline">Non riesco a collegarmi. Riprova più tardi: intanto le schede qui sotto restano disponibili.</string>
+    <string name="catalog_update_error">Non è stato possibile aggiornare ora. Le schede che hai restano valide.</string>
+    <string name="catalog_all_cards">Tutte le schede</string>
+    <string name="catalog_card_updated">Aggiornata il %1$s</string>
+
+    <!-- Avvisi nuove campagne (opt-in) -->
+    <string name="campaign_alerts_title">Avvisi sulle nuove truffe</string>
+    <string name="campaign_alerts_sub">Ti avviso quando segnaliamo una nuova truffa in circolazione. Spento di default.</string>
+    <string name="campaign_alert_title">Nuova truffa in circolazione: %1$s</string>
+    <string name="campaign_alert_body">Tocca per leggere come riconoscerla.</string>
+    <string name="campaign_channel">Nuove truffe in circolazione</string>
+    <string name="campaign_channel_desc">Avviso quando compare una nuova campagna di truffe (se lo attivi).</string>
+
+    <!-- Aggiornamenti scaduti (mai un rifiuto: si continua con quelli che ci sono) -->
+    <string name="rules_stale">Regole non aggiornate da %1$d giorni. Eye continua a funzionare con quelle che ha; si aggiornano da sole quando c\'è rete.</string>
+    <string name="campaigns_stale">Campagne non aggiornate da %1$d giorni. Tocca «Aggiorna» per vedere le novità.</string>
+
+
+    <string name="support_title_cd">Sostieni Eye</string>
+    <string name="support_note">Eye è gratuita e completa per tutti. Nell’app non si paga nulla: se vuoi, le donazioni volontarie si fanno solo sul sito del progetto. Non sono donazioni a un ente benefico.</string>
+
+    <string name="support_body_cd">Eye è nata da un\'idea di Uriel-SG, per un mondo migliore. È gratuita, senza pubblicità, e lo resterà. Se ti ha aiutato a evitare una truffa, o semplicemente ti piace, puoi offrire un caffè: ogni piccolo contributo aiuta a tenerla viva e aggiornata. Grazie di cuore!</string>
+
+    <string name="alert_public_title">Eye: possibile truffa rilevata</string>
+</resources>

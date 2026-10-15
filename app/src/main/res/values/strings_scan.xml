@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="scan_title">Scansiona un QR</string>
+    <string name="scan_hint">Inquadra il codice QR. Il link non viene mai aperto.</string>
+    <string name="scan_perm_why">Per leggere il QR serve la fotocamera. La usiamo solo mentre questa schermata è aperta; le immagini non vengono salvate né inviate.</string>
+    <string name="scan_perm_allow">Consenti la fotocamera</string>
+    <string name="scan_perm_denied">Fotocamera non consentita. Puoi scegliere un\'immagine con il QR dalla galleria.</string>
+    <string name="scan_pick_image">Scegli un\'immagine</string>
+    <string name="scan_no_qr">Non ho trovato nessun QR in questa immagine.</string>
+    <string name="scan_torch_on">Accendi la torcia</string>
+    <string name="scan_torch_off">Spegni la torcia</string>
+    <string name="scan_close">Chiudi</string>
+</resources>

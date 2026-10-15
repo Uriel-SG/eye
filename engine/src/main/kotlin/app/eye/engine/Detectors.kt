@@ -1,0 +1,248 @@
+package app.eye.engine
+
+/** Contesto di analisi condiviso dai rilevatori in codice. */
+internal class Ctx(
+    val rawText: String,
+    /** Testo normalizzato per le regole. */
+    val text: String,
+    val sender: String?,
+    val urls: List<ParsedUrl>,
+    val phones: List<String>,
+    val ibans: List<String>,
+    val amounts: List<String>,
+    val lists: RuleLists,
+    /** Link anomali: frammenti simili a domini non estratti o URL http(s) non validi. >0 => nessuno sconto "ufficiale". */
+    val anomalies: Int = 0,
+) {
+    val riskyTlds = lists.riskyTlds.toHashSet()
+    val shorteners = lists.shorteners.toHashSet()
+    val officialAll: Set<String> = (lists.brands.flatMap { it.official } + lists.trustedDomains).toHashSet()
+
+    /** Marchi con scheletri dei token precomputati. */
+    val brandTokens: List<Pair<Brand, List<String>>> =
+        lists.brands.map { b -> b to b.tokens.map { Text.skeleton(it) } }
+
+    fun isOfficial(d: String) = d in officialAll || isInstitutional(d)
+    fun isOfficialFor(d: String, b: Brand) = d in b.official || isInstitutional(d)
+
+    /**
+     * Domini istituzionali italiani: *.gov.it e comune./regione./provincia.<x>.it. Il dominio registrabile
+     * inizia con "comune." solo se il suffisso pubblico e' territoriale (PSL), quindi non registrabile da terzi.
+     */
+    fun isInstitutional(d: String) = d == "gov.it" || d.endsWith(".gov.it") ||
+        (d.endsWith(".it") && d.count { it == '.' } >= 2 && INSTITUTIONAL_PREFIXES.any { d.startsWith(it) })
+
+    /** Marchi citati nel testo (o nel mittente) con confini di parola. */
+    fun brandsIn(s: String): List<Brand> = lists.brands.filter { b ->
+        (b.aliases + b.name.lowercase()).any { containsWord(s, it) }
+    }
+
+    companion object {
+        private val INSTITUTIONAL_PREFIXES = listOf("comune.", "regione.", "provincia.", "citta-metropolitana.")
+
+        fun containsWord(s: String, w: String): Boolean {
+            if (w.isEmpty()) return false
+            var from = 0
+            while (true) {
+                val i = s.indexOf(w, from)
+                if (i < 0) return false
+                val before = if (i == 0) ' ' else s[i - 1]
+                val after = if (i + w.length >= s.length) ' ' else s[i + w.length]
+                if (!before.isLetterOrDigit() && !after.isLetterOrDigit()) return true
+                from = i + 1
+            }
+        }
+    }
+}
+
+/** Esito di un rilevatore: parametri per i placeholder e categoria opzionale. */
+internal class Hit(val params: Map<String, String> = emptyMap(), val category: String? = null)
+
+/** Rilevatori in codice. Ogni funzione restituisce il primo riscontro o null. */
+internal object Detectors {
+    private val impl: Map<String, (Ctx) -> Hit?> = mapOf(
+        "lookalike" to ::lookalike,
+        "deceptive_subdomain" to ::deceptiveSubdomain,
+        "risky_tld" to ::riskyTld,
+        "shortener" to ::shortener,
+        "homograph" to ::homograph,
+        "ip_host" to ::ipHost,
+        "userinfo" to ::userInfo,
+        "suspicious_domain_words" to ::suspiciousWords,
+        "apk_link" to ::apkLink,
+        "sender_mismatch" to ::senderMismatch,
+        "text_link_mismatch" to ::textLinkMismatch,
+        "premium_number" to ::premiumNumber,
+        "foreign_number" to ::foreignNumber,
+        "iban_payment" to ::ibanPayment,
+        "iban_foreign" to ::ibanForeign,
+        "shouting" to ::shouting,
+        "official_domains" to ::officialDomains,
+        "incomplete_analysis" to { _ -> null }, // gestito dal motore (budget scaduto)
+        "unresolved_link" to { c -> if (c.anomalies > 0) Hit() else null },
+        "shortener_official_context" to ::shortenerOfficialContext,
+    )
+
+    val names: Set<String> get() = impl.keys
+
+    fun run(name: String, ctx: Ctx): Hit? = impl[name]?.invoke(ctx)
+
+    // ---- URL ----
+    private fun suspectUrls(c: Ctx) = c.urls.filter { !c.isOfficial(it.registrable) }
+
+    private fun labelMatches(labelSk: String, tokSk: String): Boolean {
+        if (tokSk.length < 3) return false
+        if (labelSk == tokSk) return true
+        val parts = labelSk.split('-', '_', '.')
+        if (parts.size > 1 && tokSk in parts) return true
+        if (tokSk.length >= 5 && labelSk.contains(tokSk)) return true
+        if (tokSk.length >= 6) {
+            if (Text.editDistance(labelSk, tokSk, 1) <= 1) return true
+            if (parts.size > 1 && parts.any { it.length >= 6 && Text.editDistance(it, tokSk, 1) <= 1 }) return true
+        }
+        return false
+    }
+
+    private fun lookalike(c: Ctx): Hit? {
+        for (u in suspectUrls(c)) {
+            if (u.isIp || u.registrable in c.shorteners) continue
+            val sk = Text.skeleton(u.mainLabelUnicode)
+            for ((b, toks) in c.brandTokens) {
+                if (c.isOfficialFor(u.registrable, b)) continue
+                if (toks.any { labelMatches(sk, it) }) {
+                    return Hit(mapOf("domain" to u.registrable, "brand" to b.name), b.category)
+                }
+            }
+        }
+        return null
+    }
+
+    private fun deceptiveSubdomain(c: Ctx): Hit? {
+        for (u in suspectUrls(c)) {
+            if (u.isIp) continue
+            val subs = u.subdomains.map { Text.skeleton(Text.toUnicode(it)) }
+            val path = u.path.lowercase()
+            for ((b, toks) in c.brandTokens) {
+                if (c.isOfficialFor(u.registrable, b)) continue
+                val inSub = subs.isNotEmpty() && toks.any { t -> t.length >= 3 && subs.any { it == t || (t.length >= 5 && it.contains(t)) } }
+                val inPath = b.official.any { path.contains(it) }
+                if (inSub || inPath) return Hit(mapOf("domain" to u.registrable, "brand" to b.name), b.category)
+            }
+        }
+        return null
+    }
+
+    private fun riskyTld(c: Ctx): Hit? {
+        for (u in suspectUrls(c)) {
+            if (u.isIp) continue
+            val tld = PublicSuffix.suffixOf(u.registrable).substringAfterLast('.')
+            if (tld in c.riskyTlds) return Hit(mapOf("domain" to u.registrable))
+        }
+        return null
+    }
+
+    private fun shortener(c: Ctx): Hit? =
+        c.urls.firstOrNull { it.registrable in c.shorteners }?.let { Hit(mapOf("domain" to it.registrable)) }
+
+    private fun homograph(c: Ctx): Hit? =
+        c.urls.firstOrNull { it.isPunycode || Text.hasNonAsciiLetters(it.hostUnicode) }
+            ?.let { Hit(mapOf("domain" to it.registrable)) }
+
+    private fun ipHost(c: Ctx): Hit? =
+        c.urls.firstOrNull { it.isIp }?.let { Hit(mapOf("domain" to it.host)) }
+
+    private fun userInfo(c: Ctx): Hit? =
+        c.urls.firstOrNull { it.hasUserInfo }?.let { Hit(mapOf("domain" to it.registrable)) }
+
+    private fun suspiciousWords(c: Ctx): Hit? {
+        val words = c.lists.suspiciousDomainWords
+        for (u in suspectUrls(c)) {
+            if (u.isIp || u.registrable in c.shorteners) continue
+            val label = u.mainLabelUnicode
+            val found = words.count { label.contains(it) }
+            val hyphens = label.count { it == '-' }
+            if (found >= 2 || (found >= 1 && hyphens >= 1) || (hyphens >= 2 && PublicSuffix.suffixOf(u.registrable).substringAfterLast('.') in c.riskyTlds)) return Hit(mapOf("domain" to u.registrable))
+        }
+        return null
+    }
+
+    private fun apkLink(c: Ctx): Hit? =
+        c.urls.firstOrNull { it.path.substringBefore('?').substringBefore('#').lowercase().endsWith(".apk") }
+            ?.let { Hit(mapOf("domain" to it.registrable)) }
+
+    // ---- Coerenza mittente / testo ↔ link ----
+    private fun senderMismatch(c: Ctx): Hit? {
+        val sender = c.sender?.let { Text.normalizeForRules(it) } ?: return null
+        if (c.urls.isEmpty()) return null
+        val brands = c.brandsIn(sender)
+        for (b in brands) {
+            if (c.urls.none { c.isOfficialFor(it.registrable, b) }) {
+                val d = c.urls.first { !c.isOfficialFor(it.registrable, b) }.registrable
+                return Hit(mapOf("domain" to d, "brand" to b.name), b.category)
+            }
+        }
+        return null
+    }
+
+    private fun textLinkMismatch(c: Ctx): Hit? {
+        if (c.urls.isEmpty()) return null
+        val brands = c.brandsIn(c.text).filter { it.category in c.lists.mismatchCategories }
+        if (brands.isEmpty()) return null
+        // Se un qualunque link è ufficiale per un marchio citato, nessuna incoerenza.
+        if (c.anomalies == 0 && c.urls.any { u -> brands.any { c.isOfficialFor(u.registrable, it) } }) return null
+        val b = brands.first()
+        val d = c.urls.first().registrable
+        return Hit(mapOf("domain" to d, "brand" to b.name), b.category)
+    }
+
+    // ---- Numeri / IBAN ----
+    private fun premiumNumber(c: Ctx): Hit? =
+        c.phones.firstOrNull { p ->
+            !p.startsWith("+") && (p.startsWith("89") && p.length in 6..10 || p.startsWith("144") || p.startsWith("166"))
+        }?.let { Hit() }
+
+    private fun foreignNumber(c: Ctx): Hit? {
+        val foreign = c.phones.any { it.startsWith("+") && !it.startsWith("+39") }
+        if (!foreign) return null
+        val claims = c.brandsIn(c.text).isNotEmpty() || c.sender != null
+        return if (claims) Hit() else null
+    }
+
+    private val payWords = Regex("bonifico|versa|accredit|pagament|ricaric|intestat|coordinate|paga(?:re|ci|mi)?\\b")
+
+    private fun ibanPayment(c: Ctx): Hit? =
+        if (c.ibans.isNotEmpty() && payWords.containsMatchIn(c.text)) Hit() else null
+
+    private fun ibanForeign(c: Ctx): Hit? =
+        if (c.ibans.any { !it.startsWith("IT") } && payWords.containsMatchIn(c.text)) Hit() else null
+
+    // ---- Forma ----
+    private fun shouting(c: Ctx): Hit? {
+        val letters = c.rawText.count { it.isLetter() }
+        if (letters < 40) return null
+        val upper = c.rawText.count { it.isUpperCase() }
+        return if (upper * 100 / letters >= 60) Hit() else null
+    }
+
+    // ---- Segnale negativo ----
+    /** Link accorciato ma il testo cita un marchio e il suo dominio ufficiale compare tra gli altri link. */
+    private fun shortenerOfficialContext(c: Ctx): Hit? {
+        if (c.anomalies > 0 || c.urls.none { it.registrable in c.shorteners }) return null
+        // ogni altro link deve essere ufficiale: un dominio non ufficiale presente => mai sconto
+        if (c.urls.any { it.registrable !in c.shorteners && !c.isOfficial(it.registrable) }) return null
+        for (b in c.brandsIn(c.text)) {
+            val u = c.urls.firstOrNull { it.registrable !in c.shorteners && !it.hasUserInfo && !it.isPunycode && it.registrable in b.official }
+            if (u != null) return Hit(mapOf("domain" to u.registrable, "brand" to b.name))
+        }
+        return null
+    }
+
+    private fun officialDomains(c: Ctx): Hit? {
+        if (c.urls.isEmpty() || c.anomalies > 0) return null
+        val cited = c.brandsIn(c.text)
+        if (cited.isNotEmpty() && c.urls.none { u -> cited.any { c.isOfficialFor(u.registrable, it) } }) return null
+        if (c.urls.all { c.isOfficial(it.registrable) && it.registrable !in c.shorteners && !it.hasUserInfo && !it.isPunycode })
+            return Hit(mapOf("domain" to c.urls.first().registrable))
+        return null
+    }
+}

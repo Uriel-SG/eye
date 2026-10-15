@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Cronologia: conservazione e ricerca -->
+    <string name="retention_title">Conserva la cronologia</string>
+    <string name="retention_sub">Le analisi che segni con «Salva» restano sempre.</string>
+    <string name="retention_7">7 giorni</string>
+    <string name="retention_30">30 giorni</string>
+    <string name="retention_forever">Sempre</string>
+    <string name="history_search">Cerca nella cronologia</string>
+    <string name="history_search_clear">Cancella la ricerca</string>
+    <string name="history_empty_search">Nessun risultato per questa ricerca.</string>
+
+    <!-- PDF per la denuncia -->
+    <string name="pdf_button">PDF per la denuncia</string>
+    <string name="pdf_dialog_title">PDF per la denuncia</string>
+    <string name="pdf_dialog_body">Crea un documento da allegare alla denuncia. Di solito il testo del messaggio è oscurato (numeri, link ed email nascosti).</string>
+    <string name="pdf_include_plain">Includi il testo in chiaro</string>
+    <string name="pdf_plain_warning">Attenzione: il PDF conterrà numeri, link ed email del messaggio così come sono. Condividilo solo con chi deve riceverlo.</string>
+    <string name="pdf_save">Salva sul telefono</string>
+    <string name="pdf_share">Condividi</string>
+    <string name="pdf_saved">PDF salvato.</string>
+    <string name="pdf_error">Non sono riuscito a creare il PDF.</string>
+    <string name="pdf_title">Eye — Report di analisi</string>
+    <string name="pdf_date">Data e ora del controllo: %1$s</string>
+    <string name="pdf_versions">Versione app: %1$s · Versione regole: %2$d</string>
+    <string name="pdf_outcome">Esito</string>
+    <string name="pdf_text_redacted">Testo analizzato (oscurato)</string>
+    <string name="pdf_text_plain">Testo analizzato (in chiaro)</string>
+    <string name="pdf_no_text">(testo non disponibile)</string>
+    <string name="pdf_domains">Domini estratti</string>
+    <string name="pdf_none">Nessuno</string>
+    <string name="pdf_hash">Impronta SHA-256 del testo originale</string>
+    <string name="pdf_hash_note">L’impronta permette di verificare che il testo originale non sia stato modificato.</string>
+    <string name="pdf_legal_note">Documento generato automaticamente da Eye, non ha valore legale; allegalo alla denuncia insieme agli screenshot originali.</string>
+    <string name="pdf_report_to">Segnalazione online alla Polizia Postale: %1$s</string>
+
+    <!-- Sostieni Eye / open source -->
+    <string name="support_donate">💚 Dona ora</string>
+    <string name="support_donate_cd">Dona ora: apre la pagina delle donazioni sul sito del progetto</string>
+    <string name="support_site">Visita il sito del progetto</string>
+    <string name="support_source">Codice sorgente (open source)</string>
+    <string name="settings_license">Eye è software libero, licenza Apache 2.0.</string>
+    <string name="licenses_title">Licenze open source</string>
+    <string name="licenses_intro">Eye usa queste librerie libere. Grazie a chi le scrive e le mantiene.</string>
+    <string name="lic_androidx">AndroidX e Jetpack Compose</string>
+    <string name="lic_kotlin">Kotlin e kotlinx.coroutines</string>
+    <string name="lic_serialization">kotlinx.serialization</string>
+    <string name="lic_zxing">ZXing</string>
+    <string name="lic_mlkit">Google ML Kit (lettura testo e QR)</string>
+    <string name="lic_bouncycastle">Bouncy Castle</string>
+    <string name="lic_apache">Licenza Apache 2.0</string>
+    <string name="lic_mit">Licenza in stile MIT</string>
+    <string name="lic_mlkit_terms">Termini di servizio di Google ML Kit</string>
+    <string name="licenses_trademark">Il nome e il logo «Eye» non sono coperti dalla licenza.</string>
+</resources>

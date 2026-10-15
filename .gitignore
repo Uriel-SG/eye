@@ -1,0 +1,22 @@
+# Build
+build/
+.gradle/
+.kotlin/
+*.apk
+*.aab
+dist/
+# IDE
+.idea/
+*.iml
+local.properties
+# Segreti: non vanno MAI nel repo
+.env
+keystore.properties
+*.jks
+*.keystore
+*.key
+*.p12
+*.age
+*.pem
+!engine/src/test/resources/rulepack/*.testkey.pem
+secrets/

@@ -1,0 +1,27 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      # Il runner ha già l'Android SDK: installiamo solo piattaforma e build-tools usati dal progetto.
+      - name: Android SDK
+        run: |
+          SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          (yes || true) | "$SDKM" --licenses > /dev/null
+          "$SDKM" --install "platforms;android-37.0" "build-tools;36.0.0" > /dev/null
+      - uses: gradle/actions/setup-gradle@v5
+      # verification-metadata.xml è generato su Windows: aapt2 ha artefatti diversi per sistema operativo,
+      # quindi in CI la verifica è "lenient" (segnala ma non blocca).
+      - name: Test engine
+        run: ./gradlew --dependency-verification lenient :engine:test
+      - name: Test app e build debug
+        run: ./gradlew --dependency-verification lenient :app:testDebugUnitTest :app:assembleDebug

@@ -1,0 +1,211 @@
+{
+  "campaigns": [
+    {
+      "id": "whatsapp-concorso-ballerina",
+      "title": "WhatsApp: falso concorso di danza per rubare l'account",
+      "category": "whatsapp",
+      "summary": "Un contatto che conosci ti scrive su WhatsApp chiedendo di votare una ragazza in un concorso o in una borsa di studio. Il sito del voto chiede un codice di verifica di WhatsApp: serve ai truffatori per collegare il tuo account al loro telefono e scrivere ai tuoi contatti al posto tuo.",
+      "signals": [
+        "Messaggio da un contatto noto con un link per votare in un concorso o in una gara",
+        "Il sito chiede il tuo numero di telefono e poi un codice ricevuto da WhatsApp",
+        "Tra i dispositivi collegati di WhatsApp compare un dispositivo che non riconosci",
+        "I tuoi contatti ricevono da te lo stesso messaggio senza che tu l'abbia scritto"
+      ],
+      "actions": [
+        "Non aprire il link e non inserire mai il codice di verifica di WhatsApp su un sito",
+        "Chiedi al contatto, con una telefonata, se il messaggio è davvero suo",
+        "In WhatsApp apri Impostazioni, Dispositivi collegati, e scollega quelli che non riconosci",
+        "Attiva la verifica in due passaggi con un PIN personale",
+        "Se sei stato colpito, avvisa i tuoi contatti con un altro canale"
+      ],
+      "example": "«Ciao, mi aiuti? Vota la mia nipotina al concorso di danza, basta un click: https://voto-ballerina.example»",
+      "firstSeen": "2026-10-06",
+      "updatedAt": "2026-10-10",
+      "source": {
+        "name": "CERT-AGID e Polizia Postale",
+        "url": "https://cert-agid.gov.it/news/torna-la-truffa-della-ballerina-falsi-concorsi-su-whatsapp-per-sottrarre-gli-account/"
+      },
+      "status": "in_corso"
+    },
+    {
+      "id": "whatsapp-richiesta-denaro-parenti",
+      "title": "WhatsApp: «sono io, mi serve un bonifico urgente»",
+      "category": "whatsapp",
+      "summary": "Arrivano messaggi che sembrano di un parente o di un amico, spesso da un account già rubato, con una richiesta urgente di denaro: un bonifico o una ricarica. A volte c'è anche un link che serve a carpire dati e codici per prendere il controllo del tuo account.",
+      "signals": [
+        "Richiesta di soldi urgente da un contatto, con una scusa di emergenza",
+        "Richiesta di bonifico o di ricarica a favore di un conto che non conosci",
+        "Link a pagine fuori da WhatsApp che chiedono dati personali o codici"
+      ],
+      "actions": [
+        "Prima di pagare chiama la persona al suo numero abituale",
+        "Non condividere mai codici di verifica, PIN o password, nemmeno con chi sembra un familiare",
+        "Non inserire dati su pagine aperte da un link ricevuto in chat",
+        "Segnala il caso alla Polizia Postale su commissariatodips.it"
+      ],
+      "example": "«Mamma ho cambiato numero e ho un problema con la banca, puoi fare tu un bonifico di 480 euro? Ti restituisco domani.»",
+      "firstSeen": "2026-08-25",
+      "updatedAt": "2026-08-25",
+      "source": {
+        "name": "Polizia Postale (commissariatodips.it)",
+        "url": "https://www.commissariatodips.it/notizie/articolo/richieste-di-denaro-e-furto-dellaccount-whatsapp/index.html"
+      },
+      "status": "in_corso"
+    },
+    {
+      "id": "inps-smishing-verifica-dati-ia",
+      "title": "SMS «INPS»: verifica dei dati per non perdere i servizi",
+      "category": "smishing",
+      "summary": "Un SMS con nome e logo INPS chiede di verificare i tuoi dati per non interrompere i servizi. Il link porta a un sito che copia quello vero e ti guida in cinque passaggi: dati personali, documenti d'identità, buste paga, CUD e un selfie. Nelle versioni più recenti c'è anche un controllo con intelligenza artificiale che rende la pagina più credibile.",
+      "signals": [
+        "SMS che ti chiede di verificare o aggiornare i dati con un link",
+        "Il sito chiede documenti d'identità, buste paga, CUD o un selfie",
+        "L'indirizzo non finisce con .inps.it (ad esempio con lettere scambiate)",
+        "Tono di urgenza: i servizi verranno sospesi"
+      ],
+      "actions": [
+        "Non toccare il link: INPS non manda SMS con link per confermare dati o ricevere rimborsi",
+        "Entra solo dal sito ufficiale, scrivendo l'indirizzo tu stesso",
+        "Se hai già inviato documenti, avvisa la tua banca e segnala il caso alla Polizia Postale",
+        "Tieni d'occhio conti e finanziamenti a tuo nome"
+      ],
+      "example": "«INPS: il tuo profilo richiede una verifica entro 24 ore per mantenere attivi i servizi. Procedi: https://verifica-inps-servizi.example»",
+      "firstSeen": "2026-08-11",
+      "updatedAt": "2026-08-11",
+      "source": {
+        "name": "INPS (da segnalazione CERT-AgID)",
+        "url": "https://www.inps.it/it/it/inps-comunica/notizie/dettaglio-news-page.news.2026.08.smishing-con-ai-attacchi-e-truffe-diventano-sempre-pi-pericolosi.html"
+      },
+      "status": "in_corso"
+    },
+    {
+      "id": "agenzia-entrate-falso-bonus-vacanze",
+      "title": "Falso «Bonus Vacanze» dell'Agenzia delle Entrate",
+      "category": "phishing",
+      "summary": "Un sito che imita l'Agenzia delle Entrate propone un «Bonus Vacanze». Molti link puntano al sito vero, ma la voce del bonus porta a un accesso falso. Con l'opzione «Altro» ti fanno caricare carta d'identità, tessera sanitaria, buste paga, un selfie, telefono ed email: dati utili per furti d'identità e finanziamenti a tuo nome.",
+      "signals": [
+        "Un bonus che non conosci, da richiedere online",
+        "Accesso con SPID o CieID ma anche con un'opzione «Altro» che chiede foto dei documenti",
+        "Richiesta di buste paga e selfie per una presunta verifica di idoneità"
+      ],
+      "actions": [
+        "Non caricare documenti, buste paga o selfie su siti raggiunti da un messaggio",
+        "Per i servizi dell'Agenzia scrivi tu l'indirizzo ufficiale o usa l'app ufficiale",
+        "Se hai già inviato dati, avvisa la banca e controlla conti e finanziamenti",
+        "Segnala il caso alla Polizia Postale"
+      ],
+      "example": "«Agenzia Entrate: sei idoneo al Bonus Vacanze. Richiedilo ora su https://bonus-vacanze-agenzia.example prima della scadenza.»",
+      "firstSeen": "2026-09-16",
+      "updatedAt": "2026-09-16",
+      "source": {
+        "name": "CERT-AGID",
+        "url": "https://cert-agid.gov.it/news/falso-bonus-vacanze-dellagenzia-delle-entrate-ruba-dati-personali/"
+      },
+      "status": "in_corso"
+    },
+    {
+      "id": "aci-bollo-auto-phishing",
+      "title": "Falso avviso ACI sul bollo auto non pagato",
+      "category": "phishing",
+      "summary": "Ti avvisano di un bollo auto non pagato, con sanzioni, fermo amministrativo o limiti alla guida. Il sito falso usa nome e grafica ACI, chiede codice fiscale e targa, poi i tuoi dati e infine i dati completi della carta per un pagamento di pochi euro.",
+      "signals": [
+        "Comunicazione inattesa su un bollo non pagato, con minacce di fermo o multe",
+        "Il sito chiede codice fiscale e targa senza prima farti entrare con SPID o CIE",
+        "Richiesta dei dati completi della carta, compreso il CVV, per un piccolo importo",
+        "Indirizzo diverso da quello ufficiale di ACI"
+      ],
+      "actions": [
+        "Non inserire i dati della carta su siti raggiunti da un messaggio",
+        "Paga il bollo solo dal servizio ufficiale di ACI, entrando con SPID o CIE",
+        "Se hai inserito la carta, chiama subito la banca per bloccarla",
+        "Segnala il caso alla Polizia Postale"
+      ],
+      "example": "«Gentile cliente, risulta un bollo auto non pagato. Evita il fermo del veicolo: regolarizza su https://bollo-regolare.example»",
+      "firstSeen": "2026-09-23",
+      "updatedAt": "2026-09-23",
+      "source": {
+        "name": "CERT-AGID",
+        "url": "https://cert-agid.gov.it/news/in-corso-un-phishing-a-tema-bollo-auto-ai-danni-di-aci/"
+      },
+      "status": "in_corso"
+    },
+    {
+      "id": "pec-solleciti-fattura-malware",
+      "title": "PEC con falsi solleciti di pagamento e allegato ZIP",
+      "category": "malware",
+      "summary": "Arrivano PEC, da caselle vere ma violate, che sollecitano il pagamento di una fattura scaduta. L'allegato ZIP contiene un file HTML che scarica un programma malevolo (MintsLoader) e poi altri virus per rubare dati o controllare il computer. La PEC garantisce l'invio, non che il mittente o l'allegato siano sicuri.",
+      "signals": [
+        "PEC inattesa su fatture scadute, solleciti o posizioni contabili irregolari",
+        "Allegato ZIP con nome da documento amministrativo",
+        "Dentro lo ZIP c'è un file HTML invece di una fattura",
+        "Oggetto cambiato spesso, tono di urgenza"
+      ],
+      "actions": [
+        "Non aprire archivi ZIP o file HTML ricevuti senza averli richiesti, anche se il mittente sembra noto",
+        "Verifica la fattura chiamando il fornitore a un numero che già conosci",
+        "Se hai aperto il file, scollega il computer dalla rete e fallo controllare da un tecnico",
+        "In caso di dubbio inoltra il messaggio a CERT-AGID"
+      ],
+      "example": "«Oggetto: Sollecito pagamento fattura scaduta. In allegato il dettaglio, si richiede immediato riscontro.» Allegato: fattura-0001.zip",
+      "firstSeen": "2026-09-23",
+      "updatedAt": "2026-09-24",
+      "source": {
+        "name": "CERT-AGID",
+        "url": "https://cert-agid.gov.it/news/mintsloader-via-pec-falsi-solleciti-di-pagamento-per-diffondere-malware/"
+      },
+      "status": "in_corso"
+    },
+    {
+      "id": "falso-sito-ssn-malware",
+      "title": "Falso sito del Servizio Sanitario Nazionale che diffonde malware",
+      "category": "malware",
+      "summary": "Un sito che copia l'aspetto del Servizio Sanitario Nazionale fa scaricare un file diverso secondo il dispositivo: su Android un'app «SSN» che chiede di attivare i servizi di Accessibilità e controlla il telefono a distanza, su Windows un file .bat che avvia un programma spia.",
+      "signals": [
+        "Un sito sanitario che ti fa scaricare un'app o un file invece di consultare servizi online",
+        "App installata fuori dal Play Store che propone un finto aggiornamento",
+        "L'app chiede di attivare i servizi di Accessibilità",
+        "Sul computer, un file .bat da eseguire"
+      ],
+      "actions": [
+        "Non installare app APK né eseguire file .bat scaricati da un sito",
+        "Installa app solo dagli store ufficiali e nega l'Accessibilità alle app che non conosci",
+        "Per i servizi sanitari scrivi tu l'indirizzo ufficiale",
+        "Se hai già installato l'app, disattiva i dati, disinstallala e rivolgiti a un tecnico; cambia le password da un altro dispositivo"
+      ],
+      "example": "«Aggiorna la tua app SSN per continuare ad accedere ai servizi sanitari: scarica da https://servizio-sanitario-app.example»",
+      "firstSeen": "2026-09-24",
+      "updatedAt": "2026-09-24",
+      "source": {
+        "name": "CERT-AGID",
+        "url": "https://cert-agid.gov.it/news/falso-sito-del-servizio-sanitario-nazionale-distribuisce-streamrat-su-android-e-xworm-su-windows/"
+      },
+      "status": "in_corso"
+    },
+    {
+      "id": "biglietti-concerti-codici-falsi",
+      "title": "Biglietti per concerti: false mail con codici di acquisto",
+      "category": "acquisti",
+      "summary": "Dopo l'estrazione per i biglietti di un grande concerto, truffatori inviano mail e messaggi che promettono codici di accesso alla vendita o chiedono di agire in fretta. I link portano a siti clone che rubano password e dati della carta. Il codice di accesso non si compra e non garantisce il biglietto.",
+      "signals": [
+        "Qualcuno ti vende un codice di accesso alla vendita dei biglietti",
+        "Email da un indirizzo diverso da quello autorizzato dall'organizzatore",
+        "Link che chiedono password o dati della carta",
+        "Un sito che sembra quello ufficiale ma ha un indirizzo diverso"
+      ],
+      "actions": [
+        "Controlla che la mail arrivi dal mittente autorizzato prima di fare altro",
+        "Non inserire password o dati della carta da link ricevuti via mail o messaggio",
+        "Compra solo dai canali ufficiali indicati dall'organizzatore",
+        "Segnala la truffa alla Polizia Postale"
+      ],
+      "example": "«Hai vinto l'accesso prioritario! Acquista il tuo codice a 90 euro su https://biglietti-prioritari.example»",
+      "firstSeen": "2026-09-25",
+      "updatedAt": "2026-09-25",
+      "source": {
+        "name": "Polizia Postale (commissariatodips.it)",
+        "url": "https://www.commissariatodips.it/notizie/articolo/biglietti-per-concerti-occhio-alle-truffe/index.html"
+      },
+      "status": "in_corso"
+    }
+  ]
+}

@@ -1,0 +1,2189 @@
+{
+ "version": 1,
+ "thresholds": {
+  "probable": 55,
+  "suspect": 25
+ },
+ "lists": {
+  "brands": [
+   {
+    "name": "Poste Italiane",
+    "category": "banca",
+    "tokens": [
+     "poste",
+     "postepay",
+     "posteitaliane",
+     "bancoposta",
+     "postemobile"
+    ],
+    "aliases": [
+     "poste italiane",
+     "postepay",
+     "bancoposta",
+     "poste",
+     "postemobile",
+     "poste mobile"
+    ],
+    "official": [
+     "poste.it",
+     "postepay.it",
+     "posteitaliane.it",
+     "bancoposta.it",
+     "postemobile.it",
+     "posteshop.it",
+     "postel.it",
+     "postevita.it",
+     "posteassicura.it"
+    ]
+   },
+   {
+    "name": "Intesa Sanpaolo",
+    "category": "banca",
+    "tokens": [
+     "intesasanpaolo",
+     "intesa",
+     "sanpaolo"
+    ],
+    "aliases": [
+     "intesa sanpaolo",
+     "intesa san paolo"
+    ],
+    "official": [
+     "intesasanpaolo.com",
+     "intesasanpaolo.it",
+     "isybank.com",
+     "inbank.it"
+    ]
+   },
+   {
+    "name": "UniCredit",
+    "category": "banca",
+    "tokens": [
+     "unicredit"
+    ],
+    "aliases": [
+     "unicredit"
+    ],
+    "official": [
+     "unicredit.it",
+     "unicredit.eu",
+     "unicredit.com",
+     "unicreditgroup.eu"
+    ]
+   },
+   {
+    "name": "BNL",
+    "category": "banca",
+    "tokens": [
+     "bnl",
+     "bnpparibas"
+    ],
+    "aliases": [
+     "bnl",
+     "bnp paribas"
+    ],
+    "official": [
+     "bnl.it",
+     "bnpparibas.com",
+     "bnpparibas.it",
+     "hellobank.it"
+    ]
+   },
+   {
+    "name": "Monte dei Paschi",
+    "category": "banca",
+    "tokens": [
+     "mps",
+     "montepaschi",
+     "bancamps"
+    ],
+    "aliases": [
+     "monte dei paschi",
+     "mps",
+     "banca mps"
+    ],
+    "official": [
+     "mps.it",
+     "gruppomps.it",
+     "widiba.it"
+    ]
+   },
+   {
+    "name": "Banco BPM",
+    "category": "banca",
+    "tokens": [
+     "bancobpm",
+     "bpm",
+     "webank"
+    ],
+    "aliases": [
+     "banco bpm",
+     "bpm",
+     "webank"
+    ],
+    "official": [
+     "bancobpm.it",
+     "webank.it",
+     "youweb.it",
+     "bancobpmspa.it"
+    ]
+   },
+   {
+    "name": "BPER",
+    "category": "banca",
+    "tokens": [
+     "bper",
+     "bperbanca"
+    ],
+    "aliases": [
+     "bper",
+     "bper banca"
+    ],
+    "official": [
+     "bper.it",
+     "bpergroup.com",
+     "bperbanca.it",
+     "carige.it"
+    ]
+   },
+   {
+    "name": "Fineco",
+    "category": "banca",
+    "tokens": [
+     "fineco",
+     "finecobank"
+    ],
+    "aliases": [
+     "fineco",
+     "finecobank"
+    ],
+    "official": [
+     "fineco.it",
+     "finecobank.com"
+    ]
+   },
+   {
+    "name": "ING",
+    "category": "banca",
+    "tokens": [
+     "ing",
+     "ingdirect"
+    ],
+    "aliases": [
+     "ing direct",
+     "ing bank"
+    ],
+    "official": [
+     "ing.it",
+     "ing.com",
+     "ingdirect.it"
+    ]
+   },
+   {
+    "name": "N26",
+    "category": "banca",
+    "tokens": [
+     "n26"
+    ],
+    "aliases": [
+     "n26"
+    ],
+    "official": [
+     "n26.com"
+    ]
+   },
+   {
+    "name": "Revolut",
+    "category": "banca",
+    "tokens": [
+     "revolut"
+    ],
+    "aliases": [
+     "revolut"
+    ],
+    "official": [
+     "revolut.com",
+     "revolut.me"
+    ]
+   },
+   {
+    "name": "Banca Mediolanum",
+    "category": "banca",
+    "tokens": [
+     "mediolanum",
+     "bancamediolanum"
+    ],
+    "aliases": [
+     "mediolanum",
+     "banca mediolanum"
+    ],
+    "official": [
+     "bancamediolanum.it",
+     "mediolanum.it",
+     "gruppomediolanum.it"
+    ]
+   },
+   {
+    "name": "Credem",
+    "category": "banca",
+    "tokens": [
+     "credem"
+    ],
+    "aliases": [
+     "credem"
+    ],
+    "official": [
+     "credem.it"
+    ]
+   },
+   {
+    "name": "Banca Sella",
+    "category": "banca",
+    "tokens": [
+     "bancasella",
+     "sella"
+    ],
+    "aliases": [
+     "banca sella"
+    ],
+    "official": [
+     "sella.it",
+     "bancasella.it"
+    ]
+   },
+   {
+    "name": "Satispay",
+    "category": "banca",
+    "tokens": [
+     "satispay"
+    ],
+    "aliases": [
+     "satispay"
+    ],
+    "official": [
+     "satispay.com",
+     "satispay.it"
+    ]
+   },
+   {
+    "name": "Nexi",
+    "category": "banca",
+    "tokens": [
+     "nexi",
+     "nexipayments"
+    ],
+    "aliases": [
+     "nexi"
+    ],
+    "official": [
+     "nexi.it",
+     "nexigroup.com",
+     "nexi.com"
+    ]
+   },
+   {
+    "name": "American Express",
+    "category": "banca",
+    "tokens": [
+     "amex",
+     "americanexpress"
+    ],
+    "aliases": [
+     "american express",
+     "amex"
+    ],
+    "official": [
+     "americanexpress.com",
+     "americanexpress.it",
+     "amex.com"
+    ]
+   },
+   {
+    "name": "Findomestic",
+    "category": "banca",
+    "tokens": [
+     "findomestic"
+    ],
+    "aliases": [
+     "findomestic"
+    ],
+    "official": [
+     "findomestic.it"
+    ]
+   },
+   {
+    "name": "Mooney",
+    "category": "banca",
+    "tokens": [
+     "mooney"
+    ],
+    "aliases": [
+     "mooney"
+    ],
+    "official": [
+     "mooney.it"
+    ]
+   },
+   {
+    "name": "Unipol",
+    "category": "banca",
+    "tokens": [
+     "unipol",
+     "unipolsai"
+    ],
+    "aliases": [
+     "unipol",
+     "unipolsai"
+    ],
+    "official": [
+     "unipol.it",
+     "unipolsai.it"
+    ]
+   },
+   {
+    "name": "PayPal",
+    "category": "account",
+    "tokens": [
+     "paypal"
+    ],
+    "aliases": [
+     "paypal"
+    ],
+    "official": [
+     "paypal.com",
+     "paypal.me",
+     "paypal.it",
+     "paypalobjects.com"
+    ]
+   },
+   {
+    "name": "Amazon",
+    "category": "account",
+    "tokens": [
+     "amazon"
+    ],
+    "aliases": [
+     "amazon",
+     "amazon prime",
+     "prime video"
+    ],
+    "official": [
+     "amazon.it",
+     "amazon.com",
+     "amazon.de",
+     "amazon.es",
+     "amazon.fr",
+     "amazon.co.uk",
+     "amzn.to",
+     "amzn.eu",
+     "a.co",
+     "amazon.jobs"
+    ]
+   },
+   {
+    "name": "Netflix",
+    "category": "account",
+    "tokens": [
+     "netflix"
+    ],
+    "aliases": [
+     "netflix"
+    ],
+    "official": [
+     "netflix.com",
+     "nflxso.net"
+    ]
+   },
+   {
+    "name": "Apple",
+    "category": "account",
+    "tokens": [
+     "apple",
+     "icloud",
+     "appleid"
+    ],
+    "aliases": [
+     "apple",
+     "icloud",
+     "apple id"
+    ],
+    "official": [
+     "apple.com",
+     "icloud.com",
+     "me.com"
+    ]
+   },
+   {
+    "name": "Google",
+    "category": "account",
+    "tokens": [
+     "google",
+     "gmail"
+    ],
+    "aliases": [
+     "google",
+     "gmail"
+    ],
+    "official": [
+     "google.com",
+     "google.it",
+     "gmail.com",
+     "g.co",
+     "youtube.com",
+     "withgoogle.com"
+    ]
+   },
+   {
+    "name": "Microsoft",
+    "category": "account",
+    "tokens": [
+     "microsoft",
+     "outlook",
+     "office365",
+     "onedrive"
+    ],
+    "aliases": [
+     "microsoft",
+     "outlook",
+     "office 365",
+     "onedrive"
+    ],
+    "official": [
+     "microsoft.com",
+     "live.com",
+     "outlook.com",
+     "office.com",
+     "microsoftonline.com",
+     "office365.com",
+     "hotmail.com",
+     "msn.com",
+     "windows.com",
+     "sharepoint.com"
+    ]
+   },
+   {
+    "name": "Facebook",
+    "category": "social",
+    "tokens": [
+     "facebook"
+    ],
+    "aliases": [
+     "facebook",
+     "messenger"
+    ],
+    "official": [
+     "facebook.com",
+     "fb.com",
+     "fb.me",
+     "meta.com",
+     "messenger.com"
+    ]
+   },
+   {
+    "name": "Instagram",
+    "category": "social",
+    "tokens": [
+     "instagram"
+    ],
+    "aliases": [
+     "instagram"
+    ],
+    "official": [
+     "instagram.com",
+     "ig.me"
+    ]
+   },
+   {
+    "name": "WhatsApp",
+    "category": "social",
+    "tokens": [
+     "whatsapp"
+    ],
+    "aliases": [
+     "whatsapp"
+    ],
+    "official": [
+     "whatsapp.com",
+     "whatsapp.net",
+     "wa.me"
+    ]
+   },
+   {
+    "name": "Telegram",
+    "category": "social",
+    "tokens": [
+     "telegram"
+    ],
+    "aliases": [
+     "telegram"
+    ],
+    "official": [
+     "telegram.org",
+     "t.me",
+     "telegram.me"
+    ]
+   },
+   {
+    "name": "Binance",
+    "category": "investimenti",
+    "tokens": [
+     "binance"
+    ],
+    "aliases": [
+     "binance"
+    ],
+    "official": [
+     "binance.com"
+    ]
+   },
+   {
+    "name": "Coinbase",
+    "category": "investimenti",
+    "tokens": [
+     "coinbase"
+    ],
+    "aliases": [
+     "coinbase"
+    ],
+    "official": [
+     "coinbase.com"
+    ]
+   },
+   {
+    "name": "TIM",
+    "category": "telefonia",
+    "tokens": [
+     "tim",
+     "timvision",
+     "telecomitalia",
+     "gruppotim"
+    ],
+    "aliases": [
+     "tim",
+     "telecom italia",
+     "timvision"
+    ],
+    "official": [
+     "tim.it",
+     "gruppotim.it",
+     "telecomitalia.it",
+     "timvision.it",
+     "timgroup.com"
+    ]
+   },
+   {
+    "name": "Vodafone",
+    "category": "telefonia",
+    "tokens": [
+     "vodafone"
+    ],
+    "aliases": [
+     "vodafone"
+    ],
+    "official": [
+     "vodafone.it",
+     "vodafone.com"
+    ]
+   },
+   {
+    "name": "WindTre",
+    "category": "telefonia",
+    "tokens": [
+     "windtre",
+     "wind3"
+    ],
+    "aliases": [
+     "windtre",
+     "wind tre",
+     "wind3"
+    ],
+    "official": [
+     "windtre.it",
+     "wind.it",
+     "tre.it"
+    ]
+   },
+   {
+    "name": "Iliad",
+    "category": "telefonia",
+    "tokens": [
+     "iliad"
+    ],
+    "aliases": [
+     "iliad"
+    ],
+    "official": [
+     "iliad.it",
+     "iliad.fr"
+    ]
+   },
+   {
+    "name": "Fastweb",
+    "category": "telefonia",
+    "tokens": [
+     "fastweb"
+    ],
+    "aliases": [
+     "fastweb"
+    ],
+    "official": [
+     "fastweb.it"
+    ]
+   },
+   {
+    "name": "Enel",
+    "category": "bollette",
+    "tokens": [
+     "enel",
+     "enelenergia",
+     "enelx"
+    ],
+    "aliases": [
+     "enel",
+     "enel energia",
+     "enel x"
+    ],
+    "official": [
+     "enel.it",
+     "enel.com",
+     "enelenergia.it",
+     "enelx.com",
+     "e-distribuzione.it"
+    ]
+   },
+   {
+    "name": "Eni Plenitude",
+    "category": "bollette",
+    "tokens": [
+     "eni",
+     "enigaseluce",
+     "eniplenitude",
+     "plenitude"
+    ],
+    "aliases": [
+     "eni",
+     "eni plenitude",
+     "plenitude",
+     "eni gas e luce"
+    ],
+    "official": [
+     "eni.com",
+     "enigaseluce.com",
+     "eniplenitude.com",
+     "plenitude.com",
+     "eni.it"
+    ]
+   },
+   {
+    "name": "A2A",
+    "category": "bollette",
+    "tokens": [
+     "a2a"
+    ],
+    "aliases": [
+     "a2a"
+    ],
+    "official": [
+     "a2a.it",
+     "a2a.eu",
+     "a2aenergia.eu"
+    ]
+   },
+   {
+    "name": "Edison",
+    "category": "bollette",
+    "tokens": [
+     "edison"
+    ],
+    "aliases": [
+     "edison"
+    ],
+    "official": [
+     "edison.it",
+     "edisonenergia.it"
+    ]
+   },
+   {
+    "name": "Hera",
+    "category": "bollette",
+    "tokens": [
+     "hera",
+     "heracomm"
+    ],
+    "aliases": [
+     "hera comm",
+     "gruppo hera"
+    ],
+    "official": [
+     "gruppohera.it",
+     "heracomm.it",
+     "hera.it"
+    ]
+   },
+   {
+    "name": "Acea",
+    "category": "bollette",
+    "tokens": [
+     "acea"
+    ],
+    "aliases": [
+     "acea"
+    ],
+    "official": [
+     "acea.it"
+    ]
+   },
+   {
+    "name": "Iren",
+    "category": "bollette",
+    "tokens": [
+     "iren"
+    ],
+    "aliases": [
+     "iren"
+    ],
+    "official": [
+     "gruppoiren.it",
+     "irenlucegas.it",
+     "iren.it"
+    ]
+   },
+   {
+    "name": "INPS",
+    "category": "fisco",
+    "tokens": [
+     "inps"
+    ],
+    "aliases": [
+     "inps"
+    ],
+    "official": [
+     "inps.it"
+    ]
+   },
+   {
+    "name": "INAIL",
+    "category": "fisco",
+    "tokens": [
+     "inail"
+    ],
+    "aliases": [
+     "inail"
+    ],
+    "official": [
+     "inail.it"
+    ]
+   },
+   {
+    "name": "Agenzia delle Entrate",
+    "category": "fisco",
+    "tokens": [
+     "agenziaentrate",
+     "agenziaentrateriscossione",
+     "entrate"
+    ],
+    "aliases": [
+     "agenzia delle entrate",
+     "agenzia entrate",
+     "agenzia delle entrate-riscossione"
+    ],
+    "official": [
+     "agenziaentrate.gov.it",
+     "agenziaentrateriscossione.gov.it"
+    ]
+   },
+   {
+    "name": "Agenzia delle Dogane",
+    "category": "fisco",
+    "tokens": [
+     "agenziadogane",
+     "adm"
+    ],
+    "aliases": [
+     "agenzia delle dogane",
+     "agenzia dogane e monopoli"
+    ],
+    "official": [
+     "adm.gov.it",
+     "agenziadoganemonopoli.gov.it"
+    ]
+   },
+   {
+    "name": "PagoPA",
+    "category": "fisco",
+    "tokens": [
+     "pagopa"
+    ],
+    "aliases": [
+     "pagopa",
+     "pago pa"
+    ],
+    "official": [
+     "pagopa.it",
+     "pagopa.gov.it",
+     "pagopa.com"
+    ]
+   },
+   {
+    "name": "SPID",
+    "category": "identita",
+    "tokens": [
+     "spid",
+     "agid",
+     "cie",
+     "identitadigitale"
+    ],
+    "aliases": [
+     "spid",
+     "identità digitale",
+     "agid"
+    ],
+    "official": [
+     "spid.gov.it",
+     "agid.gov.it",
+     "identitadigitale.gov.it",
+     "aruba.it",
+     "infocert.it",
+     "namirial.com",
+     "sielte.it"
+    ]
+   },
+   {
+    "name": "Telepass",
+    "category": "pedaggio",
+    "tokens": [
+     "telepass",
+     "autostrade",
+     "autostradeperlitalia",
+     "viacard"
+    ],
+    "aliases": [
+     "telepass",
+     "autostrade per l'italia",
+     "autostrade",
+     "viacard"
+    ],
+    "official": [
+     "telepass.com",
+     "telepass.it",
+     "autostrade.it",
+     "autostradeperlitalia.it"
+    ]
+   },
+   {
+    "name": "SDA",
+    "category": "pacco",
+    "tokens": [
+     "sda"
+    ],
+    "aliases": [
+     "sda"
+    ],
+    "official": [
+     "sda.it"
+    ]
+   },
+   {
+    "name": "BRT",
+    "category": "pacco",
+    "tokens": [
+     "brt",
+     "bartolini"
+    ],
+    "aliases": [
+     "brt",
+     "bartolini"
+    ],
+    "official": [
+     "brt.it",
+     "brt.com",
+     "mybrt.it"
+    ]
+   },
+   {
+    "name": "GLS",
+    "category": "pacco",
+    "tokens": [
+     "gls",
+     "glsitaly"
+    ],
+    "aliases": [
+     "gls"
+    ],
+    "official": [
+     "gls-italy.com",
+     "gls-group.com",
+     "gls-group.eu",
+     "gls.it",
+     "glsitaly.it"
+    ]
+   },
+   {
+    "name": "DHL",
+    "category": "pacco",
+    "tokens": [
+     "dhl"
+    ],
+    "aliases": [
+     "dhl",
+     "dhl express"
+    ],
+    "official": [
+     "dhl.com",
+     "dhl.it"
+    ]
+   },
+   {
+    "name": "UPS",
+    "category": "pacco",
+    "tokens": [
+     "ups"
+    ],
+    "aliases": [
+     "ups"
+    ],
+    "official": [
+     "ups.com"
+    ]
+   },
+   {
+    "name": "FedEx",
+    "category": "pacco",
+    "tokens": [
+     "fedex"
+    ],
+    "aliases": [
+     "fedex"
+    ],
+    "official": [
+     "fedex.com"
+    ]
+   },
+   {
+    "name": "TNT",
+    "category": "pacco",
+    "tokens": [
+     "tnt"
+    ],
+    "aliases": [
+     "tnt"
+    ],
+    "official": [
+     "tnt.com",
+     "tnt.it"
+    ]
+   },
+   {
+    "name": "InPost",
+    "category": "pacco",
+    "tokens": [
+     "inpost"
+    ],
+    "aliases": [
+     "inpost"
+    ],
+    "official": [
+     "inpost.it",
+     "inpost.eu",
+     "inpost.pl"
+    ]
+   },
+   {
+    "name": "eBay",
+    "category": "vendite",
+    "tokens": [
+     "ebay"
+    ],
+    "aliases": [
+     "ebay"
+    ],
+    "official": [
+     "ebay.it",
+     "ebay.com"
+    ]
+   },
+   {
+    "name": "Vinted",
+    "category": "vendite",
+    "tokens": [
+     "vinted"
+    ],
+    "aliases": [
+     "vinted"
+    ],
+    "official": [
+     "vinted.it",
+     "vinted.com"
+    ]
+   },
+   {
+    "name": "Trenitalia",
+    "category": "viaggi",
+    "tokens": [
+     "trenitalia",
+     "italotreno"
+    ],
+    "aliases": [
+     "trenitalia",
+     "italo treno",
+     "italotreno"
+    ],
+    "official": [
+     "trenitalia.com",
+     "italotreno.it",
+     "italotreno.com",
+     "lefrecce.it",
+     "trenord.it"
+    ]
+   },
+   {
+    "name": "Ryanair",
+    "category": "viaggi",
+    "tokens": [
+     "ryanair"
+    ],
+    "aliases": [
+     "ryanair"
+    ],
+    "official": [
+     "ryanair.com"
+    ]
+   },
+   {
+    "name": "Booking.com",
+    "category": "viaggi",
+    "tokens": [
+     "booking"
+    ],
+    "aliases": [
+     "booking.com",
+     "booking"
+    ],
+    "official": [
+     "booking.com"
+    ]
+   },
+   {
+    "name": "Airbnb",
+    "category": "viaggi",
+    "tokens": [
+     "airbnb"
+    ],
+    "aliases": [
+     "airbnb"
+    ],
+    "official": [
+     "airbnb.com",
+     "airbnb.it"
+    ]
+   }
+  ],
+  "riskyTlds": [
+   "cc",
+   "xyz",
+   "top",
+   "click",
+   "icu",
+   "cfd",
+   "vip",
+   "buzz",
+   "sbs",
+   "cyou",
+   "rest",
+   "monster",
+   "support",
+   "loan",
+   "men",
+   "date",
+   "review",
+   "stream",
+   "download",
+   "racing",
+   "win",
+   "bid",
+   "trade",
+   "party",
+   "science",
+   "cricket",
+   "faith",
+   "accountant",
+   "tk",
+   "ml",
+   "ga",
+   "cf",
+   "gq",
+   "pw",
+   "su",
+   "cam",
+   "bond",
+   "help",
+   "work",
+   "fit"
+  ],
+  "shorteners": [
+   "bit.ly",
+   "tinyurl.com",
+   "t.ly",
+   "cutt.ly",
+   "is.gd",
+   "rb.gy",
+   "shorturl.at",
+   "ow.ly",
+   "goo.gl",
+   "tiny.cc",
+   "s.id",
+   "rebrand.ly",
+   "short.io",
+   "bit.do",
+   "buff.ly",
+   "lnkd.in",
+   "v.gd",
+   "clck.ru",
+   "u.to",
+   "adf.ly",
+   "bl.ink",
+   "soo.gd",
+   "tr.ee",
+   "shorte.st",
+   "shrtco.de",
+   "1url.com",
+   "tny.im",
+   "x.co",
+   "ift.tt",
+   "cli.re",
+   "dlvr.it",
+   "po.st",
+   "zpr.io",
+   "lc.cx",
+   "ouo.io",
+   "gg.gg",
+   "kutt.it",
+   "tiny.one",
+   "2u.pw",
+   "chilp.it",
+   "link.tl",
+   "mez.ro",
+   "qrco.de",
+   "bitly.ws",
+   "urlz.fr"
+  ],
+  "suspiciousDomainWords": [
+   "pay",
+   "parcheggio",
+   "sosta",
+   "colonnina",
+   "ricarica",
+   "wifi",
+   "gratis",
+   "ritira",
+   "verifica",
+   "verifiche",
+   "sicurezza",
+   "secure",
+   "login",
+   "accedi",
+   "accesso",
+   "account",
+   "update",
+   "aggiorna",
+   "aggiornamento",
+   "rimborso",
+   "rimborsi",
+   "tracking",
+   "spedizione",
+   "pagamento",
+   "pagamenti",
+   "conferma",
+   "sblocca",
+   "sblocco",
+   "assistenza",
+   "supporto",
+   "servizio",
+   "servizi",
+   "clienti",
+   "ritiro",
+   "giacenza",
+   "pedaggio",
+   "pedaggi",
+   "multa",
+   "multe",
+   "bonus",
+   "premio",
+   "riservata",
+   "customer",
+   "support",
+   "service",
+   "verify",
+   "confirm",
+   "refund",
+   "delivery",
+   "parcel",
+   "track",
+   "billing",
+   "invoice",
+   "fattura",
+   "attivazione",
+   "rinnovo"
+  ],
+  "trustedDomains": [
+   "ilpost.it",
+   "repubblica.it",
+   "corriere.it",
+   "ansa.it",
+   "ilsole24ore.com",
+   "lastampa.it",
+   "ilfattoquotidiano.it",
+   "wikipedia.org",
+   "rai.it",
+   "mediaset.it",
+   "sky.it",
+   "zalando.it",
+   "ikea.com",
+   "lidl.it",
+   "esselunga.it",
+   "coop.it",
+   "conad.it",
+   "carrefour.it",
+   "mediaworld.it",
+   "unieuro.it",
+   "leroymerlin.it",
+   "decathlon.it",
+   "subito.it",
+   "pagopa.it"
+  ],
+  "mismatchCategories": [
+   "banca",
+   "pacco",
+   "fisco",
+   "telefonia",
+   "bollette",
+   "pedaggio",
+   "identita",
+   "account"
+  ]
+ },
+ "actions": {
+  "probabile": [
+   "Non cliccare sui link e non rispondere al messaggio.",
+   "Non comunicare a nessuno codici, PIN, password o dati della carta.",
+   "Se hai già inserito dati o fatto un pagamento, contatta subito la tua banca al numero ufficiale (sul retro della carta o sul sito) e blocca la carta.",
+   "Puoi segnalare il tentativo alla Polizia Postale su commissariatodips.it."
+  ],
+  "sospetto": [
+   "Non cliccare sul link e non rispondere finché non hai verificato.",
+   "Verifica contattando direttamente l'ente o l'azienda dal sito o dall'app ufficiale, non dai recapiti nel messaggio.",
+   "Non comunicare mai codici, PIN o password."
+  ],
+  "nessuno": [
+   "Nessun segnale evidente non significa che il messaggio sia sicuro: l'assenza di segnali non è una garanzia.",
+   "Se hai dubbi, non cliccare sui link e verifica tramite il sito o l'app ufficiale.",
+   "Non comunicare mai codici, PIN o password a chi te li chiede."
+  ],
+  "pacco": [
+   "Controlla lo stato della spedizione solo dal sito o dall'app ufficiale del corriere, digitando tu l'indirizzo."
+  ],
+  "pedaggio": [
+   "Verifica eventuali pedaggi solo sul sito o sull'app ufficiale del gestore (Telepass, Autostrade)."
+  ],
+  "banca": [
+   "La tua banca non ti chiede mai codici o PIN per messaggio o telefono: chiamala tu al numero ufficiale."
+  ],
+  "identita": [
+   "Controlla lo stato di SPID o CIE solo accedendo dal sito o dall'app del tuo gestore."
+  ],
+  "fisco": [
+   "Verifica rimborsi e comunicazioni accedendo tu all'area riservata del sito ufficiale (Agenzia delle Entrate, INPS)."
+  ],
+  "multa": [
+   "Per verificare una multa usa il sito del comando di polizia o l'app ufficiale PagoPA, non il link ricevuto."
+  ],
+  "premio": [
+   "Nessun premio si ritira pagando o inserendo dati: ignora il messaggio."
+  ],
+  "familiare": [
+   "Prima di inviare denaro, chiama il familiare al numero che già conosci per verificare che sia davvero lui."
+  ],
+  "investimenti": [
+   "Diffida dei guadagni garantiti: prima di versare denaro verifica che il soggetto sia autorizzato su consob.it."
+  ],
+  "lavoro": [
+   "Un'offerta di lavoro seria non ti chiede denaro né dati bancari in anticipo."
+  ],
+  "bollette": [
+   "Verifica le bollette solo dall'area clienti del tuo fornitore, accedendo dal sito o dall'app ufficiale."
+  ],
+  "account": [
+   "Accedi al tuo account digitando tu l'indirizzo del sito o dall'app ufficiale, mai dal link nel messaggio."
+  ],
+  "telefonia": [
+   "Verifica lo stato della linea dall'app o dal sito del tuo operatore."
+  ],
+  "vendite": [
+   "Non inserire i dati della carta per «ricevere» un pagamento: per incassare non serve mai."
+  ],
+  "assistenza_remota": [
+   "Non chiamare numeri comparsi in avvisi su PC o telefono e non installare app di controllo remoto su richiesta di sconosciuti."
+  ],
+  "anticipo": [
+   "Nessuna somma o eredità si riceve pagando prima commissioni o tasse: ignora il messaggio."
+  ],
+  "ricatto": [
+   "Non pagare: è un bluff diffuso. Cambia le password, attiva la verifica in due passaggi e puoi segnalare alla Polizia Postale."
+  ],
+  "documenti": [
+   "Non inviare foto di documenti o selfie a chi te li chiede per messaggio."
+  ]
+ },
+ "rules": [
+  {
+   "id": "URG-01",
+   "category": "urgenza",
+   "weight": 10,
+   "explanation": "Il messaggio mette fretta: i truffatori usano scadenze strette per non farti riflettere.",
+   "example": "Agisci entro 24 ore",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:entro|nelle prossime) (?:[0-9]{1,2}|ventiquattro|quarantotto|due|tre) ?(?:ore|h)\\b"
+   ],
+   "keywords": [
+    "immediatamente",
+    "urgente",
+    "urgentemente",
+    "con urgenza",
+    "ultima possibilità",
+    "senza ritardo",
+    "al più presto",
+    "chiama subito",
+    "chiami subito",
+    "contatta subito",
+    "contatti subito",
+    "richiama subito",
+    "solo oggi",
+    "ultimi posti"
+   ],
+   "unless": null
+  },
+  {
+   "id": "URG-02",
+   "category": "urgenza",
+   "weight": 20,
+   "explanation": "Minaccia di blocco o sospensione di conto, carta o servizio: è un pretesto tipico per farti cliccare.",
+   "example": "Il tuo conto verrà sospeso",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:account|conto|carta|profilo|utenza|servizio|accesso|numero|linea|sim|fornitura|spid|identità)\\b.{0,30}\\b(?:bloccat[oaie]|sospes[oaie]|limitat[oaie]|disattivat[oaie]|cancellat[oaie]|compromess[oaie])",
+    "\\b(?:verrà|sarà|verranno|saranno) (?:bloccat|sospes|disattivat|cancellat|chius)[oaie]\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "URG-03",
+   "category": "urgenza",
+   "weight": 15,
+   "explanation": "Toni da «ultimo avviso» o diffida: tipici dei messaggi che cercano di spaventarti.",
+   "example": "Ultimo avviso prima della diffida",
+   "kind": "regex",
+   "patterns": [],
+   "keywords": [
+    "ultimo avviso",
+    "ultima notifica",
+    "ultimo sollecito",
+    "diffida",
+    "intimazione",
+    "ultimo giorno utile"
+   ],
+   "unless": null
+  },
+  {
+   "id": "URG-04",
+   "category": "urgenza",
+   "weight": 15,
+   "explanation": "Minaccia di conseguenze legali o economiche per spingerti ad agire subito.",
+   "example": "Altrimenti pignoramento e azioni legali",
+   "kind": "regex",
+   "patterns": [
+    "\\bse non (?:provvedi|paghi|regolarizzi|aggiorni|confermi|verifichi|effettui|rispondi|agisci)\\b",
+    "\\b(?:in caso contrario|in mancanza)\\b.{0,40}\\b(?:bloccat|sospes|addebit|sanzion|disattivat|annullat)",
+    "\\bper evitare\\b.{0,30}\\b(?:il |la |lo |l')?(?:sequestro|denuncia|pignoramento|sanzione|blocco|sospensione|multa)"
+   ],
+   "keywords": [
+    "azioni legali",
+    "azione giudiziaria",
+    "pignoramento",
+    "fermo amministrativo",
+    "denuncia penale",
+    "sanzione aumentata",
+    "recupero crediti",
+    "ganasce fiscali"
+   ],
+   "unless": null
+  },
+  {
+   "id": "PAC-01",
+   "category": "pacco",
+   "weight": 25,
+   "explanation": "Falso avviso di pacco in giacenza, consegna fallita o indirizzo da aggiornare: truffa molto diffusa.",
+   "example": "Il tuo pacco è in giacenza",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:pacco|spedizione|consegna|collo|pacchetto|ordine)\\b.{0,50}\\b(?:giacenza|non (?:è|e'|e) stat[oa] (?:consegnat|recapitat)[oa]|non può essere (?:consegnat|recapitat)[oa]|non consegnabil[ei]|in sospeso|bloccat[oa]|fallit[oa]|non riuscit[oa]|mancat[oa]|sospes[oa]|rifiutat[oa]|trattenut[oa]|in attesa di (?:conferma|pagamento|indirizzo|ritiro))",
+    "\\bgiacenza\\b",
+    "\\btentativo di consegna\\b.{0,30}\\b(?:fallit|non riuscit|mancat)",
+    "\\b(?:indirizzo|civico|cap) (?:incompleto|errato|sbagliato|non valido|non corretto)\\b",
+    "\\b(?:aggiorna|conferma|verifica|completa|riprogramma|pianifica|prenota|rischedula)\\b.{0,30}\\b(?:indirizzo|dati di consegna|la consegna|il ritiro)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "PAC-02",
+   "category": "pacco",
+   "weight": 30,
+   "explanation": "Ti chiedono di pagare piccole spese di spedizione, dogana o riconsegna: serve a rubarti i dati della carta.",
+   "example": "Paga 1,99 euro di spese di riconsegna",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:spese|costi|tasse?|dazi|commissione)\\b.{0,25}\\b(?:spedizione|dogana|doganali?|riconsegna|giacenza|sdoganamento|rispedizione)\\b.{0,60}\\b(?:da pagare|da saldare|dovut|insolut|pagament|pagare|saldare|regolariz|non pagat)",
+    "\\b(?:sdoganamento|dazi doganali|tassa doganale|spese doganali)\\b",
+    "\\bpaga\\b.{0,20}\\bdogana\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "PED-01",
+   "category": "pedaggio",
+   "weight": 30,
+   "explanation": "Falso avviso di pedaggio autostradale non pagato.",
+   "example": "Pedaggio autostradale non pagato",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:pedaggio|pedaggi|telepass|autostrad[ae]|viacard)\\b.{0,60}\\b(?:non pagat|insolut|scadut|da saldare|da regolarizzare|da pagare|omess[oi]|non saldat|sospes|sanzion)",
+    "\\b(?:mancato|omesso) pagamento\\b.{0,40}\\b(?:pedaggio|autostrad|telepass)"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "BAN-01",
+   "category": "banca",
+   "weight": 25,
+   "explanation": "Segnala un accesso o un'operazione anomala o si presenta come «ufficio antifrode»: è un pretesto per spaventarti.",
+   "example": "Rilevato accesso anomalo al tuo conto",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:accesso|attività|operazione|transazione|addebito|pagamento|login|tentativo di accesso|movimento|bonifico)\\b.{0,25}\\b(?:anomal[oi]a?|sospett[oa]|non autorizzat[oa]|non riconosciut[oa]|insolit[oa]|irregolare|fraudolent[oa]|da un nuovo dispositivo)",
+    "\\btentativo di (?:bonifico|pagamento|addebito|accesso|login|operazione)\\b",
+    "\\b(?:servizio|ufficio|reparto|team|area|dipartimento) (?:antifrode|sicurezza|frodi|contrasto frodi)\\b",
+    "\\bsono (?:dell'|del|della) (?:assistenza|servizio|ufficio) (?:della tua banca|della banca|antifrode|sicurezza)"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "BAN-02",
+   "category": "banca",
+   "weight": 25,
+   "explanation": "Ti chiedono di verificare, aggiornare o confermare i tuoi dati, o dicono che app e token sono scaduti: le banche non lo fanno per messaggio.",
+   "example": "Verifica i tuoi dati per evitare il blocco",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:verific|aggiorn|conferm|convalid|riattiv|sblocc|autentic|ripristin)\\w{1,8}\\b.{0,30}\\b(?:dati|account|conto|carta|profilo|identità|credenziali|metodo di pagamento|documento)\\b",
+    "\\b(?:app|token|chiave digitale|certificato|dispositivo|sicurezza)\\b.{0,30}\\b(?:scadut[oa]|disattivat[oa]|da riattivare|non (?:più )?attiv[oa]|da aggiornare|obsolet[oa])"
+   ],
+   "keywords": [],
+   "unless": "codice\\b.{0,30}$"
+  },
+  {
+   "id": "BAN-03",
+   "category": "banca",
+   "weight": 40,
+   "explanation": "Ti chiedono di comunicare un codice (OTP, PIN, password): nessuna banca lo chiede mai.",
+   "example": "Comunicaci il codice OTP ricevuto",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:comunic|fornisc|invi|dett|rispond|condivid|trasmett|riport|mand|dimm|dammi|dacci|dateci|legg)\\w{1,8}\\b.{0,40}\\b(?:otp|pin|cvv|cvc|password|codice (?:di )?(?:sicurezza|verifica|conferma|temporaneo|segreto|dispositivo|monouso|otp|ricevuto)|codice (?:che )?(?:ti (?:è|e'|e) arrivato|hai ricevuto)|codice a [0-9] cifre)\\b",
+    "\\b(?:otp|codice a [0-9] cifre|codice di [0-9] cifre|codice (?:ricevuto|via sms|per sms))\\b.{0,60}\\b(?:comunic|dett|legg|rispond|mand|invi|dimm|dammi|dacci|fornisc)\\w{1,8}",
+    "\\b(?:mi serve|mi occorre|mi dai|mi dici|mi passi|mi mandi|mi inoltri|mi indichi|mi legg\\w{1,3}|dammi|dimmi|passami|inviami|mandami|inoltrami)\\b.{0,30}\\bcodice\\b.{0,50}\\b(?:sms|arrivat|ricevut|ricev\\w{1,2}|cifre|verifica|sicurezza|otp|whatsapp)"
+   ],
+   "keywords": [],
+   "unless": "(?:non|mai|senza|evit\\w{1,6}|nessuno)(?: \\w{1,12}){0,3} ?$"
+  },
+  {
+   "id": "BAN-04",
+   "category": "banca",
+   "weight": 35,
+   "explanation": "Ti chiedono dati della carta o credenziali di accesso: non vanno mai inviati per messaggio.",
+   "example": "Inserisci numero carta e CVV",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:inserisc|digit|comunic|fornisc|invi|conferm|aggiorn|indic|mand|dimm)\\w{1,8}\\b.{0,40}\\b(?:numero (?:della |di )?carta|dati (?:della )?carta|dati bancari|dati di pagamento|cvv|cvc|credenziali|nome utente|username|codice fiscale|data di scadenza|pin)\\b"
+   ],
+   "keywords": [],
+   "unless": "(?:non|mai|senza|evit\\w{1,6}|nessuno)(?: \\w{1,12}){0,3} ?$"
+  },
+  {
+   "id": "BAN-07",
+   "category": "banca",
+   "weight": 20,
+   "explanation": "Ti invita a chiamare subito un numero indicato nel messaggio: potrebbe essere un falso operatore.",
+   "example": "Chiama subito il numero 02 1234567",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:chiama|chiami|contatta|telefona|richiama)\\w{0,4}\\b.{0,30}\\b(?:subito|immediatamente|urgentemente|operatore|numero)\\b.{0,25}[0-9]{3}[ .-]?[0-9]{3,4}"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "BAN-10",
+   "category": "banca",
+   "weight": 35,
+   "explanation": "Ti chiede di spostare i soldi su un «conto sicuro»: è una truffa, i conti sicuri non esistono.",
+   "example": "Sposta i fondi su un conto sicuro",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:conto|iban|carta) (?:sicur[oa]|protett[oa]|temporane[oa]|di (?:appoggio|sicurezza))\\b",
+    "\\bmett\\w{1,5} (?:al sicuro|in sicurezza)\\b.{0,15}\\b(?:soldi|fondi|denaro|risparmi)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "SPI-01",
+   "category": "identita",
+   "weight": 30,
+   "explanation": "Falso avviso di scadenza o sospensione di SPID, CIE o tessera sanitaria.",
+   "example": "Il tuo SPID è in scadenza",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:spid|identità digitale|carta d'identità elettronica|cie|tessera sanitaria|firma digitale)\\b.{0,40}\\b(?:scad[ea]\\w{0,4}|in scadenza|da rinnovare|rinnovo|sospes\\w{1,3}|disattiv\\w{1,5}|bloccat\\w|non (?:più )?valid\\w)"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "FIS-01",
+   "category": "fisco",
+   "weight": 25,
+   "explanation": "Promette rimborsi, crediti o bonus a nome di Agenzia delle Entrate, INPS o simili: è un'esca tipica.",
+   "example": "Hai diritto a un rimborso dall'Agenzia delle Entrate",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:rimborso|credito|accredito|somma|importo)\\b.{0,40}\\b(?:agenzia delle entrate|agenzia entrate|inps|inail|ministero|fisco|erario|riscossione)\\b",
+    "\\b(?:agenzia delle entrate|agenzia entrate|inps|inail|fisco|erario)\\b.{0,50}\\b(?:rimborso|credito|accredito|somma a tuo favore)\\b",
+    "\\brimborso\\b.{0,30}\\b(?:fiscale|tasse|imposte|irpef|730|bonus)\\b",
+    "\\b(?:bonus|contributo|assegno unico|sussidio|indennità)\\b.{0,40}\\b(?:richied|riscuot|ottien|accredit|bloccat|sospes)\\w{0,6}"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "FIS-03",
+   "category": "fisco",
+   "weight": 25,
+   "explanation": "Parla di cartelle, accertamenti o intimazioni: verifica sempre dal sito ufficiale dell'ente.",
+   "example": "Cartella esattoriale da pagare",
+   "kind": "regex",
+   "patterns": [],
+   "keywords": [
+    "cartella esattoriale",
+    "intimazione di pagamento",
+    "avviso di accertamento",
+    "cartella di pagamento",
+    "accertamento a suo carico",
+    "accertamento a tuo carico",
+    "è in corso un accertamento",
+    "e' in corso un accertamento",
+    "atto giudiziario"
+   ],
+   "unless": null
+  },
+  {
+   "id": "MUL-01",
+   "category": "multa",
+   "weight": 25,
+   "explanation": "Falso avviso di multa o sanzione da pagare con un link.",
+   "example": "Multa non pagata: paga entro 24 ore",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:multa|contravvenzione|sanzione|verbale|infrazione|violazione (?:del )?codice della strada)\\b.{0,80}\\b(?:pagh\\w{1,3}|paga\\b|pagare|pagament\\w{1,2}|non pagat|insolut|da pagare|da saldare|da regolarizzare|scadut|importo ridott\\w|ridott[oa])"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "MUL-02",
+   "category": "multa",
+   "weight": 25,
+   "explanation": "Si finge una forza dell'ordine o un'autorità e minaccia denunce o sequestri.",
+   "example": "La Polizia Postale ha rilevato un reato a tuo carico",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:polizia|carabinieri|guardia di finanza|interpol|europol|procura|tribunale|questura|prefettura)\\b.{0,60}\\b(?:denunc|indagin|convocazion|sequestr|reato|accus|pedopornograf|mandato|sanzion|provvediment)"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "PRE-01",
+   "category": "premio",
+   "weight": 30,
+   "explanation": "Annuncia una vincita o un premio che non hai mai richiesto.",
+   "example": "Hai vinto un buono da 500 euro",
+   "kind": "regex",
+   "patterns": [
+    "\\bcongratulazioni\\b.{0,40}\\b(?:vint|premio|vincita)",
+    "\\b(?:sei stat[oa] (?:scelt[oa]|selezionat[oa]|estratt[oa])|buono (?:regalo|sconto) da [0-9]+)\\b",
+    "\\b(?:ti (?:è|e'|e) stato assegnato|ti e' stato assegnato|assegnat[oa] (?:un|il) (?:buono|premio|bonus)|hai ottenuto un buono)\\b"
+   ],
+   "keywords": [
+    "hai vinto",
+    "ha vinto",
+    "sei il vincitore",
+    "sei la vincitrice",
+    "vincita",
+    "premio in denaro",
+    "ritira il tuo premio",
+    "riscuoti il premio"
+   ],
+   "unless": null
+  },
+  {
+   "id": "PRE-02",
+   "category": "premio",
+   "weight": 25,
+   "explanation": "Regali gratuiti o sondaggi con premio: esche per rubare dati o farti pagare.",
+   "example": "iPhone gratis rispondendo al sondaggio",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:iphone|samsung galaxy|playstation|ps5|macbook|smart tv|buono amazon)\\b.{0,40}\\b(?:gratis|gratuit\\w|omaggio|regalo|vinto)",
+    "\\b(?:sondaggio|questionario)\\b.{0,50}\\b(?:premio|regalo|buono|vincer|iphone)"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "FAM-01",
+   "category": "familiare",
+   "weight": 40,
+   "explanation": "Messaggio «Ciao mamma/papà» da un numero nuovo: è la truffa del finto figlio.",
+   "example": "Ciao mamma, ho perso il telefono, questo è il mio nuovo numero",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:ciao|ehi|hey|salve),? (?:mamma|papà|papa|mamy|nonno|nonna|zio|zia|ma|pa)\\b.{0,100}\\b(?:nuovo numero|numero nuovo|cambiato numero|ho perso|si (?:è|e'|e) rotto|rotto il telefono|telefono rotto|telefono nuovo|nuovo telefono|cellulare nuovo|nuovo cellulare|salva questo numero)"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "FAM-02",
+   "category": "familiare",
+   "weight": 30,
+   "explanation": "Dice di avere un numero nuovo e ti chiede di salvarlo o di scrivere su WhatsApp, o chiede denaro con urgenza.",
+   "example": "Salva il mio nuovo numero e scrivimi su WhatsApp",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:questo (?:è|e'|e) il mio nuovo numero|ho cambiato numero|ho un nuovo numero|nuovo numero di telefono|scrivimi (?:su|al) (?:whatsapp|nuovo))\\b",
+    "\\b(?:mi servono?|ho bisogno di|puoi (?:farmi|fare)|riesci a (?:fare|farmi)|potresti (?:fare|farmi))\\b.{0,40}\\b(?:bonifico|pagamento|soldi|denaro|prestito|ricarica)\\b.{0,60}\\b(?:urgent\\w{1,3}|subito|adesso|oggi|ti spiego|poi ti|dopo ti|emergenza)",
+    "\\b(?:pagare|saldare)\\b.{0,15}\\b(?:fattura|bolletta|fornitore)\\b.{0,25}\\b(?:per me|al posto mio|adesso|subito|oggi)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "INV-01",
+   "category": "investimenti",
+   "weight": 35,
+   "explanation": "Promette guadagni garantiti, enormi o senza rischi: nessun investimento serio lo fa.",
+   "example": "Guadagni garantiti senza rischi",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:guadagn\\w{1,6}|rendiment\\w{1,3}|profitt\\w{1,3}|raddoppia\\w{0,6}|moltiplica\\w{0,6})\\b.{0,50}\\b(?:garantit[oi]|assicurat[oi]|senza rischi|zero rischi|al giorno|ogni giorno|in pochi giorni|in 24 ore|in una settimana|in un mese|passiv[oi]|immediat[oi])\\b",
+    "\\b(?:senza rischi|rischio zero|guadagno garantito|rendimento garantito|profitti garantiti)\\b",
+    "\\bguadagn\\w{1,6}\\b.{0,20}\\bfino al [0-9][0-9.]{0,6} ?%"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "INV-02",
+   "category": "investimenti",
+   "weight": 20,
+   "explanation": "Parla di cripto, trading o wallet con piattaforme, depositi e consulenti: terreno tipico di truffe.",
+   "example": "Investi in bitcoin sulla nostra piattaforma",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:bitcoin|btc|crypto|criptovalut\\w{1,3}|trading|forex|nft)\\b.{0,60}\\b(?:piattaforma|broker|consulente|gruppo|segnali|investi\\w{0,6}|deposit\\w{1,5}|guadagn\\w{1,6})\\b",
+    "\\b(?:deposit\\w{1,3}|versa\\w{0,3}|invest\\w{1,3})\\b.{0,30}\\b(?:usdt|btc|bitcoin|wallet|eth)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "INV-03",
+   "category": "investimenti",
+   "weight": 25,
+   "explanation": "Ti invita in gruppi Telegram/WhatsApp, o racconta guadagni facili, per spingerti a investire.",
+   "example": "Entra nel gruppo Telegram con segnali di trading",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:gruppo|canale|chat)\\b.{0,15}\\b(?:whatsapp|telegram)\\b.{0,50}\\b(?:investiment|trading|segnali|crypto|guadagn|finanz)",
+    "\\b(?:contattami|scrivimi|aggiungimi|unisciti|entra)\\b.{0,25}\\b(?:telegram|whatsapp|gruppo vip)\\b",
+    "\\b(?:sto facendo soldi|sto guadagnando|facendo soldi|ho già ritirato|rendendo ricch\\w{1,2}|diventat\\w{1,2} ricch\\w{1,2})\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "LAV-01",
+   "category": "lavoro",
+   "weight": 30,
+   "explanation": "Falsa offerta di lavoro con guadagni facili o con richieste di soldi e documenti: spesso serve a rubare dati o denaro.",
+   "example": "Lavoro da casa, guadagni 200 euro al giorno",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:lavoro da casa|lavora da casa|smart ?working|lavoro online|lavoro part[- ]time|offerta di lavoro|opportunità di lavoro|stiamo assumendo|assunzione immediata|ha superato la selezione|risorse umane)\\b.{0,100}(?:\\b(?:guadagn\\w{1,6}|retribuzion\\w{1,3}|compenso|stipendio)\\b|€|\\be(?:uro|ur)\\b|\\biban\\b)",
+    "\\b(?:guadagna|guadagnare|puoi guadagnare)\\b.{0,25}(?:[0-9]{2,5} ?(?:€|\\be(?:uro|ur)\\b)|\\bal giorno\\b|\\ball'ora\\b|\\ba settimana\\b)",
+    "\\b(?:da casa|online|da remoto)\\b.{0,40}[0-9][0-9.]{1,5} ?(?:€|euro)",
+    "\\b(?:compiti semplici|task semplici|(?:mettere|mettendo) (?:like|mi piace)|recensioni (?:su|di) (?:google|amazon|tiktok))\\b",
+    "\\b(?:serve|richiesto|necessario|richiede)\\b.{0,30}\\b(?:versamento|anticipo|contributo|cauzione|kit|quota)\\b.{0,30}[0-9]",
+    "\\bper (?:prelevare|ritirare|incassare|sbloccare)\\b.{0,50}\\b(?:completa\\w{1,3}|effettua\\w{1,3}|ordini|task|compiti|altri)\\b",
+    "\\b(?:collaborator\\w{1,2}|lavoro|lavorare|guadagn\\w{1,6}|assunzion\\w{1,2}|candidat\\w{1,2}|opportunit\\w{1,2})\\b.{0,150}\\b(?:telegram|whatsapp)\\b.{0,40}(?:@\\w{3,}|t\\.me/)"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "ANT-01",
+   "category": "anticipo",
+   "weight": 35,
+   "explanation": "Ti chiedono di pagare commissioni o tasse in anticipo per ricevere una somma: è la classica truffa dell'anticipo.",
+   "example": "Per trasferire l'eredità versi 150 euro di commissione",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:versi|versare|pagare|paghi|pagamento di|bonifico di|invii)\\b.{0,30}[0-9][0-9.,]* ?(?:€|euro|eur|usd)\\b.{0,20}\\b(?:di )?(?:commission\\w{1,2}|spese|tassa|imposta|anticipo|cauzione)\\b",
+    "\\b(?:eredit\\w{1,2}|lascito|fondi bloccati|somma bloccata)\\b.{0,80}\\b(?:commission\\w{1,2}|spese|tassa|imposta|anticipo)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "REC-01",
+   "category": "anticipo",
+   "weight": 40,
+   "explanation": "Offre di recuperare soldi persi in una truffa (spesso chiedendo un anticipo): è una seconda truffa ai danni di chi è già stato truffato.",
+   "example": "Recuperiamo i fondi persi in crypto, anticipo di 300 euro",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:recuper\\w{1,6}|rimbors\\w{1,2}|riavere|riottener\\w{1,2})\\b.{0,40}\\b(?:fondi|crediti|credito|soldi|denaro|somme|capitale)\\b.{0,100}\\b(?:truff\\w{1,2}|crypto|criptovalut\\w{1,3}|investiment\\w{1,2}|perdut\\w{1,2}|persi)\\b",
+    "\\b(?:recuper\\w{1,6}|rimbors\\w{1,2})\\b.{0,100}\\b(?:anticipo|commission\\w{1,2}|pagamento anticipato|quota iniziale)\\b",
+    "\\b(?:anticipo|commission\\w{1,2})\\b.{0,100}\\b(?:recuper\\w{1,6}|rimbors\\w{1,2})\\b.{0,30}\\b(?:fondi|soldi|denaro|somme)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "ENE-01",
+   "category": "bollette",
+   "weight": 25,
+   "explanation": "Falso avviso o falsa offerta su bolletta, distacco o fornitura luce/gas.",
+   "example": "Bolletta luce non pagata, distacco della fornitura",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:bolletta|fattura|fornitura|utenza|contatore)\\b.{0,40}\\b(?:luce|gas|energia|acqua|enel|eni|edison|a2a|hera|acea|iren|sorgenia|plenitude)\\b.{0,60}\\b(?:scadut[aoe]|insolut[aoe]|non pagat[aoe]|sospension\\w{1,2}|sospes[aoe]|distacco|disattivazion\\w{1,2}|interruzion\\w{1,2})",
+    "\\b(?:distacco|sospensione|interruzione)\\b.{0,30}\\b(?:fornitura|luce|gas|energia|utenza)\\b",
+    "\\b(?:risparmia\\w{0,2}|sconto|offerta)\\b.{0,40}\\b(?:bolletta|luce|gas|energia)\\b.{0,60}\\b(?:solo oggi|ultimi giorni|entro oggi|rispondi si|attiva)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "ACC-01",
+   "category": "account",
+   "weight": 25,
+   "explanation": "Dice che un tuo account (Amazon, PayPal, Netflix, Apple...) è bloccato o da verificare, o che un pagamento è stato rifiutato.",
+   "example": "Il tuo account Netflix è sospeso",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:account|profilo|abbonamento|iscrizione|accesso|conto)\\b.{0,30}\\b(?:amazon|netflix|apple|icloud|paypal|google|microsoft|facebook|instagram|whatsapp|disney|spotify|ebay|binance|coinbase|telegram|tiktok|poste|postepay|bancoposta)\\b.{0,50}\\b(?:sospes\\w{1,3}|bloccat\\w{1,2}|limitat\\w{1,2}|scadut\\w{1,2}|disattivat\\w{1,2}|a rischio|compromess\\w{1,2}|violat\\w{1,2}|da verificare|non verificat\\w{1,2})",
+    "\\b(?:amazon|netflix|apple|icloud|paypal|google|microsoft|facebook|instagram|whatsapp|disney|spotify|ebay|binance|coinbase|telegram|tiktok|poste|postepay|bancoposta)\\b.{0,30}\\b(?:account|profilo|abbonamento|conto|metodo di pagamento)\\b.{0,40}\\b(?:sospes\\w{1,3}|bloccat\\w{1,2}|limitat\\w{1,2}|scadut\\w{1,2}|disattivat\\w{1,2}|a rischio|compromess\\w{1,2}|violat\\w{1,2}|da verificare|non verificat\\w{1,2})",
+    "\\b(?:pagamento|rinnovo|metodo di pagamento|carta)\\b.{0,30}\\b(?:rifiutat[oa]|non riuscit[oa]|fallit[oa]|non andat[oa] a buon fine|declinat[oa]|non valid[oa])\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "ACC-03",
+   "category": "account",
+   "weight": 35,
+   "explanation": "Falsa fattura o rinnovo di un servizio con un numero da chiamare per il «rimborso»: serve a farti installare programmi o a rubarti dati.",
+   "example": "Hai rinnovato Prime per 49,99 EUR, chiama il +39... per il rimborso",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:hai rinnovato|ha rinnovato|ha acquistato|hai acquistato|addebito di|fattura)\\b.{0,80}\\b(?:chiama|chiami|contatta|contatti|telefona)\\w{0,4}\\b.{0,40}(?:\\brimborso\\b|\\bannull\\w{1,5}|\\bnumero\\b|\\+)",
+    "\\bse non riconosci\\b.{0,40}\\b(?:addebito|acquisto|ordine|transazione)\\b.{0,40}\\b(?:chiama|chiami|contatta)"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "WAP-01",
+   "category": "account",
+   "weight": 40,
+   "explanation": "Ti chiede di inoltrare un codice che «ti è arrivato per errore»: serve a rubarti l'account WhatsApp.",
+   "example": "Ti è arrivato per errore un codice a 6 cifre, puoi inoltrarmelo?",
+   "kind": "regex",
+   "patterns": [
+    "\\bcodice\\b.{0,60}\\b(?:per (?:errore|sbaglio)|mi puoi (?:inoltrare|rimandare|girare)|puoi (?:inoltrare|girare|rimandare|mandarmi|inviarmi))",
+    "\\b(?:inoltra|girami|rimandami|mandami|inviami)\\w{0,3}\\b.{0,25}\\bcodice\\b",
+    "\\bper (?:errore|sbaglio)\\b.{0,50}\\bcodice\\b.{0,60}\\b(?:giri|girar\\w{1,3}|inoltr\\w{1,4}|rimand\\w{1,4}|mand\\w{1,4}|invi\\w{1,4}|dett\\w{1,4}|pass\\w{1,4}|comunic\\w{1,4})",
+    "\\bcodice\\b.{0,50}\\b(?:me lo|puoi|mi puoi|potresti|mi potresti)\\b.{0,15}\\b(?:gir|inoltr|rimand|mand|invi|dett|pass)\\w{1,4}"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "TEL-01",
+   "category": "telefonia",
+   "weight": 25,
+   "explanation": "Falso avviso del tuo operatore telefonico su SIM o linea da disattivare o verificare.",
+   "example": "La tua SIM TIM verrà disattivata",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:sim|linea|numero|offerta|abbonamento|piano tariffario|credito)\\b.{0,30}\\b(?:tim|vodafone|windtre|wind tre|iliad|fastweb|ho\\. mobile|kena|very mobile|postemobile|tiscali)\\b.{0,60}\\b(?:disattiv\\w{1,5}|sospes\\w{1,3}|scadut\\w{1,2}|bloccat\\w{1,2}|portabilità|clonat\\w{1,2})",
+    "\\b(?:tim|vodafone|windtre|wind tre|iliad|fastweb|ho\\. mobile|kena|very mobile|postemobile|tiscali)\\b.{0,50}\\b(?:disattivazione|sospensione|portabilità|clonazione)\\b",
+    "\\b(?:anomalia|problema)\\b.{0,20}\\b(?:sulla linea|sulla tua linea|sulla connessione)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "SEX-01",
+   "category": "ricatto",
+   "weight": 45,
+   "explanation": "Ricatto con presunti video o foto compromettenti e richiesta di pagamento in bitcoin o ricariche: è sextortion, un bluff.",
+   "example": "Ho hackerato il tuo computer e ti ho filmato con la webcam",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:hackerat\\w{1,2}|trojan|malware|spyware|webcam|videocamera)\\b.{0,100}\\b(?:video|foto|filmat\\w{1,2}|registrat\\w{1,2}|contatti)\\b",
+    "\\b(?:ti ho filmato|ho registrat\\w{1,2}|ho le tue foto|foto intime|video intimi|siti per adulti|tutti i tuoi contatti|la tua password (?:è|e'|e))\\b",
+    "\\b(?:hacker|hackerat\\w{1,2})\\b.{0,80}\\b(?:dati|video|foto|contatti|password)\\b",
+    "\\baltrimenti (?:pubblic|diffond|invier|mand)\\w{1,6}\\b",
+    "\\b(?:bitcoin|btc|usdt|ricarica)\\b.{0,60}\\b(?:entro|ore|giorni)\\b.{0,60}\\b(?:video|foto|contatti|pubblicat\\w{1,2}|inviero|mando|invio)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "SUP-01",
+   "category": "assistenza_remota",
+   "weight": 35,
+   "explanation": "Finto avviso di virus o supporto tecnico con un numero da chiamare: è la truffa dell'assistenza informatica.",
+   "example": "Il tuo PC è infetto, chiama il supporto tecnico",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:virus|infett\\w{1,2}|malware|trojan)\\b.{0,60}\\b(?:chiama|chiami|contatta|contatti|numero verde|supporto tecnico|assistenza)",
+    "\\b(?:chiam\\w{1,6}|contatt\\w{1,6})\\b.{0,30}\\bsupporto tecnico\\b",
+    "\\bnon spegnere\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "DOC-01",
+   "category": "documenti",
+   "weight": 30,
+   "explanation": "Ti chiedono foto di documenti, bollette o un selfie: servono a rubare l'identità.",
+   "example": "Inviaci la foto della carta d'identità e un selfie",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:invia|inviaci|mandaci|manda|mandami|mand\\w{1,3}|allega|carica|fornisci|scatta|invi\\w{1,4})\\b.{0,40}\\b(?:foto|copia|scansione|immagine|selfie|scatto)\\b.{0,30}\\b(?:document\\w{1,2}|carta d'identit|patente|passaporto|codice fiscale|tessera sanitaria|selfie|volto|bolletta|codice pod|contatore)",
+    "\\bselfie con (?:il )?(?:documento|carta)"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "RDP-01",
+   "category": "assistenza_remota",
+   "weight": 40,
+   "explanation": "Ti chiedono di installare un programma di controllo remoto: darebbe il controllo del telefono ai truffatori.",
+   "example": "Installa AnyDesk per l'assistenza",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:installa|scarica|installare|scaricare)\\b.{0,30}\\b(?:app|applicazione|programma|apk|software)\\b.{0,40}\\b(?:assistenza|supporto|sicurezza|banca|accesso remoto|controllo remoto|verifica)"
+   ],
+   "keywords": [
+    "anydesk",
+    "teamviewer",
+    "quicksupport",
+    "rustdesk",
+    "airdroid",
+    "ultraviewer"
+   ],
+   "unless": null
+  },
+  {
+   "id": "PAY-01",
+   "category": "banca",
+   "weight": 30,
+   "explanation": "Chiede pagamenti con gift card, ricariche o criptovalute: modalità non tracciabili, tipiche delle truffe.",
+   "example": "Comprami delle gift card Amazon e mandami i codici",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:gift card|carta regalo|buoni regalo|codici (?:amazon|google play|itunes|apple|steam|paysafecard)|paysafecard|ricarica (?:postepay|paypal)|criptovalute|bitcoin)\\b.{0,50}\\b(?:invia|inviami|mandami|acquista|compra|comprare|acquistare|pagamento|paga|pagare|codice|codici|numero|foto)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "RIS-01",
+   "category": "generico",
+   "weight": 20,
+   "explanation": "Ti chiede di non parlarne con nessuno: i truffatori isolano la vittima.",
+   "example": "Non dirlo a nessuno, resta tra noi",
+   "kind": "regex",
+   "patterns": [],
+   "keywords": [
+    "non dirlo a nessuno",
+    "non parlarne con nessuno",
+    "non parlarne con",
+    "massima riservatezza",
+    "resta tra noi",
+    "strettamente riservato",
+    "non avvisare la banca",
+    "non informare",
+    "non dire niente",
+    "non dire a nessuno"
+   ],
+   "unless": null
+  },
+  {
+   "id": "GEN-01",
+   "category": "generico",
+   "weight": 8,
+   "explanation": "Il messaggio ti invita a cliccare su un link o a scansionare un codice.",
+   "example": "Clicca sul seguente link",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:clicca|cliccare|tocca|apri|accedi|visita|vai|correggi)\\b.{0,30}\\b(?:link|qui|sito|collegamento|seguente|url)\\b",
+    "\\b(?:al|dal|tramite il|nel) seguente (?:link|collegamento|indirizzo)\\b",
+    "\\b(?:inquadra|scansiona|scannerizza)\\b.{0,20}\\b(?:qr|codice qr)\\b"
+   ],
+   "keywords": [],
+   "unless": "(?:non|mai|senza|evit\\w{1,6}|nessuno)(?: \\w{1,12}){0,3} ?$"
+  },
+  {
+   "id": "GEN-04",
+   "category": "generico",
+   "weight": 15,
+   "explanation": "Chiede di pagare una piccola somma: spesso è solo un modo per ottenere i dati della carta.",
+   "example": "Paga 1,99 euro per sbloccare",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:paga|pagare|saldare|versa|versare|regolarizza\\w{0,6})\\b.{0,40}(?:€ ?[0-9]{1,2}(?:[,.][0-9]{1,2})?|[0-9]{1,2}(?:[,.][0-9]{1,2})? ?(?:€|euro|eur))(?![0-9])"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "VEN-01",
+   "category": "vendite",
+   "weight": 35,
+   "explanation": "Dice che per «ricevere» un pagamento devi inserire dati della carta: per incassare non serve mai.",
+   "example": "Per ricevere il pagamento inserisci i dati della carta",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:ricever\\w{1,3}|incassar\\w{1,3}|ritirar\\w{1,3})\\b.{0,20}\\b(?:pagamento|soldi|somma|importo)\\b.{0,60}\\b(?:carta|dati|iban|codice|pin|link|clicca|inserisci|conferma)\\b",
+    "\\b(?:vinted|marketplace|ebay|annuncio|wallapop)\\b.{0,80}\\b(?:link (?:di )?(?:pagamento|spedizione|sicuro)|pagamento (?:sicuro|protetto)|corriere dedicato)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "VEN-02",
+   "category": "vendite",
+   "weight": 20,
+   "explanation": "Chiede caparre o pagamenti anticipati per bloccare un acquisto.",
+   "example": "Versa una caparra per bloccare l'articolo",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:caparra|anticipo|acconto|pagamento anticipato)\\b.{0,60}\\b(?:prima di|per bloccare|per riservare|per confermare|subito|per tenere)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "OFF-02",
+   "category": "generico",
+   "weight": -10,
+   "explanation": "Il messaggio contiene l'avviso classico di non condividere i codici o di non cliccare link sospetti, tipico delle comunicazioni vere.",
+   "example": "Non condividere questo codice con nessuno",
+   "kind": "regex",
+   "patterns": [
+    "\\bnon (?:condivider|comunicar|fornir|dar|inoltrar|dir)\\w{1,4}\\b.{0,30}\\b(?:nessuno|terzi|a nessuno)\\b",
+    "\\bnessun operatore (?:ti|vi) chieder\\w{1,3}\\b",
+    "\\bla (?:banca|nostra banca|poste) non (?:ti|vi) chieder\\w{1,3} mai\\b",
+    "\\bnon (?:cliccare|clicca|aprire|aprire)\\b.{0,30}\\blink\\b",
+    "\\bquesto messaggio non contiene link\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "URL-01",
+   "category": "link",
+   "weight": 45,
+   "explanation": "Il dominio {domain} imita il nome di {brand} ma non è un sito ufficiale.",
+   "example": "poste-verifica.com / paypa1.com",
+   "kind": "detector",
+   "detector": "lookalike"
+  },
+  {
+   "id": "URL-02",
+   "category": "link",
+   "weight": 40,
+   "explanation": "L'indirizzo mette il nome di {brand} in un punto ingannevole (sottodominio o percorso): il vero sito è {domain}.",
+   "example": "poste.it.verifica-conto.com",
+   "kind": "detector",
+   "detector": "deceptive_subdomain"
+  },
+  {
+   "id": "URL-03",
+   "category": "link",
+   "weight": 20,
+   "explanation": "Il link usa un'estensione di dominio molto usata nelle truffe ({domain}).",
+   "example": "sito.xyz, pacco.top",
+   "kind": "detector",
+   "detector": "risky_tld"
+  },
+  {
+   "id": "URL-04",
+   "category": "link",
+   "weight": 25,
+   "explanation": "Il link è accorciato ({domain}): non si vede dove porta davvero.",
+   "example": "bit.ly/3xYz",
+   "kind": "detector",
+   "detector": "shortener"
+  },
+  {
+   "id": "URL-05",
+   "category": "link",
+   "weight": 35,
+   "explanation": "L'indirizzo contiene caratteri speciali (punycode o lettere non latine) che possono imitare un sito noto: {domain}.",
+   "example": "pоste.it con la «о» cirillica",
+   "kind": "detector",
+   "detector": "homograph"
+  },
+  {
+   "id": "URL-06",
+   "category": "link",
+   "weight": 30,
+   "explanation": "Il link punta a un indirizzo numerico (IP) invece che a un nome di sito: {domain}.",
+   "example": "http://185.23.4.5/login",
+   "kind": "detector",
+   "detector": "ip_host"
+  },
+  {
+   "id": "URL-07",
+   "category": "link",
+   "weight": 25,
+   "explanation": "Il nome del dominio {domain} ha molti trattini o parole come «verifica», «pagamento», «sicurezza»: tipico dei siti-esca.",
+   "example": "verifica-sicurezza-conto.com",
+   "kind": "detector",
+   "detector": "suspicious_domain_words"
+  },
+  {
+   "id": "URL-09",
+   "category": "link",
+   "weight": 40,
+   "explanation": "Il link scarica un file .apk: installare app fuori dallo store è pericoloso.",
+   "example": "http://sito.com/app.apk",
+   "kind": "detector",
+   "detector": "apk_link"
+  },
+  {
+   "id": "URL-10",
+   "category": "link",
+   "weight": 30,
+   "explanation": "Nel messaggio c'è un link in formato anomalo o nascosto (punteggiatura, caratteri strani): può servire a ingannare.",
+   "example": "accedi:sito-falso.top/login",
+   "kind": "detector",
+   "detector": "unresolved_link"
+  },
+  {
+   "id": "MIS-01",
+   "category": "link",
+   "weight": 35,
+   "explanation": "Il mittente dichiarato è {brand} ma il link va su {domain}, che non è un suo sito.",
+   "example": "Mittente «Poste» + link a poste-sicura.com",
+   "kind": "detector",
+   "detector": "sender_mismatch"
+  },
+  {
+   "id": "MIS-02",
+   "category": "link",
+   "weight": 25,
+   "explanation": "Il messaggio cita {brand} ma il link va su {domain}, che non è un suo sito ufficiale.",
+   "example": "«Intesa Sanpaolo» + link a sito-qualsiasi.com",
+   "kind": "detector",
+   "detector": "text_link_mismatch"
+  },
+  {
+   "id": "PHN-01",
+   "category": "banca",
+   "weight": 25,
+   "explanation": "Contiene un numero a pagamento o a tariffazione speciale (es. 89x, 144, 166).",
+   "example": "Chiama lo 899 123 456",
+   "kind": "detector",
+   "detector": "premium_number"
+  },
+  {
+   "id": "PHN-02",
+   "category": "banca",
+   "weight": 15,
+   "explanation": "Contiene un numero estero in un messaggio che dice di arrivare da un'azienda o un ente italiano.",
+   "example": "Chiama il +44 7000 000000",
+   "kind": "detector",
+   "detector": "foreign_number"
+  },
+  {
+   "id": "IBN-01",
+   "category": "banca",
+   "weight": 15,
+   "explanation": "Contiene un IBAN a cui ti chiedono di pagare: verifica l'intestatario prima di inviare denaro.",
+   "example": "Bonifico su IT60 X054...",
+   "kind": "detector",
+   "detector": "iban_payment"
+  },
+  {
+   "id": "OFF-01",
+   "category": "generico",
+   "weight": -25,
+   "explanation": "Tutti i link puntano a siti ufficiali noti ({domain}): non basta a escludere una truffa, ma è un segnale rassicurante.",
+   "example": "https://www.poste.it/...",
+   "kind": "detector",
+   "detector": "official_domains"
+  },
+  {
+   "id": "OFF-03",
+   "category": "generico",
+   "weight": -15,
+   "explanation": "Il link accorciato è accompagnato dal sito ufficiale di {brand} ({domain}) citato nel testo: segnale rassicurante.",
+   "example": "Offerte Trenitalia bit.ly/x … condizioni su trenitalia.com",
+   "kind": "detector",
+   "detector": "shortener_official_context"
+  },
+  {
+   "id": "INC-01",
+   "category": "generico",
+   "weight": 0,
+   "explanation": "Il messaggio è molto lungo o insolito e non sono riuscito ad analizzarlo tutto: trattalo con prudenza.",
+   "example": "(testo molto lungo o costruito per rallentare l'analisi)",
+   "kind": "detector",
+   "detector": "incomplete_analysis"
+  }
+ ]
+}

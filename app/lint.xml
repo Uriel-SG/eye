@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- getString() è chiamato solo dentro gestori di click/coroutine, non durante la composizione. -->
+    <issue id="LocalContextGetResourceValueCall">
+        <ignore path="src/main/kotlin/app/eye/android/ui/VerdictScreen.kt" />
+        <ignore path="src/main/kotlin/app/eye/android/ui/PdfUi.kt" />
+    </issue>
+</lint>

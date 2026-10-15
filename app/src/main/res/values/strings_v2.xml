@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Perche: icone dei motivi -->
+    <string name="reason_cd_risk">Segnale di rischio</string>
+    <string name="reason_cd_info">Informazione</string>
+    <string name="reason_cd_reduces">Riduce il rischio</string>
+
+    <!-- Cronologia: dettaglio -->
+    <string name="history_open_cd">Apri il controllo del %1$s</string>
+    <string name="history_detail_title">Controllo salvato</string>
+    <string name="history_detail_missing">Questo controllo è stato salvato prima dell\'aggiornamento e non ha i dettagli completi.</string>
+    <string name="history_show_sensitive">Mostra dati sensibili</string>
+    <string name="history_hide_sensitive">Nascondi dati sensibili</string>
+    <string name="history_sensitive_hidden_note">Numeri, link ed email sono nascosti. Il testo è salvato solo su questo telefono, per il tempo che hai scelto.</string>
+
+    <!-- Secondo parere AI: verdetto -->
+    <string name="ai_ask_button">Chiedi un secondo parere all\'AI</string>
+    <string name="ai_card_title">Secondo parere AI (può sbagliare)</string>
+    <string name="ai_loading">Sto chiedendo il parere all\'AI…</string>
+    <string name="ai_warning_softer">Le regole di Eye hanno trovato segnali di rischio: vale il verdetto più prudente.</string>
+    <string name="ai_judgement_truffa">L\'AI: probabile truffa</string>
+    <string name="ai_judgement_sospetto">L\'AI: messaggio sospetto</string>
+    <string name="ai_judgement_nessun_segnale">L\'AI: nessun segnale evidente</string>
+    <string name="ai_advice">Consiglio dell\'AI: %1$s</string>
+    <string name="ai_no_guarantee">Il parere dell\'AI non cambia il verdetto di Eye e non è una garanzia.</string>
+    <string name="ai_err_not_configured">Il secondo parere AI non è configurato correttamente. Controlla le Impostazioni.</string>
+    <string name="ai_err_network">Nessuna connessione o servizio non raggiungibile. Riprova più tardi.</string>
+    <string name="ai_err_timeout">Il servizio non ha risposto entro 30 secondi. Riprova più tardi.</string>
+    <string name="ai_err_auth">Chiave non accettata dal servizio (errore 401/403). Controlla la chiave e il modello nelle Impostazioni.</string>
+    <string name="ai_err_rate">Troppe richieste o credito esaurito (errore 429). Riprova più tardi.</string>
+    <string name="ai_err_http">Il servizio ha risposto con un errore (%1$d). Controlla modello e indirizzo nelle Impostazioni.</string>
+    <string name="ai_err_refused">L\'AI ha rifiutato di analizzare questo messaggio.</string>
+    <string name="ai_err_truncated">La risposta dell\'AI è stata interrotta perché troppo lunga. Riprova.</string>
+    <string name="ai_err_invalid">La risposta dell\'AI non è in un formato comprensibile. Riprova.</string>
+
+    <!-- Consenso al primo uso -->
+    <string name="ai_consent_title">Inviare il messaggio all\'AI?</string>
+    <string name="ai_consent_body">Il testo del messaggio verrà inviato a %1$s con la tua chiave API, solo ora e ogni volta che toccherai il pulsante. Prima dell\'invio Eye nasconde telefoni, IBAN, email, codici fiscali e codici numerici; i link restano visibili (senza parametri). Nomi, indirizzi e altri dati scritti in parole NON vengono nascosti, anche se riguardano altre persone. L\'invio senza nascondere nulla è disattivato: si può attivare solo in Impostazioni. Il servizio può trattare i dati fuori dall\'UE (es. Stati Uniti) e li conserva o usa secondo le condizioni del tuo account. Noi non riceviamo il messaggio né la risposta. Puoi revocare il consenso in Impostazioni.</string>
+    <string name="ai_consent_accept">Acconsento e invia</string>
+
+    <!-- Impostazioni: sezione AI -->
+    <string name="ai_section_title">Secondo parere AI (facoltativo)</string>
+    <string name="ai_section_intro">Se vuoi, puoi usare una tua chiave API per chiedere un secondo parere a un\'AI. Non parte mai da sola: solo quando tocchi il pulsante nel verdetto. Il testo va al servizio che scegli, che può trovarsi fuori dall\'UE. Il costo è a carico del tuo account presso il provider.</string>
+    <string name="ai_provider_label">Servizio</string>
+    <string name="ai_provider_anthropic">Anthropic</string>
+    <string name="ai_provider_gemini">Google Gemini</string>
+    <string name="ai_provider_openai">OpenAI</string>
+    <string name="ai_provider_compatible">OpenAI-compatibile</string>
+    <string name="ai_model_label">Modello</string>
+    <string name="ai_model_default_hint">Predefinito: %1$s</string>
+    <string name="ai_model_required">Obbligatorio per questo servizio</string>
+    <string name="ai_base_url_label">Indirizzo base (solo https)</string>
+    <string name="ai_base_url_error">Inserisci un indirizzo che inizia con https://</string>
+    <string name="ai_key_label">Chiave API</string>
+    <string name="ai_key_saved_hint">Chiave salvata (cifrata). Scrivine una nuova per sostituirla.</string>
+    <string name="ai_key_show">Mostra la chiave</string>
+    <string name="ai_key_hide">Nascondi la chiave</string>
+    <string name="ai_key_note">La chiave è cifrata con il Keystore di Android, resta solo su questo telefono e non viene mai scritta nei log.</string>
+    <string name="ai_save">Salva</string>
+    <string name="ai_remove_key">Rimuovi chiave</string>
+    <string name="ai_remove_key_confirm">Rimuovere la chiave API da questo telefono?</string>
+    <string name="ai_test">Prova connessione</string>
+    <string name="ai_test_ok">Connessione riuscita.</string>
+    <string name="ai_test_no_key">Inserisci prima una chiave.</string>
+    <string name="ai_raw_label">Invia il testo non oscurato</string>
+    <string name="ai_raw_sub">Disattivato: telefoni, IBAN, email e codici vengono nascosti prima dell\'invio.</string>
+    <string name="ai_revoke_consent">Revoca il consenso all\'invio</string>
+    <string name="ai_revoke_consent_done">Consenso revocato. Ti chiederemo di nuovo prima del prossimo invio.</string>
+    <string name="ai_raw_confirm">Inviare il testo senza nascondere numeri, IBAN, email e codici? Potresti inviare dati tuoi o di altre persone al servizio AI.</string>
+    <string name="ai_report_button">Segnala questa risposta</string>
+    <string name="ai_report_subject">Segnalazione risposta AI</string>
+    <string name="ai_report_body">Segnalazione di una risposta AI giudicata inadeguata.\nServizio: %1$s\nGiudizio: %2$s\nMotivi: %3$s\nConsiglio: %4$s\n(Il messaggio analizzato non è incluso.)</string>
+    <string name="ai_no_contacts">Eye non suggerisce mai numeri o siti da contattare: usa solo i canali ufficiali.</string>
+    <string name="ai_key_invalid">La chiave contiene caratteri non validi (spazi, accenti o simboli invisibili). Incollala di nuovo, senza spazi, e controlla che sia lunga almeno 8 caratteri.</string>
+    <string name="onb_does_4">Salva i controlli solo su questo telefono, per 7 giorni se non cambi (puoi disattivarlo o scegliere altro).</string>
+    <string name="theme_title">Aspetto</string>
+    <string name="theme_system">Come il sistema</string>
+    <string name="theme_light">Chiaro</string>
+    <string name="theme_dark">Scuro</string>
+    <string name="theme_oled">Scuro OLED (nero puro, risparmia batteria)</string>
+</resources>
