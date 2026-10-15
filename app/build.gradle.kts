@@ -11,7 +11,7 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "app.eye.android"
+        applicationId = "com.urielsec.eye"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
