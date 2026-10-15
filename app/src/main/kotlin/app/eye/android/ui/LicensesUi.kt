@@ -24,7 +24,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import app.eye.android.R
 import app.eye.android.core.DONATE_URL
-import app.eye.android.core.SITE_URL
 import app.eye.android.core.ExternalIntents
 import app.eye.android.core.REPO_URL
 
@@ -54,7 +53,7 @@ fun LicensesScreen(onBack: () -> Unit) {
     }
 }
 
-/** «Sostieni Eye»: nessun pagamento nell'app; apre il sito del progetto (con conferma) e il codice sorgente. */
+/** «Il progetto Eye»: nessun pagamento né invito a donare nell'app; apre il sito del progetto (con conferma) e il codice sorgente. */
 @Composable
 fun SupportSection() {
     val ctx = LocalContext.current
@@ -65,9 +64,7 @@ fun SupportSection() {
         SectionTitle(stringResource(R.string.support_title), Modifier.semantics { contentDescription = titleCd })
         Text(stringResource(R.string.support_body), style = MaterialTheme.typography.bodyLarge, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, modifier = Modifier.semantics { contentDescription = bodyCd })
         Text(stringResource(R.string.support_note), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        val donateCd = stringResource(R.string.support_donate_cd)
-        Button(onClick = { link = DONATE_URL }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).semantics { contentDescription = donateCd }) { Text(stringResource(R.string.support_donate)) }
-        OutlinedButton(onClick = { link = SITE_URL }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text(stringResource(R.string.support_site)) }
+        Button(onClick = { link = DONATE_URL }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text(stringResource(R.string.support_site)) }
         OutlinedButton(onClick = { link = REPO_URL }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text(stringResource(R.string.support_source)) }
     }
     link?.let { url ->

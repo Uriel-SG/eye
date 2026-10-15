@@ -47,9 +47,9 @@
     <string name="alert_expired">L\'avviso è scaduto: per sicurezza Eye non conserva il messaggio oltre 5 minuti.</string>
 
 
-    <!-- Sostieni Eye -->
-    <string name="support_title">🫶 Sostieni Eye</string>
-    <string name="support_body">Eye è nata da un’idea di Uriel-SG, per un mondo migliore 💚. È gratuita, senza pubblicità, e lo resterà. Se ti ha aiutato a evitare una truffa, o semplicemente ti piace, puoi offrire un caffè: ogni piccolo contributo aiuta a tenerla viva e aggiornata. Grazie di cuore!</string>
+    <!-- Il progetto Eye -->
+    <string name="support_title">🫶 Il progetto Eye</string>
+    <string name="support_body">Eye è nata da un’idea di Uriel-SG, per un mondo migliore 💚. È gratuita, senza pubblicità, e lo resterà. Se ti ha aiutato a evitare una truffa, o semplicemente ti piace, condividila con i tuoi amici o lascia una recensione: il tuo passaparola aiuta a tenerla viva e aggiornata. Grazie di cuore!</string>
 
 
     <!-- Catalogo: aggiornamento -->
@@ -75,10 +75,10 @@
     <string name="campaigns_stale">Campagne non aggiornate da %1$d giorni. Tocca «Aggiorna» per vedere le novità.</string>
 
 
-    <string name="support_title_cd">Sostieni Eye</string>
-    <string name="support_note">Eye è gratuita e completa per tutti. Nell’app non si paga nulla: se vuoi, le donazioni volontarie si fanno solo sul sito del progetto. Non sono donazioni a un ente benefico.</string>
+    <string name="support_title_cd">Il progetto Eye</string>
+    <string name="support_note">Vuoi scoprire come funziona il progetto, segnalare nuove truffe o seguire gli sviluppi? Visita il sito ufficiale di Eye.</string>
 
-    <string name="support_body_cd">Eye è nata da un\'idea di Uriel-SG, per un mondo migliore. È gratuita, senza pubblicità, e lo resterà. Se ti ha aiutato a evitare una truffa, o semplicemente ti piace, puoi offrire un caffè: ogni piccolo contributo aiuta a tenerla viva e aggiornata. Grazie di cuore!</string>
+    <string name="support_body_cd">Eye è nata da un’idea di Uriel-SG, per un mondo migliore. È gratuita, senza pubblicità, e lo resterà. Se ti ha aiutato a evitare una truffa, o semplicemente ti piace, condividila con i tuoi amici o lascia una recensione: il tuo passaparola aiuta a tenerla viva e aggiornata. Grazie di cuore!</string>
 
     <string name="alert_public_title">Eye: possibile truffa rilevata</string>
 </resources>

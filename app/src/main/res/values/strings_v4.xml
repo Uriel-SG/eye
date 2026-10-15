@@ -34,10 +34,8 @@
     <string name="pdf_legal_note">Documento generato automaticamente da Eye, non ha valore legale; allegalo alla denuncia insieme agli screenshot originali.</string>
     <string name="pdf_report_to">Segnalazione online alla Polizia Postale: %1$s</string>
 
-    <!-- Sostieni Eye / open source -->
-    <string name="support_donate">💚 Dona ora</string>
-    <string name="support_donate_cd">Dona ora: apre la pagina delle donazioni sul sito del progetto</string>
-    <string name="support_site">Visita il sito del progetto</string>
+    <!-- Il progetto Eye / open source -->
+    <string name="support_site">Visita il sito</string>
     <string name="support_source">Codice sorgente (open source)</string>
     <string name="settings_license">Eye è software libero, licenza Apache 2.0.</string>
     <string name="licenses_title">Licenze open source</string>

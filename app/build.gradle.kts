@@ -15,7 +15,7 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 1
-        versionName = "0.1.0"
+        versionName = "1.0.0"
     }
 
     // Chiave di upload FUORI dal repo: percorso da -PeyeKeystoreProps o variabile EYE_KEYSTORE_PROPS
