@@ -72,7 +72,7 @@
     <string name="ai_report_body">Segnalazione di una risposta AI giudicata inadeguata.\nServizio: %1$s\nGiudizio: %2$s\nMotivi: %3$s\nConsiglio: %4$s\n(Il messaggio analizzato non è incluso.)</string>
     <string name="ai_no_contacts">Eye non suggerisce mai numeri o siti da contattare: usa solo i canali ufficiali.</string>
     <string name="ai_key_invalid">La chiave contiene caratteri non validi (spazi, accenti o simboli invisibili). Incollala di nuovo, senza spazi, e controlla che sia lunga almeno 8 caratteri.</string>
-    <string name="onb_does_4">Salva i controlli solo su questo telefono, per 7 giorni se non cambi (puoi disattivarlo o scegliere altro).</string>
+    <string name="onb_does_4">Conserva la cronologia solo su questo telefono, per 7 giorni. Puoi cambiare la durata o disattivarla quando vuoi.</string>
     <string name="theme_title">Aspetto</string>
     <string name="theme_system">Come il sistema</string>
     <string name="theme_light">Chiaro</string>

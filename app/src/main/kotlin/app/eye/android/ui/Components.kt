@@ -53,7 +53,7 @@ fun EyeCard(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, conten
     val family = MaterialTheme.extras.familyMode
     val border = if (family) BorderStroke(2.dp, MaterialTheme.colorScheme.outline)
     else if (isSystemInDarkTheme()) BorderStroke(1.dp, MaterialTheme.colorScheme.outline) else null
-    val colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    val colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = if (family) 1f else 0.9f))
     if (onClick != null) {
         Card(onClick = onClick, modifier = modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium, colors = colors, border = border) { content() }
     } else {

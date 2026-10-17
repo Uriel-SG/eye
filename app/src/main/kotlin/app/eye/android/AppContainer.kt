@@ -9,6 +9,7 @@ import app.eye.android.core.feed.SwappableAnalyzer
 import app.eye.android.core.feed.UrlConnectionFeedHttp
 import app.eye.android.data.EyeDb
 import app.eye.android.data.HistoryRepository
+import app.eye.android.core.ai.RemoteTextClassifier
 import app.eye.android.data.SettingsStore
 import app.eye.engine.Campaign
 import app.eye.engine.CampaignFeedVerifier
@@ -41,12 +42,15 @@ class AppContainer(context: Context) {
     /** Giorni dall'emissione se le regole installate sono scadute (mai un rifiuto: restano in uso); null = nessun avviso. */
     val rulesStaleDays: StateFlow<Long?> = _rulesStaleDays
 
+    /** Modello AI sul telefono (segnale aggiuntivo): si carica da solo, in background; se fallisce restano le regole. */
+    val classifier = RemoteTextClassifier(appContext).also { it.warmUp() }
+
     private fun bestEngine(): RuleEngine {
         val installed = runCatching { rulesStore.loadVerified(RulePackVerifier()) }.getOrNull()
         val use = if (installed != null && installed.version > bundled.version) installed else bundled
         val now = java.time.Instant.now()
         _rulesStaleDays.value = if (use.isStale(now)) use.staleDays(now) else null
-        return RuleEngine(use)
+        return RuleEngine(use, classifier = classifier)
     }
 
     val analyzer = SwappableAnalyzer(bestEngine())

@@ -46,6 +46,12 @@
     <string name="lic_zxing">ZXing</string>
     <string name="lic_mlkit">Google ML Kit (lettura testo e QR)</string>
     <string name="lic_bouncycastle">Bouncy Castle</string>
+    <string name="lic_onnx">ONNX Runtime (Microsoft)</string>
+    <string name="lic_minilm">Modello Multilingual MiniLM (sentence-transformers / Microsoft), tokenizer SentencePiece</string>
+    <string name="lic_ai_data">Dati di addestramento: UCI SMS Spam Collection (CC BY 4.0, Almeida e Gómez Hidalgo), dataset tanaos e darkknight25 (MIT)</string>
+    <string name="lic_ai_data_terms">Licenze CC BY 4.0 e MIT: attribuzione completa nel file NOTICE del progetto</string>
+    <string name="lic_figtree">Figtree (carattere tipografico)</string>
+    <string name="lic_ofl">Copyright 2022 The Figtree Project Authors, SIL Open Font License 1.1</string>
     <string name="lic_apache">Licenza Apache 2.0</string>
     <string name="lic_mit">Licenza in stile MIT</string>
     <string name="lic_mlkit_terms">Termini di servizio di Google ML Kit</string>

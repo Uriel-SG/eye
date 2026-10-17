@@ -30,21 +30,21 @@
     <string name="nav_more">Altro</string>
 
     <!-- Onboarding -->
-    <string name="onb_title_1">Eye ti aiuta a capire se un messaggio è una truffa</string>
-    <string name="onb_body_1">Controlla SMS, link, QR code e screenshot in pochi secondi. Ti spieghiamo il perché in parole semplici e ti diciamo cosa fare.</string>
+    <string name="onb_title_1">Eye ti aiuta a riconoscere le truffe</string>
+    <string name="onb_body_1">Controlla SMS, email, link, codici QR e screenshot in pochi secondi: ti spiega con parole semplici cosa non va e ti suggerisce cosa fare.</string>
     <string name="onb_title_2">Cosa fa e cosa non fa</string>
-    <string name="onb_does_1">Controlla solo quello che scegli tu.</string>
-    <string name="onb_does_2">Analizza sul tuo telefono.</string>
-    <string name="onb_does_3">Ti spiega i motivi e cosa fare dopo.</string>
-    <string name="onb_doesnt_1">Non legge i tuoi messaggi di nascosto.</string>
-    <string name="onb_doesnt_2">Non chiede account o registrazione.</string>
+    <string name="onb_does_1">Controlla solo ciò che scegli tu.</string>
+    <string name="onb_does_2">Analizza tutto direttamente sul tuo telefono.</string>
+    <string name="onb_does_3">Ti spiega i motivi e ti indica cosa fare.</string>
+    <string name="onb_doesnt_1">Non legge i tuoi messaggi senza il tuo permesso.</string>
+    <string name="onb_doesnt_2">Non richiede account né registrazione.</string>
     <string name="onb_doesnt_3">Non apre i link al posto tuo.</string>
-    <string name="onb_doesnt_4">Non può garantire che un messaggio sia sicuro.</string>
+    <string name="onb_doesnt_4">Non può garantire che un messaggio sia sicuro: è un aiuto, non una certezza.</string>
     <string name="onb_title_3">Come controllare un messaggio</string>
-    <string name="onb_step_1">Apri il messaggio e tocca Condividi.</string>
-    <string name="onb_step_2">Scegli Eye dall\'elenco.</string>
+    <string name="onb_step_1">Apri il messaggio e tocca «Condividi».</string>
+    <string name="onb_step_2">Scegli Eye dall’elenco.</string>
     <string name="onb_step_3">Leggi il verdetto e segui i consigli.</string>
-    <string name="onb_body_3">Puoi anche incollare il testo, scansionare un QR o scegliere uno screenshot.</string>
+    <string name="onb_body_3">Puoi anche incollare il testo, inquadrare un codice QR o scegliere uno screenshot.</string>
     <string name="cd_page">Pagina %1$d di 3</string>
     <string name="cd_step">Passo %1$d di %2$d</string>
 

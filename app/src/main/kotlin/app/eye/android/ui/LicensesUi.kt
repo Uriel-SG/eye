@@ -35,6 +35,10 @@ private val Libraries = listOf(
     R.string.lic_zxing to R.string.lic_apache,
     R.string.lic_mlkit to R.string.lic_mlkit_terms,
     R.string.lic_bouncycastle to R.string.lic_mit,
+    R.string.lic_onnx to R.string.lic_mit,
+    R.string.lic_figtree to R.string.lic_ofl,
+    R.string.lic_minilm to R.string.lic_apache,
+    R.string.lic_ai_data to R.string.lic_ai_data_terms,
 )
 
 @Composable

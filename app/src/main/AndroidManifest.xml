@@ -123,5 +123,7 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+        <!-- Modello AI in un processo separato: un crash nativo di ONNX Runtime non abbatte l'app. -->
+        <service android:name="app.eye.android.core.ai.OnDeviceAiService" android:process=":ai" android:exported="false" />
     </application>
 </manifest>

@@ -13,16 +13,21 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
+import app.eye.android.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.eye.engine.Level
 
 private val Light = lightColorScheme(
-    background = Color(0xFFFBFBFD), onBackground = Color(0xFF1B1B1F),
+    background = Color(0xFFFCFAF7), onBackground = Color(0xFF1C1B1A),
     surface = Color(0xFFFFFFFF), onSurface = Color(0xFF1B1B1F),
-    surfaceVariant = Color(0xFFF1EFF4), onSurfaceVariant = Color(0xFF49454F),
+    surfaceVariant = Color(0xFFF3EFEA), onSurfaceVariant = Color(0xFF4A4640),
     outline = Color(0xFF79747E),
     primary = Color(0xFF1D4ED8), onPrimary = Color(0xFFFFFFFF),
     error = Color(0xFFB3261E), onError = Color(0xFFFFFFFF),
@@ -96,21 +101,39 @@ val LocalExtras = staticCompositionLocalOf { EyeExtras(verdictColors(false), fal
 val MaterialTheme.extras: EyeExtras
     @Composable get() = LocalExtras.current
 
-private fun typography(family: Boolean): Typography = Typography(
-    displaySmall = TextStyle(fontSize = 36.sp, lineHeight = 44.sp, fontWeight = FontWeight.Bold),
-    headlineSmall = TextStyle(fontSize = 24.sp, lineHeight = 32.sp, fontWeight = FontWeight.SemiBold),
-    titleMedium = TextStyle(fontSize = if (family) 20.sp else 16.sp, lineHeight = if (family) 28.sp else 24.sp, fontWeight = FontWeight.Medium),
-    bodyLarge = TextStyle(fontSize = if (family) 20.sp else 16.sp, lineHeight = if (family) 30.sp else 24.sp),
-    bodyMedium = TextStyle(fontSize = if (family) 20.sp else 14.sp, lineHeight = if (family) 28.sp else 20.sp),
-    labelLarge = TextStyle(fontSize = if (family) 18.sp else 14.sp, lineHeight = 20.sp, fontWeight = FontWeight.Medium),
+/** Figtree (OFL, variabile, incluso nell'app: nessun download). Pesi usati: 400-700. */
+@OptIn(ExperimentalTextApi::class)
+private val Figtree = FontFamily(
+    listOf(400, 500, 600, 700).map { w ->
+        Font(R.font.figtree, FontWeight(w), variationSettings = FontVariation.Settings(FontVariation.weight(w)))
+    },
 )
 
+private fun typography(family: Boolean): Typography {
+    val t = Typography(
+        displaySmall = TextStyle(fontSize = 36.sp, lineHeight = 44.sp, fontWeight = FontWeight.Bold),
+        headlineSmall = TextStyle(fontSize = 24.sp, lineHeight = 32.sp, fontWeight = FontWeight.SemiBold),
+        titleMedium = TextStyle(fontSize = if (family) 20.sp else 16.sp, lineHeight = if (family) 28.sp else 24.sp, fontWeight = FontWeight.Medium),
+        bodyLarge = TextStyle(fontSize = if (family) 20.sp else 16.sp, lineHeight = if (family) 30.sp else 24.sp),
+        bodyMedium = TextStyle(fontSize = if (family) 20.sp else 14.sp, lineHeight = if (family) 28.sp else 20.sp),
+        labelLarge = TextStyle(fontSize = if (family) 18.sp else 14.sp, lineHeight = 20.sp, fontWeight = FontWeight.Medium),
+    )
+    fun TextStyle.f() = copy(fontFamily = Figtree)
+    return t.copy(
+        displayLarge = t.displayLarge.f(), displayMedium = t.displayMedium.f(), displaySmall = t.displaySmall.f(),
+        headlineLarge = t.headlineLarge.f(), headlineMedium = t.headlineMedium.f(), headlineSmall = t.headlineSmall.f(),
+        titleLarge = t.titleLarge.f(), titleMedium = t.titleMedium.f(), titleSmall = t.titleSmall.f(),
+        bodyLarge = t.bodyLarge.f(), bodyMedium = t.bodyMedium.f(), bodySmall = t.bodySmall.f(),
+        labelLarge = t.labelLarge.f(), labelMedium = t.labelMedium.f(), labelSmall = t.labelSmall.f(),
+    )
+}
+
 private val EyeShapes = Shapes(
-    extraSmall = RoundedCornerShape(8.dp),
-    small = RoundedCornerShape(8.dp),
-    medium = RoundedCornerShape(16.dp),
-    large = RoundedCornerShape(16.dp),
-    extraLarge = RoundedCornerShape(28.dp),
+    extraSmall = RoundedCornerShape(10.dp),
+    small = RoundedCornerShape(12.dp),
+    medium = RoundedCornerShape(20.dp),
+    large = RoundedCornerShape(24.dp),
+    extraLarge = RoundedCornerShape(32.dp),
 )
 
 @Composable

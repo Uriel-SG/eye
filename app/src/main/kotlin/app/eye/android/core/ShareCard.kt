@@ -50,64 +50,110 @@ object ShareCard {
         save(); translate(x, y); l.draw(this); restore()
     }
 
+    private const val INK = 0xFF1B1B1F.toInt()
+    private const val GAP = 28f
+
+    /** Un blocco di scheda: altezza misurata, disegno a una y data. */
+    private class Block(val height: Float, val draw: (Canvas, Float) -> Unit)
+
+    /**
+     * Impagina dinamicamente: ogni testo è misurato con StaticLayout e i blocchi sono messi uno sotto l'altro,
+     * quindi nulla si sovrappone; l'altezza del PNG cresce col contenuto (minimo [H]).
+     */
     fun render(context: Context, result: CheckResult, showMessage: Boolean): Bitmap {
         val v = result.verdict
         val p = palette(v.level)
-        val bmp = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888)
-        val c = Canvas(bmp)
-        c.drawColor(p.container)
-        val fill = Paint(Paint.ANTI_ALIAS_FLAG)
-        fill.color = p.solid
-        c.drawRect(0f, 0f, 24f, H.toFloat(), fill) // barra colore sul bordo
+        val sum = ReportBuilder.summary(result)
         val textW = (W - 2 * M).toInt()
+        val blocks = ArrayList<Block>()
+        fun gap(h: Float = GAP) = blocks.add(Block(h) { _, _ -> })
 
-        // Intestazione
-        drawEye(c, M, 72f, 64f, p.text)
-        c.drawText(context.getString(R.string.app_name), M + 80f, 120f, tp(40f, p.text, true))
+        // Intestazione: occhio + nome + data
         val date = DateFormat.getDateInstance(DateFormat.MEDIUM, java.util.Locale.ITALY).format(Date(result.createdAt))
-        val dp = tp(28f, p.text)
-        c.drawText(date, W - M - dp.measureText(date), 118f, dp)
+        blocks += Block(72f) { c, y ->
+            drawEye(c, M, y, 64f, p.text)
+            c.drawText(context.getString(R.string.app_name), M + 80f, y + 48f, tp(40f, p.text, true))
+            val dp = tp(28f, p.text)
+            c.drawText(date, W - M - dp.measureText(date), y + 46f, dp)
+        }
+        gap(40f)
 
-        // Icona + titolo
-        drawLevelIcon(c, v.level, M, 200f, 160f, p)
-        val title = layout(context.getString(v.level.titleRes()), tp(88f, p.text, true), textW - 200, 2)
-        c.drawLayout(title, M + 200f, 200f)
-        val sub = layout(context.getString(v.level.cardTitleRes()), tp(36f, p.text), textW, 2)
-        c.drawLayout(sub, M, 392f)
+        // Icona + titolo (altezza = la maggiore dei due), poi sottotitolo sotto
+        val title = layout(context.getString(v.level.titleRes()), tp(80f, p.text, true), textW - 200, 3)
+        val rowH = maxOf(160f, title.height.toFloat())
+        blocks += Block(rowH) { c, y ->
+            drawLevelIcon(c, v.level, M, y, 160f, p)
+            c.drawLayout(title, M + 200f, y + (rowH - title.height) / 2)
+        }
+        gap(20f)
+        val sub = layout(context.getString(v.level.cardTitleRes()), tp(36f, p.text), textW, 3)
+        blocks += Block(sub.height.toFloat()) { c, y -> c.drawLayout(sub, M, y) }
+        gap(36f)
 
-        // Estratto
-        val cardTop = 520f
-        val white = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
-        c.drawRoundRect(RectF(M, cardTop, W - M, cardTop + 150f), 24f, 24f, white)
-        val excerpt = if (showMessage) Redactor.preview(result.originalText, 220) else context.getString(R.string.card_message_hidden)
-        c.drawLayout(layout(excerpt, tp(36f, 0xFF1B1B1F.toInt()), textW - 48, 3), M + 24f, cardTop + 20f)
+        // Cosa è stato analizzato (sempre presente), con estratto oscurato o testo integrale
+        val label = layout(context.getString(R.string.card_analyzed), tp(28f, p.text, true), textW - 48, 1)
+        val what = layout(sum.line, tp(38f, INK, true), textW - 48, 4)
+        val bodyText = if (showMessage) result.originalText.trim().replace(Regex("""\s+"""), " ").take(700).let { if (it.length < result.originalText.trim().length) "$it…" else it }
+        else sum.excerpt
+        val bodyLabel = layout(context.getString(if (showMessage) R.string.card_full_message else R.string.card_excerpt), tp(26f, p.text, true), textW - 48, 1)
+        val body = layout("«$bodyText»", tp(34f, 0xFF3A3A40.toInt()), textW - 48, if (showMessage) 9 else 4)
+        val boxH = 24f + label.height + 8f + what.height + 20f + bodyLabel.height + 6f + body.height + 24f
+        blocks += Block(boxH) { c, y ->
+            val white = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
+            c.drawRoundRect(RectF(M, y, W - M, y + boxH), 24f, 24f, white)
+            var yy = y + 24f
+            c.drawLayout(label, M + 24f, yy); yy += label.height + 8f
+            c.drawLayout(what, M + 24f, yy); yy += what.height + 20f
+            c.drawLayout(bodyLabel, M + 24f, yy); yy += bodyLabel.height + 6f
+            c.drawLayout(body, M + 24f, yy)
+        }
+        gap(40f)
 
-        // Perché
-        var y = 700f
-        c.drawText(context.getString(R.string.card_why), M, y, tp(40f, p.text, true))
-        y += 24f
+        // Perché: sempre con contenuto (messaggio prudente se non ci sono motivi)
+        val h40 = tp(40f, p.text, true)
+        blocks += Block(52f) { c, y -> c.drawText(context.getString(R.string.card_why), M, y + 40f, h40) }
+        gap(8f)
         val reasons = v.reasonTexts(3)
-        val reasonPaint = tp(40f, 0xFF1B1B1F.toInt())
-        reasons.forEach { r ->
-            fill.color = p.solid
-            c.drawCircle(M + 24f, y + 36f, 24f, fill)
-            val l = layout(r, reasonPaint, textW - 72, 2)
-            c.drawLayout(l, M + 72f, y + 6f)
-            y += maxOf(l.height + 12f, 72f)
+        if (reasons.isEmpty()) {
+            val l = layout(context.getString(R.string.card_why_none), tp(36f, INK), textW, 5)
+            blocks += Block(l.height.toFloat()) { c, y -> c.drawLayout(l, M, y) }
+        } else reasons.forEach { r ->
+            val l = layout(r, tp(36f, INK), textW - 72, 3)
+            val h = maxOf(l.height.toFloat(), 48f)
+            blocks += Block(h) { c, y ->
+                val f = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = p.solid }
+                c.drawCircle(M + 20f, y + 24f, 16f, f)
+                c.drawLayout(l, M + 72f, y)
+            }
+            gap(14f)
         }
+        gap(26f)
 
-        // Cosa fare
-        y = maxOf(y + 16f, 1060f)
-        c.drawText(context.getString(R.string.card_todo), M, y, tp(40f, p.text, true))
-        y += 16f
+        // Cosa fare: 1-2 righe di consigli
+        blocks += Block(52f) { c, y -> c.drawText(context.getString(R.string.card_todo), M, y + 40f, h40) }
+        gap(8f)
         v.todoSteps(context).take(2).forEach { s ->
-            val l = layout("• $s", tp(40f, 0xFF1B1B1F.toInt()), textW, 2)
-            if (y + l.height < 1215f) { c.drawLayout(l, M, y); y += l.height + 8f }
+            val l = layout("• $s", tp(36f, INK), textW, 3)
+            blocks += Block(l.height.toFloat()) { c, y -> c.drawLayout(l, M, y) }
+            gap(10f)
         }
+        gap(34f)
 
         // Disclaimer e piè
-        c.drawLayout(layout(context.getString(R.string.card_disclaimer), tp(26f, p.text), textW, 2), M, 1222f)
-        c.drawText(context.getString(R.string.card_footer), M, 1318f, tp(26f, p.text, true))
+        val disc = layout(context.getString(R.string.card_disclaimer), tp(26f, p.text), textW, 3)
+        blocks += Block(disc.height.toFloat()) { c, y -> c.drawLayout(disc, M, y) }
+        gap(18f)
+        blocks += Block(34f) { c, y -> c.drawText(context.getString(R.string.card_footer), M, y + 28f, tp(28f, p.text, true)) }
+
+        val total = 72f + blocks.sumOf { it.height.toDouble() }.toFloat() + 48f
+        val height = maxOf(H.toFloat(), total).toInt()
+        val bmp = Bitmap.createBitmap(W, height, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        c.drawColor(p.container)
+        val bar = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = p.solid }
+        c.drawRect(0f, 0f, 24f, height.toFloat(), bar) // barra colore sul bordo
+        var y = 56f
+        blocks.forEach { b -> b.draw(c, y); y += b.height }
         return bmp
     }
 

@@ -1,6 +1,6 @@
 # Regole del motore Eye v1
 
-Specifica F0-T3, implementata in `engine/src/main/resources/rules/rules.json` (generata/mantenuta come dati). Le regole sono dati: `regex` valutate sul testo normalizzato (NFKC, minuscolo, confusables cirillico/greco piegati, input troncato a 10.000 caratteri); `detector` richiamano un rilevatore in codice (URL, marchi, mittente, numeri, IBAN). Un peso **negativo** riduce il punteggio.
+Specifica F0-T3, implementata in `engine/src/main/resources/rules/rules.json` (generata/mantenuta come dati). Le regole sono dati: `regex` valutate sul testo normalizzato (NFKC, minuscolo, confusables cirillico/greco piegati, rumore OCR ripulito, input troncato a 10.000 caratteri); `detector` richiamano un rilevatore in codice (URL, marchi, mittente, numeri, IBAN). Un peso **negativo** riduce il punteggio.
 
 ## Verdetto e soglie
 
@@ -18,7 +18,7 @@ Non esiste il livello «Sicuro»: l'assenza di segnali non è una garanzia e le 
 
 Linter `RegexLint` in caricamento: niente backreference, niente `.` con `*`/`+`, niente quantificatori o alternanze sotto un gruppo ripetuto in modo illimitato, al massimo 2 quantificatori illimitati per pattern, lunghezza <= 600; spazi tra parole con `.{0,N}` limitati. Budget di tempo per analisi 800 ms.
 
-## Elenco regole (57)
+## Elenco regole (80, pacchetto versione 2)
 
 | ID | Categoria | Peso | Tipo | Spiegazione (IT) | Esempio |
 |---|---|---:|---|---|---|
@@ -74,11 +74,43 @@ Linter `RegexLint` in caricamento: niente backreference, niente `.` con `*`/`+`,
 | URL-07 | link | +25 | detector | Il nome del dominio {domain} ha molti trattini o parole come «verifica», «pagamento», «sicurezza»: tipico dei siti-esca. | verifica-sicurezza-conto.com |
 | URL-09 | link | +40 | detector | Il link scarica un file .apk: installare app fuori dallo store è pericoloso. | http://sito.com/app.apk |
 | MIS-01 | link | +35 | detector | Il mittente dichiarato è {brand} ma il link va su {domain}, che non è un suo sito. | Mittente «Poste» + link a poste-sicura.com |
-| MIS-02 | link | +25 | detector | Il messaggio cita {brand} ma il link va su {domain}, che non è un suo sito ufficiale. | «Intesa Sanpaolo» + link a sito-qualsiasi.com |
+| MIS-02 | link | +25 | detector | Il messaggio si presenta come {brand} (intestazione «Google:», «il tuo account Google», team, firma) ma il link va su {domain}, che non è un suo sito ufficiale. Una semplice citazione del marchio non basta. | «Il tuo account Google è sospeso» + link a sito-qualsiasi.com |
 | PHN-01 | banca | +25 | detector | Contiene un numero a pagamento o a tariffazione speciale (es. 89x, 144, 166). | Chiama lo 899 123 456 |
 | PHN-02 | banca | +15 | detector | Contiene un numero estero in un messaggio che dice di arrivare da un'azienda o un ente italiano. | Chiama il +44 7000 000000 |
 | IBN-01 | banca | +15 | detector | Contiene un IBAN a cui ti chiedono di pagare: verifica l'intestatario prima di inviare denaro. | Bonifico su IT60 X054... |
 | OFF-01 | generico | -25 | detector | Tutti i link puntano a siti ufficiali noti ({domain}): non basta a escludere una truffa, ma è un segnale rassicurante. | https://www.poste.it/... |
 | INC-01 | generico | 0 | detector | Il messaggio è molto lungo o insolito e non sono riuscito ad analizzarlo tutto: trattalo con prudenza. | (budget di analisi scaduto: verdetto minimo SOSPETTO, nessuno sconto OFF-*) |
+| IBN-01 | banca | +15 | detector | Contiene un IBAN a cui ti chiedono di pagare: verifica l'intestatario prima di inviare denaro. | Bonifico su IT60 X054... |
+| OFF-01 | generico | +-25 | detector | Tutti i link puntano a siti ufficiali noti ({domain}): non basta a escludere una truffa, ma è un segnale rassicurante. | https://www.poste.it/... |
+| OFF-03 | generico | +-15 | detector | Il link accorciato è accompagnato dal sito ufficiale di {brand} ({domain}) citato nel testo: segnale rassicurante. | Offerte Trenitalia bit.ly/x … condizioni su trenitalia.com |
+| INC-01 | generico | +0 | detector | Il messaggio è molto lungo o insolito e non sono riuscito ad analizzarlo tutto: trattalo con prudenza. | (testo molto lungo o costruito per rallentare l'analisi) |
+| URG-05 | urgenza | +15 | regex | Frasi di pressione tipiche («final notice», «ends tonight», «act now», «ultimo giorno»…): i truffatori ti mettono fretta per non farti ragionare. | FINAL NOTICE: pricing ends at midnight |
+| SHP-01 | vendite | +15 | regex | Sconti esagerati, prezzi stracciati o «prezzo di fabbrica»: tipico dei finti negozi online che incassano e non spediscono. | 90% OFF, factory discount $499 |
+| ACC-04 | account | +25 | regex | Dice che il tuo account è bloccato, limitato o «insolito» e ti chiede di verificarlo o confermare la tua identità: è il classico pretesto del phishing. | Your account has been locked, verify your account |
+| PRE-03 | premio | +30 | regex | Dice che hai vinto o sei stato selezionato per un premio mai richiesto: serve a farti cliccare o a rubarti i dati. | You have won a $1000 gift card, claim your prize |
+| PAC-03 | pacco | +25 | regex | Falso avviso di consegna fallita, pacco bloccato o spese di dogana da pagare: truffa diffusissima (smishing). | Package on hold, pay the customs fee |
+| CRY-01 | investimenti | +40 | regex | Ti chiedono la frase di recupero o la chiave privata del wallet: chi la ottiene svuota i tuoi fondi. Non va mai data a nessuno. | Enter your seed phrase to claim |
+| CRY-02 | investimenti | +25 | regex | Airdrop o richieste di collegare il wallet: sono esche molto usate per svuotare i portafogli di criptovalute. | Free airdrop, connect your wallet |
+| INV-04 | investimenti | +30 | regex | Promette guadagni garantiti o raddoppi di denaro in cripto o trading: nessun investimento serio lo fa. | Earn 5% daily guaranteed |
+| LAV-02 | lavoro | +30 | regex | Offerta di lavoro da casa con guadagni facili e nessuna esperienza richiesta: spesso serve a rubare dati o a farti riciclare denaro. | Work from home, earn $500 per day |
+| FAT-01 | account | +25 | regex | Falsa fattura o conferma di pagamento che ti spinge ad aprire un allegato o a chiamare un numero «per il rimborso». | Invoice attached, if you did not authorize this call |
+| RIM-01 | banca | +25 | regex | Promette un rimborso o un credito in sospeso e ti chiede dati o conferme: esca tipica per rubare le informazioni bancarie. | You are eligible for a tax refund |
+| PAY-02 | banca | +35 | regex | Ti chiedono di comprare gift card e di inviare i codici: è un pagamento impossibile da recuperare, tipico delle truffe del finto capo o del finto parente. | Buy Apple gift cards and send me the codes |
+| BAN-11 | banca | +35 | regex | Dice che la tua carta o il tuo conto sono bloccati e ti chiede PIN, numero di carta o password: nessuna banca lo fa per messaggio. | Your card has been blocked, confirm your PIN |
+| DAT-01 | documenti | +30 | regex | Ti chiedono nome, indirizzo, documenti o dati bancari per ricevere un premio, un lavoro o un rimborso: servono a rubarti l'identità. | Send your ID and bank details to get started |
+| RIS-02 | generico | +20 | regex | Ti chiede di non parlarne con nessuno: i truffatori isolano la vittima. | Do not tell anyone |
+| FOR-01 | forma | +10 | detector | Il testo è quasi tutto in MAIUSCOLO: i messaggi truffa spesso urlano per spaventare o attirare l'attenzione. | SCONTO ULTIMO GIORNO... |
+| FOR-02 | forma | +10 | detector | Il messaggio mescola italiano e inglese in modo strano: capita spesso nei testi truffa tradotti in automatico. | Gentile cliente, your account has been suspended |
+| COM-01 | generico | +20 | detector | Mette fretta e parla di soldi, sconti, premi o dati personali, ma non c'è un sito ufficiale riconoscibile: combinazione tipica delle truffe. | Last chance, 90% off, order now |
+| COM-02 | link | +15 | detector | Mette fretta e ti manda su un sito sconosciuto ({domain}): verifica sempre il mittente prima di cliccare. | Ultimo avviso... sito-sconosciuto.com |
 
 Categorie di verdetto (`Verdict.category`): pacco, pedaggio, banca, identita, fisco, multa, premio, familiare, investimenti, lavoro, bollette, account, telefonia, vendite, assistenza_remota, documenti. Le categorie `generico`, `link`, `forma` non vengono mai restituite come categoria prevalente; i rilevatori di marchio usano la categoria del marchio.
+
+## Novità versione 2 (feedback tester)
+
+- **MIS-01/MIS-02 e marchi solo citati.** MIS-02 scatta solo se il messaggio *si presenta* come il marchio (`Ctx.presentsAs`: intestazione «Marchio:», «il tuo/la tua … Marchio», «account/conto Marchio», «Marchio team/support», «da parte di», firma). Il mittente dichiarato resta compito di MIS-01. Un thread Reddit su Google non è più sospetto.
+- **`lists.popularDomains`** (~45 siti diffusi e motivati: social/community, dev, SaaS, news, es. reddit, github, workos, wikipedia, linkedin): non generano mai MIS-01/02 e contano come «noti» per COM-01/02. NON azzerano nulla: i lookalike (URL-01/02), TLD a rischio, accorciatori e le altre regole restano attive.
+- **Copertura inglese e mista**: URG-05, SHP-01, ACC-04, PRE-03, PAC-03, CRY-01/02, INV-04, LAV-02, FAT-01, RIM-01, PAY-02, BAN-11, DAT-01, RIS-02; forma: FOR-01 (testo quasi tutto MAIUSCOLO), FOR-02 (italiano+inglese mescolati).
+- **Prudenza (COM-01/02)**: pressione/urgenza (`lists.pressurePatterns`) + soldi/sconti/premi (`valuePatterns`) o richiesta di dati (`dataPatterns`) senza un link ufficiale/noto => +20 (COM-01); pressione + link sconosciuto => +15 (COM-02). Insieme alla regola di pressione (+15) portano almeno a SOSPETTO. Le liste sono dati e passano il linter SEC-06.
+- **Robustezza OCR** (`Text.cleanOcr`, nella normalizzazione): orologio della barra di stato iniziale, lettere doppie isolate («A A»), trattino spezzato a fine riga («SUR- RON» -> «surron»), a capo e spazi multipli, separatori «|», punteggiatura ripetuta, segnaposto «[num]» -> «0».
+- Corpus di sviluppo `corpus/regression.jsonl` (3 casi reali + esempi EN/IT/OCR), test `RegressionTest`.

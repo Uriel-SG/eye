@@ -14,3 +14,6 @@ const val REPO_URL = "https://github.com/Uriel-SG/eye"
 
 /** Segnalazione online alla Polizia Postale (usata anche nel PDF per la denuncia). */
 const val POLIZIA_POSTALE_URL = "https://www.commissariatodips.it"
+
+/** Destinatario delle segnalazioni di verdetto sbagliato (email preparata, inviata solo dall'utente). */
+const val REPORT_EMAIL = "urielsec@salvatoregarasto.com"

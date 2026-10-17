@@ -61,7 +61,8 @@ private class TestKey(val id: String) {
 
     fun rules(version: Long): ByteArray {
         val bundled = javaClass.classLoader.getResource("rules/rules.json")!!.readText()
-        val plain = bundled.replaceFirst("\"version\": 1,", "\"version\": $version,\n \"keyId\": \"$id\",")
+        // Sostituisce la versione qualunque sia quella delle regole incluse.
+        val plain = bundled.replaceFirst(Regex("\"version\":\\s*\\d+,"), "\"version\": $version,\n \"keyId\": \"$id\",")
         return envelope(1, "EYE-RULES-v1\n", version, plain)
     }
 }

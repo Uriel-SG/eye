@@ -46,7 +46,28 @@ data class RuleLists(
     val trustedDomains: List<String> = emptyList(),
     /** Categorie di marchi per cui «marchio nel testo ma link non ufficiale» è un segnale. */
     val mismatchCategories: List<String> = emptyList(),
-)
+    /**
+     * Siti molto diffusi (social, community, news, sviluppo, SaaS): non generano mai incoerenza marchio/link
+     * (MIS-01/02) e contano come «noti» per le combinazioni di prudenza. I lookalike restano sempre sospetti.
+     */
+    val popularDomains: List<String> = emptyList(),
+    /** Regex (testo normalizzato): pressione/urgenza. Usate da COM-01/COM-02. */
+    val pressurePatterns: List<String> = emptyList(),
+    /** Regex: soldi, sconti, premi, pagamenti. */
+    val valuePatterns: List<String> = emptyList(),
+    /** Regex: richiesta di dati, verifica o accesso. */
+    val dataPatterns: List<String> = emptyList(),
+) {
+    @kotlinx.serialization.Transient
+    internal val compiled: CompiledLists by lazy { CompiledLists(this) }
+}
+
+internal class CompiledLists(l: RuleLists) {
+    val popular: Set<String> = l.popularDomains.toHashSet()
+    val pressure: List<java.util.regex.Pattern> = l.pressurePatterns.map { java.util.regex.Pattern.compile(it) }
+    val value: List<java.util.regex.Pattern> = l.valuePatterns.map { java.util.regex.Pattern.compile(it) }
+    val data: List<java.util.regex.Pattern> = l.dataPatterns.map { java.util.regex.Pattern.compile(it) }
+}
 
 @Serializable
 data class Thresholds(
@@ -55,6 +76,32 @@ data class Thresholds(
     /** Punteggio minimo per SOSPETTO. */
     val suspect: Int,
 )
+
+/** Parametri del classificatore AI (aggiornabili via feed firmato). Vedi RuleEngine.combineWithClassifier. */
+@Serializable
+data class AiConfig(
+    /** p >= raiseThreshold con regole NESSUN_SEGNALE → SOSPETTO (AI-01). */
+    val raiseThreshold: Double = 0.998,
+    /** p <= lowerThreshold con regole SOSPETTO → NESSUN_SEGNALE (AI-02), se nessun motivo e' «grave». */
+    val lowerThreshold: Double = 0.005,
+    /** Regole «grave»: se scattate, il verdetto non viene mai declassato dal classificatore. */
+    val hardRuleIds: List<String> = DEFAULT_HARD_RULES,
+) {
+    companion object {
+        val DEFAULT_HARD_RULES = listOf(
+            // domini/imitazione marchio, link ingannevoli o malformati, app fuori store
+            "URL-01", "URL-02", "URL-05", "URL-06", "URL-09", "URL-10", "MIS-01", "MIS-02",
+            // codici, PIN, password, carta, documenti, dati personali
+            "BAN-03", "BAN-04", "BAN-10", "BAN-11", "WAP-01", "DOC-01", "DAT-01", "VEN-01", "RDP-01",
+            // pagamenti non tracciabili o verso sconosciuti, IBAN, anticipi, recuperi
+            "PAY-01", "PAY-02", "IBN-01", "PHN-01", "ANT-01", "REC-01",
+            // cripto/wallet, ricatti, familiare, assistenza finta
+            "CRY-01", "CRY-02", "SEX-01", "FAM-01", "SUP-01",
+            // analisi incompleta (fail-safe)
+            "INC-01",
+        )
+    }
+}
 
 @Serializable
 data class RuleSet(
@@ -65,6 +112,7 @@ data class RuleSet(
     val issuedAt: String? = null,
     val expiresAt: String? = null,
     val thresholds: Thresholds,
+    val ai: AiConfig = AiConfig(),
     val lists: RuleLists = RuleLists(),
     /** Azioni «Cosa fare ora» per categoria e chiavi speciali: probabile, sospetto, nessuno. */
     val actions: Map<String, List<String>> = emptyMap(),
@@ -92,6 +140,12 @@ object RuleLoader {
         require(rs.rules.size in 1..MAX_RULES) { "numero regole fuori limite" }
         require(rs.thresholds.suspect in 1 until rs.thresholds.probable) { "soglie incoerenti" }
         require(rs.rules.map { it.id }.toSet().size == rs.rules.size) { "id regola duplicati" }
+        require(rs.ai.lowerThreshold in 0.0..0.1 && rs.ai.raiseThreshold in 0.9..1.0) { "soglie AI fuori range" }
+        for (p in rs.lists.pressurePatterns + rs.lists.valuePatterns + rs.lists.dataPatterns) {
+            RegexLint.check(p)?.let { err -> throw IllegalArgumentException("lista: $err") }
+            try { java.util.regex.Pattern.compile(p) } catch (e: Exception) { throw IllegalArgumentException("lista: regex non compilabile") }
+        }
+        require(rs.lists.pressurePatterns.size + rs.lists.valuePatterns.size + rs.lists.dataPatterns.size <= 300) { "liste troppo grandi" }
         for (r in rs.rules) {
             require(r.weight in -100..100) { "${r.id}: peso fuori range" }
             require(r.explanation.isNotBlank()) { "${r.id}: spiegazione vuota" }

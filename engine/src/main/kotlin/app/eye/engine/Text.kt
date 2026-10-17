@@ -13,7 +13,6 @@ internal object Text {
     /** Rimuove caratteri invisibili (soft hyphen, zero-width, bidi): i browser li ignorano negli URL (H-3). */
     fun stripInvisible(s: String): String = invisible.replace(s, "")
 
-    private val spaces = Regex("[ \\t\\u00A0]{2,}")
 
     /** Confusables minimali (UTS #39 ristretto): cirillico/greco → latino. */
     private val confusables: Map<Char, Char> = buildMap {
@@ -41,7 +40,30 @@ internal object Text {
         s = s.replace('’', '\'').replace('‘', '\'').replace('“', '"').replace('”', '"')
         s = s.lowercase(Locale.ROOT)
         s = foldConfusables(s)
-        return spaces.replace(s, " ")
+        return cleanOcr(s)
+    }
+
+    private val hyphenBreak = Regex("(?<=\\p{L})-\\s+(?=\\p{L})")
+    private val ws = Regex("\\s+")
+    private val dupLetter = Regex("(?<![\\p{L}\\p{N}])(\\p{L}) \\1(?![\\p{L}\\p{N}])")
+    private val repPunct = Regex("([.,;:\\-_=~*#>|])\\1+")
+    private val barSep = Regex(" [|\u00A6\u2502] ")
+    private val clockStart = Regex("^\\s{0,3}\\d{1,2}[:.]\\d{2}\\s")
+    private val placeholder = Regex("\\[(?:num|number|numero|n)\\]")
+
+    /**
+     * Rumore tipico di OCR/screenshot: orologio della barra di stato, lettere doppie isolate («A A»),
+     * trattini spezzati a fine riga («SUR- RON»), a capo, separatori e punteggiatura ripetuta,
+     * segnaposto di anonimizzazione «[num]».
+     */
+    private fun cleanOcr(t: String): String {
+        var s = placeholder.replace(t, "0")
+        s = clockStart.replace(s, "")
+        s = hyphenBreak.replace(s, "")
+        s = barSep.replace(s, " ")
+        s = dupLetter.replace(s, " ")
+        s = repPunct.replace(s) { it.groupValues[1] }
+        return ws.replace(s, " ").trim()
     }
 
     /**

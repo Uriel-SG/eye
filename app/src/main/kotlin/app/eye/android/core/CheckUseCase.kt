@@ -26,7 +26,7 @@ class CheckUseCase(
         val id = if (saveHistory()) {
             history.save(verdict.level.name, Redactor.preview(text), verdict.reasonTexts(), text, VerdictJson.encode(verdict))
         } else null
-        return CheckOutcome.Done(CheckResult(verdict, text, clock(), truncated, id))
+        return CheckOutcome.Done(CheckResult(verdict, text, clock(), truncated, id, source))
     }
 
     companion object {

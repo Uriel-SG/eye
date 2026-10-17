@@ -22,3 +22,25 @@ Licenza: MIT-style (Bouncy Castle License)
 kotlinx.serialization (org.jetbrains.kotlinx:kotlinx-serialization-json)
 Copyright JetBrains s.r.o. and Kotlin Programming Language contributors
 Licenza: Apache License, Version 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
+
+ONNX Runtime (com.microsoft.onnxruntime:onnxruntime-android)
+Copyright (c) Microsoft Corporation (https://github.com/microsoft/onnxruntime)
+Licenza: MIT (testo identico a quello riportato sopra per Bouncy Castle, con il copyright indicato qui)
+
+Modello di classificazione testi (app/src/main/assets/ml/model.int8.onnx e tokenizer.json)
+Derivato da sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 (Nils Reimers e UKP Lab,
+https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2), licenza Apache 2.0
+(https://www.apache.org/licenses/LICENSE-2.0), a sua volta basato su Multilingual-MiniLM-L12-H384 di Microsoft
+(MIT) e sul tokenizer SentencePiece di XLM-RoBERTa (Meta AI, MIT/Apache 2.0). Modifiche: vocabolario ridotto ai
+token usati, fine-tuning per la classificazione truffa/legittimo (ml/transformer/train.py), quantizzazione int8.
+
+Dati usati per il fine-tuning (non distribuiti con l'app; vedi ml/DATA.md)
+- UCI SMS Spam Collection: T.A. Almeida, J.M. Gomez Hidalgo, A. Yamakami. Contributions to the Study of SMS Spam
+  Filtering: New Collection and Results. DocEng 2011. https://archive.ics.uci.edu/dataset/228/sms+spam+collection
+  Licenza CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Testi campionati e usati per l'addestramento.
+- tanaos/synthetic-spam-detection-dataset-italian (MIT), https://huggingface.co/datasets/tanaos/synthetic-spam-detection-dataset-italian
+- darkknight25/phishing_benign_email_dataset (MIT), https://huggingface.co/datasets/darkknight25/phishing_benign_email_dataset
+
+Figtree (font, app/src/main/res/font/figtree.ttf)
+Copyright 2022 The Figtree Project Authors (https://github.com/erikdkennedy/figtree)
+Licenza: SIL Open Font License 1.1 (https://openfontlicense.org), testo in app/src/main/res/raw/ofl_figtree.txt

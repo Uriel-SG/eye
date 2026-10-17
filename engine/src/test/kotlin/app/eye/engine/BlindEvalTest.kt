@@ -10,7 +10,8 @@ import kotlin.test.Test
 /** Valutazione sul set cieco (corpus/blind.jsonl, scritto senza vedere le regole). Solo report, nessuna asserzione. */
 class BlindEvalTest {
     @Test fun blindReport() {
-        val f = File("../corpus/blind.jsonl")
+        val name = System.getenv("EYE_BLIND") ?: "blind"
+        val f = File("../corpus/$name.jsonl")
         assumeTrue(f.exists(), "set cieco non presente")
         val engine = RuleEngine.default()
         val rows = f.readLines().filter { it.isNotBlank() }.map { Json.parseToJsonElement(it).jsonObject }
@@ -33,7 +34,7 @@ class BlindEvalTest {
             }
         }
         val report = "# Valutazione set cieco\n\nRecall (>=SOSPETTO): $tp/$scam · PROBABILE_TRUFFA: $tpStrong/$scam · Falsi positivi: $fp/$legit\n\n$misses"
-        File("../corpus/eval_blind.md").writeText(report)
+        File("../corpus/eval_$name.md").writeText(report)
         println(report)
     }
 }

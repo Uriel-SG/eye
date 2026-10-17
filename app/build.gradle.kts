@@ -14,8 +14,10 @@ android {
         applicationId = "com.urielsec.eye"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 4
+        versionName = "1.1.1"
+        // Simboli nativi (librerie ML Kit) nell'AAB: Play Console li usa per leggere crash/ANR.
+        ndk { debugSymbolLevel = "SYMBOL_TABLE" }
     }
 
     // Chiave di upload FUORI dal repo: percorso da -PeyeKeystoreProps o variabile EYE_KEYSTORE_PROPS
@@ -64,6 +66,8 @@ android {
             isUniversalApk = false
         }
     }
+    // Il modello ONNX (~35 MB) resta non compresso nell'APK: si legge direttamente dal file.
+    androidResources { noCompress += "onnx" }
     buildFeatures { compose = true; buildConfig = true }
     testOptions { unitTests.isReturnDefaultValues = true }
 }
@@ -89,6 +93,7 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
     implementation(libs.mlkit.text)
+    implementation(libs.onnxruntime.android)
     ksp(libs.androidx.room.compiler)
     testImplementation(libs.junit4)
     testImplementation(libs.kotlinx.coroutines.test)

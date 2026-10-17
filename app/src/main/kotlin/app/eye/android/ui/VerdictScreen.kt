@@ -3,6 +3,13 @@ package app.eye.android.ui
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.RadioButton
+import androidx.compose.ui.semantics.Role
+import app.eye.android.core.ShareTexts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -141,7 +148,7 @@ fun VerdictScreen(result: CheckResult, vm: AppViewModel, onClose: () -> Unit, fr
 
         if (family) {
             Button(
-                onClick = { ExternalIntents.shareText(ctx, ReportBuilder.shareText(ctx, v)) },
+                onClick = { ExternalIntents.shareText(ctx, ReportBuilder.shareText(ctx, result), ReportBuilder.shareSubject(ctx, result)) },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp),
             ) {
                 Icon(Icons.Rounded.Share, contentDescription = null)
@@ -240,7 +247,7 @@ fun VerdictScreen(result: CheckResult, vm: AppViewModel, onClose: () -> Unit, fr
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(
-                onClick = { ExternalIntents.shareText(ctx, ReportBuilder.shareText(ctx, v)) },
+                onClick = { ExternalIntents.shareText(ctx, ReportBuilder.shareText(ctx, result), ReportBuilder.shareSubject(ctx, result)) },
                 modifier = Modifier.weight(1f).heightIn(min = 56.dp),
             ) { Text(stringResource(R.string.verdict_send_family)) }
             OutlinedButton(
@@ -291,15 +298,48 @@ fun VerdictScreen(result: CheckResult, vm: AppViewModel, onClose: () -> Unit, fr
         )
     }
     if (wrongDialog) {
+        var view by remember { mutableStateOf<ShareTexts.UserView?>(null) }
+        val labels = listOf(
+            ShareTexts.UserView.SCAM to stringResource(R.string.wrong_view_scam),
+            ShareTexts.UserView.LEGIT to stringResource(R.string.wrong_view_legit),
+            ShareTexts.UserView.OTHER to stringResource(R.string.wrong_view_other),
+        )
         AlertDialog(
             onDismissRequest = { wrongDialog = false },
             title = { Text(stringResource(R.string.verdict_wrong)) },
-            text = { Text(stringResource(R.string.verdict_wrong_info)) },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.wrong_info_v2))
+                    Text(stringResource(R.string.wrong_view_question), style = MaterialTheme.typography.titleMedium)
+                    Column(Modifier.selectableGroup()) {
+                        labels.forEach { (opt, label) ->
+                            Row(
+                                Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                                    .selectable(selected = view == opt, onClick = { view = opt }, role = Role.RadioButton),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                RadioButton(selected = view == opt, onClick = null)
+                                Spacer(Modifier.width(8.dp))
+                                Text(label, style = MaterialTheme.typography.bodyLarge)
+                            }
+                        }
+                    }
+                }
+            },
             confirmButton = {
-                TextButton(onClick = {
+                TextButton(enabled = view != null, onClick = {
+                    val choice = view ?: return@TextButton
                     wrongDialog = false
-                    ExternalIntents.shareText(ctx, ReportBuilder.wrongVerdictBody(ctx, v), ctx.getString(R.string.wrong_subject))
-                }) { Text(stringResource(R.string.action_share)) }
+                    scope.launch {
+                        val uri = try {
+                            withContext(Dispatchers.Default) { ShareCard.save(ctx, ShareCard.render(ctx, result, false)) }
+                        } catch (_: Exception) { null }
+                        ExternalIntents.composeEmail(
+                            ctx, app.eye.android.core.REPORT_EMAIL, ReportBuilder.feedbackSubject(ctx, result, choice),
+                            ReportBuilder.feedbackBody(ctx, result, choice), uri,
+                        )
+                    }
+                }) { Text(stringResource(R.string.wrong_send)) }
             },
             dismissButton = { TextButton(onClick = { wrongDialog = false }) { Text(stringResource(R.string.action_cancel)) } },
         )

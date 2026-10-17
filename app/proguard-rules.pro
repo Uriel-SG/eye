@@ -4,3 +4,6 @@
 -keep class com.google.mlkit.** { *; }
 -keep class com.google.android.gms.internal.mlkit_vision_text_common.** { *; }
 -keep class com.google.android.gms.internal.mlkit_vision_text_bundled_common.** { *; }
+
+# ONNX Runtime: il codice nativo usa classi/campi Java per nome via JNI.
+-keep class ai.onnxruntime.** { *; }

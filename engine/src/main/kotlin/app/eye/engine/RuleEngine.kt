@@ -6,7 +6,13 @@ import java.util.regex.Pattern
  * Motore a regole: estrazione → normalizzazione → regole dati + rilevatori in codice → punteggio.
  * Puro Kotlin/JDK. Thread-safe dopo la costruzione (Pattern è immutabile).
  */
-class RuleEngine(private val rules: RuleSet, private val budgetMillis: Long = 800) : Analyzer {
+class RuleEngine(
+    private val rules: RuleSet,
+    private val budgetMillis: Long = 800,
+    /** Classificatore di testo opzionale (modello AI sul telefono): segnale aggiuntivo, mai l'unico. */
+    private val classifier: TextClassifier? = null,
+    private val classifierTimeoutMillis: Long = 3000,
+) : Analyzer {
 
     private class Compiled(val def: RuleDef, val patterns: List<Pattern>, val unless: Pattern?)
 
@@ -51,6 +57,7 @@ class RuleEngine(private val rules: RuleSet, private val budgetMillis: Long = 80
         val text = Text.normalizeForRules(raw)
         val ctx = Ctx(raw, text, sender, urls, phones, ibanHits.map { it.first }, amounts, rules.lists, scan.anomalies)
         val budgeted = BudgetedChars(text, deadline)
+        ctx.scanText = budgeted
 
         class Fired(val def: RuleDef, val reasonText: String, val category: String)
         val fired = ArrayList<Fired>()
@@ -101,7 +108,47 @@ class RuleEngine(private val rules: RuleSet, private val budgetMillis: Long = 80
             .maxByOrNull { (_, v) -> v.sumOf { it.def.weight } }?.key
             .takeIf { level != Level.NESSUN_SEGNALE }
 
-        return Verdict(level, score, reasons, actionsFor(level, category), extracted, category, rules.version)
+        val base = Verdict(level, score, reasons, actionsFor(level, category), extracted, category, rules.version)
+        return if (incomplete) base else combineWithClassifier(base, fired.map { it.def.id }, raw)
+    }
+
+    /**
+     * Combinazione regole + classificatore. Alza NESSUN_SEGNALE a SOSPETTO (AI-01) se p >= soglia alta;
+     * abbassa SOSPETTO a NESSUN_SEGNALE (AI-02) solo se p <= soglia bassa e nessun segnale «grave» (ai.hardRuleIds).
+     * Mai PROBABILE_TRUFFA toccato. Classificatore assente, lento o in errore: verdetto delle regole invariato.
+     */
+    private fun combineWithClassifier(v: Verdict, firedIds: List<String>, text: String): Verdict {
+        val c = classifier ?: return v
+        if (v.level == Level.PROBABILE_TRUFFA) return v
+        val ai = rules.ai
+        val lowering = v.level == Level.SOSPETTO
+        if (lowering && firedIds.any { it in ai.hardRuleIds }) return v // grave: non si declassa, niente inferenza
+        val p = classify(c, text) ?: return v
+        if (!lowering && p >= ai.raiseThreshold) {
+            val reasons = listOf(Reason(AI_RAISE_ID, AI_RAISE_TEXT, rules.thresholds.suspect)) + v.reasons
+            return v.copy(
+                level = Level.SOSPETTO, score = maxOf(v.score, rules.thresholds.suspect), reasons = reasons,
+                actions = actionsFor(Level.SOSPETTO, null),
+            )
+        }
+        if (lowering && p <= ai.lowerThreshold) {
+            return v.copy(
+                level = Level.NESSUN_SEGNALE, score = rules.thresholds.suspect - 1,
+                reasons = listOf(Reason(AI_LOWER_ID, AI_LOWER_TEXT, 0)) + v.reasons,
+                actions = actionsFor(Level.NESSUN_SEGNALE, null), category = null,
+            )
+        }
+        return v
+    }
+
+    private fun classify(c: TextClassifier, text: String): Float? {
+        val f = pool.submit<Float?> { c.scamProbability(text) }
+        return try {
+            f.get(classifierTimeoutMillis, java.util.concurrent.TimeUnit.MILLISECONDS)?.takeIf { !it.isNaN() }
+        } catch (e: Exception) {
+            f.cancel(true)
+            null
+        }
     }
 
     private fun matches(c: Compiled, text: String, budgeted: CharSequence): Boolean {
@@ -136,6 +183,12 @@ class RuleEngine(private val rules: RuleSet, private val budgetMillis: Long = 80
     }
 
     companion object {
+        const val AI_RAISE_ID = "AI-01"
+        const val AI_LOWER_ID = "AI-02"
+        const val AI_RAISE_TEXT = "Il testo somiglia molto a messaggi truffa noti (analisi del modello AI sul telefono)."
+        const val AI_LOWER_TEXT = "Segnali deboli trovati dalle regole, ma il testo somiglia molto a messaggi legittimi (analisi del modello AI sul telefono)."
+
+        private val pool = java.util.concurrent.Executors.newCachedThreadPool { r -> Thread(r, "eye-classifier").apply { isDaemon = true } }
         private val NEUTRAL_CATEGORIES = setOf("generico", "link", "forma")
 
         /** Pacchetto regole incluso nelle risorse (fallback). */

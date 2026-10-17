@@ -32,4 +32,28 @@ object ExternalIntents {
         }
         context.startActivity(Intent.createChooser(send, context.getString(R.string.share_chooser)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
+
+    /** Email precompilata (ACTION_SENDTO mailto:) che l'utente rivede e invia; senza app email ripiega sulla condivisione testo. */
+    fun composeEmail(context: Context, to: String, subject: String, body: String, attachment: Uri? = null) {
+        if (attachment != null) {
+            val send = Intent(Intent.ACTION_SEND).apply {
+                type = "image/png"
+                putExtra(Intent.EXTRA_EMAIL, arrayOf(to))
+                putExtra(Intent.EXTRA_SUBJECT, subject)
+                putExtra(Intent.EXTRA_TEXT, body)
+                putExtra(Intent.EXTRA_STREAM, attachment)
+                clipData = android.content.ClipData.newRawUri("", attachment)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                selector = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:"))
+            }
+            try { context.startActivity(send); return } catch (_: ActivityNotFoundException) { /* ripiega sul mailto senza allegato */ }
+        }
+        val mail = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:$to")).apply {
+            putExtra(Intent.EXTRA_EMAIL, arrayOf(to))
+            putExtra(Intent.EXTRA_SUBJECT, subject)
+            putExtra(Intent.EXTRA_TEXT, body)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        try { context.startActivity(mail) } catch (_: ActivityNotFoundException) { shareText(context, body, subject) }
+    }
 }

@@ -12,7 +12,7 @@ class RuleEngineTest {
     private fun analyze(t: String, sender: String? = null) = engine.analyze(Input(t, Source.PASTE, sender))
 
     @Test fun ruleCountInRange() {
-        assertTrue(engine.ruleCount in 40..70, "regole: ${engine.ruleCount}")
+        assertTrue(engine.ruleCount in 40..120, "regole: ${engine.ruleCount}")
     }
 
     @Test fun lookalikeDomainIsFlagged() {

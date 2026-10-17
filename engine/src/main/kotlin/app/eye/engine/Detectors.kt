@@ -14,6 +14,19 @@ internal class Ctx(
     /** Link anomali: frammenti simili a domini non estratti o URL http(s) non validi. >0 => nessuno sconto "ufficiale". */
     val anomalies: Int = 0,
 ) {
+    /** Testo con budget di tempo per i rilevatori che usano regex (lancia BudgetExceeded). */
+    var scanText: CharSequence = text
+    private val cl get() = lists.compiled
+    val popular: Set<String> get() = cl.popular
+
+    /** Dominio ufficiale o di un sito molto diffuso (per MIS-01/02 e combinazioni di prudenza). */
+    fun isKnown(d: String) = isOfficial(d) || d in popular
+
+    private fun any(ps: List<java.util.regex.Pattern>) = ps.any { it.matcher(scanText).find() }
+    val hasPressure: Boolean by lazy { any(cl.pressure) }
+    val hasValue: Boolean by lazy { any(cl.value) }
+    val hasDataRequest: Boolean by lazy { any(cl.data) }
+
     val riskyTlds = lists.riskyTlds.toHashSet()
     val shorteners = lists.shorteners.toHashSet()
     val officialAll: Set<String> = (lists.brands.flatMap { it.official } + lists.trustedDomains).toHashSet()
@@ -32,12 +45,37 @@ internal class Ctx(
     fun isInstitutional(d: String) = d == "gov.it" || d.endsWith(".gov.it") ||
         (d.endsWith(".it") && d.count { it == '.' } >= 2 && INSTITUTIONAL_PREFIXES.any { d.startsWith(it) })
 
+    /**
+     * Il messaggio SI PRESENTA come il marchio (intestazione «Google:», «il tuo account Google», «team X»,
+     * «da parte di X», firma), non lo cita soltanto. Il mittente dichiarato e' gestito da MIS-01.
+     */
+    fun presentsAs(b: Brand): Boolean {
+        val names = (b.aliases + b.name.lowercase()).distinct()
+        val l = "[\\p{L}\\p{N}]"
+        for (n in names) {
+            val q = java.util.regex.Pattern.quote(n)
+            val ps = presentationPatterns.computeIfAbsent(n) {
+                listOf(
+                    "^[^\\p{L}\\p{N}]{0,15}$q(?:\\s{0,2}[:\\-|,]|\\s(?:ti |vi |la |le )?(?:informa|avvisa|comunica|ricorda|team|support|security|alert|notice))",
+                    "(?<!$l)(?:il tuo|la tua|i tuoi|le tue|il suo|la sua|i suoi|le sue|your|my)\\s(?:\\p{L}{1,15}\\s){0,2}$q(?!$l)",
+                    "(?<!$l)(?:account|conto|carta|profilo|abbonamento|membership|password|accesso|servizio)\\s$q(?!$l)",
+                    "(?<!$l)$q\\s(?:team|support|security|customer|assistenza|supporto|servizio clienti|sicurezza|staff)(?!$l)",
+                    "(?<!$l)(?:da parte di|a nome di|from|on behalf of|team|supporto|assistenza|servizio clienti|ufficio)\\s$q(?!$l)",
+                    "(?:saluti|regards|sincerely|cordialmente)[,\\s]{1,3}(?:il |the )?(?:team |staff )?$q(?!$l)",
+                ).map { java.util.regex.Pattern.compile(it) }
+            }
+            if (ps.any { it.matcher(text).find() }) return true
+        }
+        return false
+    }
+
     /** Marchi citati nel testo (o nel mittente) con confini di parola. */
     fun brandsIn(s: String): List<Brand> = lists.brands.filter { b ->
         (b.aliases + b.name.lowercase()).any { containsWord(s, it) }
     }
 
     companion object {
+        private val presentationPatterns = java.util.concurrent.ConcurrentHashMap<String, List<java.util.regex.Pattern>>()
         private val INSTITUTIONAL_PREFIXES = listOf("comune.", "regione.", "provincia.", "citta-metropolitana.")
 
         fun containsWord(s: String, w: String): Boolean {
@@ -77,6 +115,9 @@ internal object Detectors {
         "iban_payment" to ::ibanPayment,
         "iban_foreign" to ::ibanForeign,
         "shouting" to ::shouting,
+        "mixed_language" to ::mixedLanguage,
+        "pressure_value" to ::pressureValue,
+        "pressure_unknown_link" to ::pressureUnknownLink,
         "official_domains" to ::officialDomains,
         "incomplete_analysis" to { _ -> null }, // gestito dal motore (budget scaduto)
         "unresolved_link" to { c -> if (c.anomalies > 0) Hit() else null },
@@ -175,9 +216,12 @@ internal object Detectors {
         val sender = c.sender?.let { Text.normalizeForRules(it) } ?: return null
         if (c.urls.isEmpty()) return null
         val brands = c.brandsIn(sender)
+        // siti molto diffusi (reddit, github, workos...) non sono mai incoerenza di mittente
+        val urls = c.urls.filter { it.registrable !in c.popular }
+        if (urls.isEmpty()) return null
         for (b in brands) {
-            if (c.urls.none { c.isOfficialFor(it.registrable, b) }) {
-                val d = c.urls.first { !c.isOfficialFor(it.registrable, b) }.registrable
+            if (urls.none { c.isOfficialFor(it.registrable, b) }) {
+                val d = urls.first { !c.isOfficialFor(it.registrable, b) }.registrable
                 return Hit(mapOf("domain" to d, "brand" to b.name), b.category)
             }
         }
@@ -186,12 +230,15 @@ internal object Detectors {
 
     private fun textLinkMismatch(c: Ctx): Hit? {
         if (c.urls.isEmpty()) return null
-        val brands = c.brandsIn(c.text).filter { it.category in c.lists.mismatchCategories }
+        val urls = c.urls.filter { it.registrable !in c.popular }
+        if (urls.isEmpty()) return null
+        // solo se il messaggio si presenta COME il marchio: una semplice citazione non basta
+        val brands = c.brandsIn(c.text).filter { it.category in c.lists.mismatchCategories && c.presentsAs(it) }
         if (brands.isEmpty()) return null
         // Se un qualunque link è ufficiale per un marchio citato, nessuna incoerenza.
-        if (c.anomalies == 0 && c.urls.any { u -> brands.any { c.isOfficialFor(u.registrable, it) } }) return null
+        if (c.anomalies == 0 && urls.any { u -> brands.any { c.isOfficialFor(u.registrable, it) } }) return null
         val b = brands.first()
-        val d = c.urls.first().registrable
+        val d = urls.first().registrable
         return Hit(mapOf("domain" to d, "brand" to b.name), b.category)
     }
 
@@ -223,6 +270,32 @@ internal object Detectors {
         val upper = c.rawText.count { it.isUpperCase() }
         return if (upper * 100 / letters >= 60) Hit() else null
     }
+
+    private val enWords = setOf("your", "the", "you", "to", "and", "is", "has", "been", "will", "please", "now", "or", "this", "with", "for", "are")
+    private val itWords = setOf("il", "la", "di", "che", "per", "non", "un", "una", "sono", "con", "del", "della", "tuo", "tua", "gentile", "cliente", "hai", "stato")
+    private val wordRe = Regex("[a-z]+")
+
+    /** Mescola italiano e inglese in modo marcato: tipico dei testi truffa tradotti. */
+    private fun mixedLanguage(c: Ctx): Hit? {
+        var en = 0
+        var it = 0
+        for (m in wordRe.findAll(c.text)) {
+            val w = m.value
+            if (w in enWords) en++ else if (w in itWords) it++
+        }
+        return if (en >= 4 && it >= 3) Hit() else null
+    }
+
+    // ---- Prudenza: pressione + soldi/dati senza un sito noto ----
+    private fun unknownLinkPresent(c: Ctx) = c.urls.any { !c.isKnown(it.registrable) } || c.anomalies > 0
+
+    private fun pressureValue(c: Ctx): Hit? {
+        if (c.urls.isNotEmpty() && !unknownLinkPresent(c)) return null
+        return if (c.hasPressure && (c.hasValue || c.hasDataRequest)) Hit() else null
+    }
+
+    private fun pressureUnknownLink(c: Ctx): Hit? =
+        if (unknownLinkPresent(c) && c.hasPressure) Hit(mapOf("domain" to (c.urls.firstOrNull { !c.isKnown(it.registrable) }?.registrable ?: "sconosciuto"))) else null
 
     // ---- Segnale negativo ----
     /** Link accorciato ma il testo cita un marchio e il suo dominio ufficiale compare tra gli altri link. */

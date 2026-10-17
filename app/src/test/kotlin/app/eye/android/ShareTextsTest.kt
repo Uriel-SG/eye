@@ -1,0 +1,92 @@
+package app.eye.android
+
+import app.eye.android.core.ContentKind
+import app.eye.android.core.ShareTexts
+import app.eye.engine.Reason
+import app.eye.engine.Source
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class ShareTextsTest {
+    private val sms = "+39 333 1234567: BRT: pacco in giacenza, paga 1,99 € su https://brt-consegna.com/x entro oggi"
+
+    private fun summary(text: String = sms, source: Source? = Source.SHARE, urls: List<String> = listOf("https://brt-consegna.com/x")) =
+        ShareTexts.summary(text, source, listOf("brt-consegna.com"), urls, listOf("1,99 €"))
+
+    @Test fun summaryLineSaysWhatWasAnalyzedWithoutLeakingNumbers() {
+        val s = summary()
+        assertEquals("Messaggio da +39…[oscurato] con link a brt-consegna[.]com e importo 1,99 €", s.line)
+        assertFalse(s.line.contains("1234567"))
+        assertFalse(s.excerpt.contains("1234567"))
+        assertFalse(s.excerpt.contains("https://"))
+    }
+
+    @Test fun kindsAreDetected() {
+        assertEquals(ContentKind.QR, summary("x", Source.QR).kind)
+        assertEquals(ContentKind.SCREENSHOT, summary("ciao", Source.OCR).kind)
+        assertEquals(ContentKind.EMAIL, summary("Da: a@b.it\nOggetto: ciao\ntesto", Source.PASTE).kind)
+        assertEquals(ContentKind.LINK, summary("https://x.com/a", Source.PASTE).kind)
+    }
+
+    @Test fun emailSenderIsObscured() {
+        assertEquals("[oscurato]@poste-x[.]top", ShareTexts.sender("Da: Mario Rossi <mario.rossi@poste-x.top>\nOggetto: x"))
+    }
+
+    @Test fun familyTextAlwaysHasSummaryVerdictReasonsAndSteps() {
+        val t = ShareTexts.familyText("Probabile truffa", summary(), listOf("Link sospetto"), listOf("Non cliccare", "Chiama la banca"))
+        assertTrue(t.contains("Ho controllato con Eye: Messaggio da +39…[oscurato]"))
+        assertTrue(t.contains("Verdetto: Probabile truffa."))
+        assertTrue(t.contains("- Link sospetto"))
+        assertTrue(t.contains("- Chiama la banca"))
+        assertFalse(t.contains("1234567"))
+    }
+
+    @Test fun noReasonsGivesPrudentMessage() {
+        assertTrue(ShareTexts.familyText("Nessun segnale evidente", summary(), emptyList(), listOf("a")).contains(ShareTexts.PRUDENT))
+    }
+
+    @Test fun reportRedactsUnlessFullTextRequested() {
+        val args = { full: String? -> ShareTexts.report("Sospetto", "oggi", summary(), listOf("m"), listOf("s"), 7L, "disc", full) }
+        assertFalse(args(null).contains("1234567"))
+        assertTrue(args(null).contains("Estratto (oscurato)"))
+        assertTrue(args(sms).contains("1234567"))
+    }
+
+    @Test fun feedbackEmailHasFullUnredactedDataAndMetadata() {
+        val b = body(Reason("R1", "Link strano", 30))
+        assertTrue(b.contains(sms))
+        assertTrue(b.contains("Punteggio: 83"))
+        assertTrue(b.contains("Regole scattate: R1"))
+        assertTrue(b.contains("Domini estratti: brt-consegna.com"))
+        assertTrue(b.contains("Sorgente: OCR"))
+        assertTrue(b.contains("Versione app: 1.0.1"))
+        assertTrue(b.contains("Versione regole: 12"))
+    }
+
+    private fun body(vararg r: Reason) = ShareTexts.feedbackBody(
+        sms, "Probabile truffa", ShareTexts.UserView.SCAM, summary().line, 83, r.toList(), listOf("brt-consegna.com"), Source.OCR, "1.0.1", 12L, "oggi",
+    )
+
+    @Test fun feedbackSubjectForEveryCombination() {
+        val v = ShareTexts.UserView.entries
+        for (l in listOf("Probabile truffa", "Sospetto", "Nessun segnale evidente")) {
+            assertEquals("Eye – possibile truffa non riconosciuta (verdetto: $l)", ShareTexts.feedbackSubject(v[0], l))
+            assertEquals("Eye – falso allarme (verdetto: $l)", ShareTexts.feedbackSubject(v[1], l))
+            assertEquals("Eye – segnalazione verdetto (altro)", ShareTexts.feedbackSubject(v[2], l))
+        }
+    }
+
+    @Test fun feedbackBodySectionsAreInOrder() {
+        val b = body(Reason("R1", "Link strano", 30), Reason("AI-01", "Il classificatore alza il rischio", 20))
+        val idx = listOf(
+            ShareTexts.COMMENT_LABEL, "Analizzato: Messaggio da", "Verdetto di Eye: Probabile truffa", "Secondo te il messaggio è: Una truffa",
+            "Motivi principali:", "- Link strano", "Motivo del classificatore AI: Il classificatore alza", ShareTexts.TECH_SEPARATOR,
+            ShareTexts.TECH_LABEL, "Punteggio: 83", "Messaggio analizzato:",
+        ).map { b.indexOf(it).also { i -> assertTrue("manca: $it", i >= 0) } }
+        assertEquals(idx.sorted(), idx)
+        assertTrue(b.lines().take(4).all { it.isEmpty() || it == ShareTexts.COMMENT_LABEL })
+        assertTrue(b.endsWith(sms))
+    }
+}

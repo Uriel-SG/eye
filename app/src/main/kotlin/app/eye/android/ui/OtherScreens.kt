@@ -379,7 +379,9 @@ fun OnboardingScreen(onDone: () -> Unit) {
     val pager = rememberPagerState { 3 }
     val scope = rememberCoroutineScope()
     val page = pager.currentPage
-    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(16.dp)) {
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    ShieldBackdrop()
+    Column(Modifier.fillMaxSize().padding(16.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             TextButton(onClick = onDone, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.action_skip)) }
         }
@@ -405,6 +407,7 @@ fun OnboardingScreen(onDone: () -> Unit) {
                 modifier = Modifier.weight(1f).heightIn(min = 56.dp),
             ) { Text(stringResource(if (page < 2) R.string.action_next else R.string.action_start), style = MaterialTheme.typography.titleMedium) }
         }
+    }
     }
 }
 

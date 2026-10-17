@@ -1,8 +1,43 @@
 {
- "version": 1,
+ "version": 4,
  "thresholds": {
   "probable": 55,
   "suspect": 25
+ },
+ "ai": {
+  "raiseThreshold": 0.998,
+  "lowerThreshold": 0.005,
+  "hardRuleIds": [
+   "URL-01",
+   "URL-02",
+   "URL-05",
+   "URL-06",
+   "URL-09",
+   "URL-10",
+   "MIS-01",
+   "MIS-02",
+   "BAN-03",
+   "BAN-04",
+   "BAN-10",
+   "BAN-11",
+   "WAP-01",
+   "DOC-01",
+   "DAT-01",
+   "VEN-01",
+   "RDP-01",
+   "PAY-01",
+   "PAY-02",
+   "IBN-01",
+   "PHN-01",
+   "ANT-01",
+   "REC-01",
+   "CRY-01",
+   "CRY-02",
+   "SEX-01",
+   "FAM-01",
+   "SUP-01",
+   "INC-01"
+  ]
  },
  "lists": {
   "brands": [
@@ -1260,6 +1295,86 @@
    "pedaggio",
    "identita",
    "account"
+  ],
+  "popularDomains": [
+   "android.com",
+   "anthropic.com",
+   "atlassian.com",
+   "bbc.co.uk",
+   "bbc.com",
+   "bloomberg.com",
+   "canva.com",
+   "cloudflare.com",
+   "discord.com",
+   "dropbox.com",
+   "figma.com",
+   "github.com",
+   "gitlab.com",
+   "imdb.com",
+   "kotlinlang.org",
+   "linkedin.com",
+   "medium.com",
+   "mozilla.org",
+   "notion.so",
+   "npmjs.com",
+   "nytimes.com",
+   "openai.com",
+   "pinterest.com",
+   "quora.com",
+   "redd.it",
+   "reddit.com",
+   "reuters.com",
+   "slack.com",
+   "spotify.com",
+   "stackexchange.com",
+   "stackoverflow.com",
+   "stripe.com",
+   "techcrunch.com",
+   "theguardian.com",
+   "theverge.com",
+   "tripadvisor.com",
+   "twitch.tv",
+   "twitter.com",
+   "vercel.com",
+   "wikimedia.org",
+   "wikipedia.org",
+   "workos.com",
+   "x.com",
+   "youtu.be",
+   "youtube.com",
+   "zoom.us"
+  ],
+  "pressurePatterns": [
+   "\\b(?:final|last|urgent|immediate|second) (?:notice|warning|reminder|chance|call)\\b",
+   "\\b(?:ends?|expires?|ending|expiring|closing) (?:at midnight|tonight|today|soon|in 24 hours)\\b",
+   "\\b(?:act|order|buy|shop|claim|call|verify|confirm|pay|click|hurry|apply|respond|reply) (?:now|immediately|today|fast|at once|asap)\\b",
+   "\\b(?:limited time|limited offer|limited stock|limited slots|limited positions|today only|one day only|hurry up|don'?t miss|while stocks? last|running out)\\b",
+   "\\bonly \\d{1,3} (?:left|remaining|available)\\b",
+   "\\bwithin (?:the next )?\\d{1,3} ?(?:hours?|hrs?|minutes?)\\b",
+   "\\b(?:immediately|urgently|urgent|asap|right away|at once)\\b",
+   "\\b(?:account|card|access|service|membership|subscription|package|parcel)\\b.{0,40}\\b(?:will be|is being|has been|was|is) (?:suspended|locked|closed|blocked|terminated|deleted|cancell?ed|disabled|limited|on hold)\\b",
+   "\\bto avoid (?:permanent |further )?(?:suspension|closure|cancell?ation|penalt\\w{1,5}|legal action|fees|charges)\\b",
+   "\\b(?:ultimo|ultima|urgente|immediato|immediata) (?:avviso|giorno|possibilit[aà]|chance|sollecito|occasione)\\b",
+   "\\b(?:scade|termina|finisce|scadenza) (?:oggi|stasera|a mezzanotte|domani|entro)\\b",
+   "\\b(?:solo|soltanto) (?:oggi|per oggi|per poco|per poche ore)\\b",
+   "\\b(?:scorte limitate|ultimi pezzi|fino a esaurimento|offerta lampo|offerta a tempo|tempo limitato|affrettati|non perdere|ultime ore)\\b",
+   "\\b(?:ordina|acquista|compra|agisci|rispondi|paga|clicca|verifica|conferma|accedi|riscatta|richiedi|aggiorna) (?:subito|ora|adesso|immediatamente|oggi)\\b",
+   "\\b(?:entro|nelle prossime) (?:[0-9]{1,2}|ventiquattro|quarantotto) ?(?:ore|h)\\b",
+   "\\b(?:immediatamente|urgentemente|urgente|con urgenza)\\b",
+   "\\b(?:sar[aà]|verr[aà]) (?:sospeso|bloccato|chiuso|cancellato|disattivato|limitato|restituito)\\b",
+   "\\b(?:flash|liquidation|clearance|closing|mega|huge|final|black friday|cyber monday) (?:sale|event|deals?)\\b"
+  ],
+  "valuePatterns": [
+   "[$€£] ?\\d",
+   "\\b\\d{1,3}(?:[.,]\\d{1,3}){0,2} ?(?:euro|eur|usd|dollars?|dollari|gbp|sterline)\\b",
+   "\\b\\d{1,2} ?% ?(?:off|di sconto|sconto)\\b",
+   "\\b(?:discount|clearance|liquidation|coupon|voucher|cashback|saldi|sconto|sconti|promozione|omaggio|gratis|prezzo|price|pricing)\\b",
+   "\\b(?:prize|reward|winner|won|vincita|vinto|premio|lottery|lotteria|jackpot|gift ?cards?|buono|rimborso|refund|bonus)\\b",
+   "\\b(?:payment|pay|paga|pagare|pagamento|invoice|fattura|fee|spese|commissione|deposit|deposito|bitcoin|btc|crypto|criptovalute|wallet|usdt|ethereum|airdrop|investment|investimento)\\b"
+  ],
+  "dataPatterns": [
+   "\\b(?:verify|confirm|update|validate|reset|restore|unlock|recover|verifica|verificare|conferma|confermare|aggiorna|aggiornare|convalida|sblocca|ripristina|recupera)\\b.{0,30}\\b(?:account|identity|identit[aà]|information|details|payment|password|card|carta|pin|otp|login|access|accesso|dati|credentials|credenziali|profile|profilo|address|indirizzo|codice)\\b",
+   "\\b(?:enter|provide|send|submit|inserisci|inserire|invia|inviare|fornisci|comunica)\\b.{0,30}\\b(?:password|pin|otp|cvv|card|carta|ssn|passport|passaporto|documento|seed phrase|bank|iban|dati)\\b"
   ]
  },
  "actions": {
@@ -2184,6 +2299,296 @@
    "example": "(testo molto lungo o costruito per rallentare l'analisi)",
    "kind": "detector",
    "detector": "incomplete_analysis"
+  },
+  {
+   "id": "URG-05",
+   "category": "urgenza",
+   "weight": 15,
+   "explanation": "Frasi di pressione tipiche («final notice», «ends tonight», «act now», «ultimo giorno»…): i truffatori ti mettono fretta per non farti ragionare.",
+   "example": "FINAL NOTICE: pricing ends at midnight",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:final|last|urgent|immediate|second) (?:notice|warning|reminder|chance|call)\\b",
+    "\\b(?:ends?|expires?|ending|expiring|closing) (?:at midnight|tonight|today|soon|in 24 hours)\\b",
+    "\\b(?:act|order|buy|shop|claim|call|verify|confirm|pay|click|hurry|apply|respond|reply) (?:now|immediately|today|fast|at once|asap)\\b",
+    "\\b(?:limited time|limited offer|limited stock|limited slots|limited positions|today only|one day only|hurry up|don'?t miss|while stocks? last|running out)\\b",
+    "\\bonly \\d{1,3} (?:left|remaining|available)\\b",
+    "\\bwithin (?:the next )?\\d{1,3} ?(?:hours?|hrs?|minutes?)\\b",
+    "\\b(?:immediately|urgently|urgent|asap|right away|at once)\\b",
+    "\\b(?:account|card|access|service|membership|subscription|package|parcel)\\b.{0,40}\\b(?:will be|is being|has been|was|is) (?:suspended|locked|closed|blocked|terminated|deleted|cancell?ed|disabled|limited|on hold)\\b",
+    "\\bto avoid (?:permanent |further )?(?:suspension|closure|cancell?ation|penalt\\w{1,5}|legal action|fees|charges)\\b",
+    "\\b(?:ultimo|ultima|urgente|immediato|immediata) (?:avviso|giorno|possibilit[aà]|chance|sollecito|occasione)\\b",
+    "\\b(?:scade|termina|finisce|scadenza) (?:oggi|stasera|a mezzanotte|domani|entro)\\b",
+    "\\b(?:solo|soltanto) (?:oggi|per oggi|per poco|per poche ore)\\b",
+    "\\b(?:scorte limitate|ultimi pezzi|fino a esaurimento|offerta lampo|offerta a tempo|tempo limitato|affrettati|non perdere|ultime ore)\\b",
+    "\\b(?:ordina|acquista|compra|agisci|rispondi|paga|clicca|verifica|conferma|accedi|riscatta|richiedi|aggiorna) (?:subito|ora|adesso|immediatamente|oggi)\\b",
+    "\\b(?:entro|nelle prossime) (?:[0-9]{1,2}|ventiquattro|quarantotto) ?(?:ore|h)\\b",
+    "\\b(?:immediatamente|urgentemente|urgente|con urgenza)\\b",
+    "\\b(?:sar[aà]|verr[aà]) (?:sospeso|bloccato|chiuso|cancellato|disattivato|limitato|restituito)\\b",
+    "\\b(?:flash|liquidation|clearance|closing|mega|huge|final|black friday|cyber monday) (?:sale|event|deals?)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "SHP-01",
+   "category": "vendite",
+   "weight": 15,
+   "explanation": "Sconti esagerati, prezzi stracciati o «prezzo di fabbrica»: tipico dei finti negozi online che incassano e non spediscono.",
+   "example": "90% OFF, factory discount $499",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:[5-9][0-9]) ?% ?(?:off|di sconto|sconto)\\b",
+    "\\bsconto (?:del |di )?(?:[5-9][0-9]) ?%",
+    "\\b(?:factory|warehouse|wholesale|fabbrica|magazzino) (?:discount|direct|price|clearance|sale|sconto|prezzo|outlet)\\b",
+    "\\b(?:liquidation|clearance|closing|liquidazione) (?:sale|event|total|totale)\\b",
+    "\\b(?:was|instead of|invece di|anziche|anziché) [$€£]? ?\\d",
+    "[$€£] ?\\d[\\d.,]{0,8} (?:instead of|invece di|was)\\b",
+    "\\b(?:only|solo|soli|a soli) [$€£] ?\\d",
+    "\\bbrand new (?:iphone|macbook|ps5|playstation|rolex)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "ACC-04",
+   "category": "account",
+   "weight": 25,
+   "explanation": "Dice che il tuo account è bloccato, limitato o «insolito» e ti chiede di verificarlo o confermare la tua identità: è il classico pretesto del phishing.",
+   "example": "Your account has been locked, verify your account",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:account|membership|subscription|card|wallet) (?:has been|is|was|will be|has) (?:suspended|locked|limited|closed|disabled|restricted|compromised|deactivated|expired|blocked|frozen)\\b",
+    "\\b(?:verify|confirm|validate) your (?:account|identity|information|details|payment|email|password|card)\\b",
+    "\\b(?:unusual|suspicious|unauthori[sz]ed) (?:activity|sign-in|login|access|transaction)\\b",
+    "\\bupdate your (?:payment|billing|account|card)\\b",
+    "\\bpayment (?:failed|declined|was declined|unsuccessful)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "PRE-03",
+   "category": "premio",
+   "weight": 30,
+   "explanation": "Dice che hai vinto o sei stato selezionato per un premio mai richiesto: serve a farti cliccare o a rubarti i dati.",
+   "example": "You have won a $1000 gift card, claim your prize",
+   "kind": "regex",
+   "patterns": [
+    "\\byou(?:'ve| have| are) (?:been selected|won|a winner|the winner)\\b",
+    "\\bclaim your (?:prize|reward|gift|free|bonus|winnings|refund)\\b",
+    "\\bcongratulations\\b.{0,50}\\b(?:won|winner|selected|chosen|prize|reward)\\b",
+    "\\bfree (?:gift ?card|iphone|ipad|samsung|ps5|macbook)\\b",
+    "\\bcomplimenti\\b.{0,50}\\b(?:selezionat\\w{1,2}|vint\\w{1,2}|vincitor\\w{1,2}|scelt\\w{1,2})\\b",
+    "\\briscatta (?:ora |subito )?(?:il tuo |il )?(?:premio|buono|regalo)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "PAC-03",
+   "category": "pacco",
+   "weight": 25,
+   "explanation": "Falso avviso di consegna fallita, pacco bloccato o spese di dogana da pagare: truffa diffusissima (smishing).",
+   "example": "Package on hold, pay the customs fee",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:package|parcel|shipment|delivery)\\b.{0,40}\\b(?:on hold|held|failed|could not be delivered|undeliverable|returned to sender|pending)\\b",
+    "\\bdelivery (?:attempt )?(?:failed|unsuccessful)\\b",
+    "\\b(?:customs (?:fee|duty|duties|charges)|redelivery fee|shipping fee)\\b",
+    "\\b(?:ferm\\w{1,2} in dogana|spese di sdoganamento|dazi doganali)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "CRY-01",
+   "category": "investimenti",
+   "weight": 40,
+   "explanation": "Ti chiedono la frase di recupero o la chiave privata del wallet: chi la ottiene svuota i tuoi fondi. Non va mai data a nessuno.",
+   "example": "Enter your seed phrase to claim",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:seed|recovery|secret|backup) (?:phrase|words)\\b",
+    "\\bprivate keys?\\b",
+    "\\b(?:frase di recupero|frase segreta|chiave privata|parole di recupero)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "CRY-02",
+   "category": "investimenti",
+   "weight": 25,
+   "explanation": "Airdrop o richieste di collegare il wallet: sono esche molto usate per svuotare i portafogli di criptovalute.",
+   "example": "Free airdrop, connect your wallet",
+   "kind": "regex",
+   "patterns": [
+    "\\bairdrops?\\b",
+    "\\bconnect (?:your )?wallet\\b",
+    "\\b(?:collega|connetti) (?:il )?(?:tuo )?wallet\\b",
+    "\\bwallet\\b.{0,30}\\b(?:suspended|locked|verify|synchroni[sz]e|sospeso|bloccato)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "INV-04",
+   "category": "investimenti",
+   "weight": 30,
+   "explanation": "Promette guadagni garantiti o raddoppi di denaro in cripto o trading: nessun investimento serio lo fa.",
+   "example": "Earn 5% daily guaranteed",
+   "kind": "regex",
+   "patterns": [
+    "\\bearn \\d{1,3} ?% (?:daily|weekly|per day|per week|a day|a week|monthly)\\b",
+    "\\bguaranteed (?:daily |weekly |monthly )?(?:returns?|profits?|income|earnings)\\b",
+    "\\bdouble your (?:money|bitcoin|crypto|investment)\\b",
+    "\\bdeposit (?:bitcoin|btc|crypto|usdt|eth)\\b",
+    "\\b\\d{1,3} ?% (?:al giorno|giornalier\\w{1,2}|a settimana) garantit\\w{1,2}\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "LAV-02",
+   "category": "lavoro",
+   "weight": 30,
+   "explanation": "Offerta di lavoro da casa con guadagni facili e nessuna esperienza richiesta: spesso serve a rubare dati o a farti riciclare denaro.",
+   "example": "Work from home, earn $500 per day",
+   "kind": "regex",
+   "patterns": [
+    "\\bwork from home\\b",
+    "\\bearn [$€£] ?\\d[\\d.,]{0,6}.{0,15}\\b(?:per|a|each|every) (?:day|hour|week)\\b",
+    "[$€£] ?\\d{2,5} ?/ ?(?:day|hour|week|giorno|ora)\\b",
+    "\\bno experience (?:needed|required|necessary)\\b",
+    "\\b(?:hiring|recruiting)\\b.{0,40}\\b(?:remote|part-time|part time|from home)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "FAT-01",
+   "category": "account",
+   "weight": 25,
+   "explanation": "Falsa fattura o conferma di pagamento che ti spinge ad aprire un allegato o a chiamare un numero «per il rimborso».",
+   "example": "Invoice attached, if you did not authorize this call",
+   "kind": "regex",
+   "patterns": [
+    "\\binvoice (?:attached|is attached|overdue|unpaid|#? ?\\d{3,})\\b",
+    "\\bpayment of [$€£] ?\\d[\\d.,]{0,8}.{0,40}\\b(?:processed|received|charged|completed)\\b",
+    "\\bif you (?:did not|didn'?t|did n'?t) (?:authori[sz]e|make|request) (?:this|that)\\b",
+    "\\b(?:fattura|ricevuta) in allegato\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "RIM-01",
+   "category": "banca",
+   "weight": 25,
+   "explanation": "Promette un rimborso o un credito in sospeso e ti chiede dati o conferme: esca tipica per rubare le informazioni bancarie.",
+   "example": "You are eligible for a tax refund",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:refund|rimborso)\\b.{0,40}\\b(?:pending|eligible|available|in sospeso|disponibile|a tuo favore|spettante)\\b",
+    "\\beligible for a.{0,20}refund\\b",
+    "\\b(?:tax|hmrc|irs) refund\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "PAY-02",
+   "category": "banca",
+   "weight": 35,
+   "explanation": "Ti chiedono di comprare gift card e di inviare i codici: è un pagamento impossibile da recuperare, tipico delle truffe del finto capo o del finto parente.",
+   "example": "Buy Apple gift cards and send me the codes",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:buy|purchase|get)\\b.{0,25}\\bgift ?cards?\\b",
+    "\\bsend (?:me )?the (?:codes?|pins?|numbers?)\\b",
+    "\\b(?:apple|itunes|google play|steam|amazon) (?:gift ?)?cards?\\b.{0,40}\\b(?:codes?|pins?)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "BAN-11",
+   "category": "banca",
+   "weight": 35,
+   "explanation": "Dice che la tua carta o il tuo conto sono bloccati e ti chiede PIN, numero di carta o password: nessuna banca lo fa per messaggio.",
+   "example": "Your card has been blocked, confirm your PIN",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:card|account) (?:has been |is |was )?(?:blocked|frozen|suspended)\\b.{0,60}\\b(?:pin|cvv|card number|password|otp)\\b",
+    "\\b(?:confirm|enter|send|provide) (?:your )?(?:pin|cvv|card number|password|otp)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "DAT-01",
+   "category": "documenti",
+   "weight": 30,
+   "explanation": "Ti chiedono nome, indirizzo, documenti o dati bancari per ricevere un premio, un lavoro o un rimborso: servono a rubarti l'identità.",
+   "example": "Send your ID and bank details to get started",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:send|provide|reply with|submit|share)\\b.{0,30}\\b(?:bank (?:account|details)|passport|ssn|social security|credit card|id card|your id|full name and address)\\b",
+    "\\b(?:inviaci|invia|fornisci|comunicaci)\\b.{0,30}\\b(?:dati bancari|coordinate bancarie|numero di carta|passaporto|carta d'identit[aà])\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "RIS-02",
+   "category": "generico",
+   "weight": 20,
+   "explanation": "Ti chiede di non parlarne con nessuno: i truffatori isolano la vittima.",
+   "example": "Do not tell anyone",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:do not|don'?t|dont) (?:tell|share this with|mention this to) (?:anyone|anybody|no one)\\b",
+    "\\bkeep (?:this|it) (?:a )?(?:secret|confidential|between us)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "FOR-01",
+   "category": "forma",
+   "weight": 10,
+   "explanation": "Il testo è quasi tutto in MAIUSCOLO: i messaggi truffa spesso urlano per spaventare o attirare l'attenzione.",
+   "example": "SCONTO ULTIMO GIORNO...",
+   "kind": "detector",
+   "detector": "shouting"
+  },
+  {
+   "id": "FOR-02",
+   "category": "forma",
+   "weight": 10,
+   "explanation": "Il messaggio mescola italiano e inglese in modo strano: capita spesso nei testi truffa tradotti in automatico.",
+   "example": "Gentile cliente, your account has been suspended",
+   "kind": "detector",
+   "detector": "mixed_language"
+  },
+  {
+   "id": "COM-01",
+   "category": "generico",
+   "weight": 20,
+   "explanation": "Mette fretta e parla di soldi, sconti, premi o dati personali, ma non c'è un sito ufficiale riconoscibile: combinazione tipica delle truffe.",
+   "example": "Last chance, 90% off, order now",
+   "kind": "detector",
+   "detector": "pressure_value"
+  },
+  {
+   "id": "COM-02",
+   "category": "link",
+   "weight": 15,
+   "explanation": "Mette fretta e ti manda su un sito sconosciuto ({domain}): verifica sempre il mittente prima di cliccare.",
+   "example": "Ultimo avviso... sito-sconosciuto.com",
+   "kind": "detector",
+   "detector": "pressure_unknown_link"
   }
  ]
 }

@@ -1,5 +1,6 @@
 package app.eye.android.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -111,8 +112,10 @@ fun HomeScreen(
             )
         },
     ) { pad ->
+        androidx.compose.foundation.layout.Box(Modifier.padding(pad)) {
+        ShieldBackdrop()
         Column(
-            Modifier.padding(pad).verticalScroll(rememberScrollState()).padding(16.dp),
+            Modifier.verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             if (family) {
@@ -127,7 +130,11 @@ fun HomeScreen(
                 }
             } else {
                 EyeCard {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    val tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                    Column(
+                        Modifier.background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(tint, androidx.compose.ui.graphics.Color.Transparent))).padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
                         Text(stringResource(R.string.home_hero), style = MaterialTheme.typography.headlineSmall)
                         val cd = stringResource(R.string.cd_check_button)
                         Button(
@@ -165,6 +172,7 @@ fun HomeScreen(
                 Spacer(Modifier.width(8.dp))
                 Text(stringResource(R.string.home_trust), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+        }
         }
     }
 

@@ -24,6 +24,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(files(slimBouncyCastle))
     testImplementation(libs.kotlin.test.junit5)
+    testImplementation(libs.onnxruntime.jvm) // solo test: parita' punteggi Kotlin/Python del classificatore
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

@@ -18,6 +18,8 @@ data class CheckResult(
     val truncated: Boolean = false,
     /** Riga di cronologia di questo controllo, se è stato salvato. */
     val historyId: Long? = null,
+    /** Origine del testo; null se il controllo viene dalla cronologia. */
+    val source: app.eye.engine.Source? = null,
 )
 
 fun Level.titleRes(): Int = when (this) {
@@ -69,40 +71,38 @@ fun reasonTone(weight: Int): ReasonTone = when {
 }
 
 object ReportBuilder {
-    /** «Testo di condivisione» (DESIGN §4). Nessun contenuto del messaggio. */
-    fun shareText(context: Context, v: Verdict): String {
-        val reasons = v.reasonTexts(3).joinToString(" ").ifBlank { context.getString(R.string.share_text_no_reasons) }
-        return context.getString(R.string.share_text, context.getString(v.level.titleRes()), reasons)
+    fun summary(r: CheckResult): AnalyzedSummary {
+        val e = r.verdict.extracted
+        return ShareTexts.summary(r.originalText, r.source, e.domains, e.urls, e.amounts)
     }
 
-    /** Report copiabile: esito, motivi, domini oscurati e passi. Il testo originale solo se [includeMessage] (scelta esplicita). */
-    fun report(context: Context, r: CheckResult, includeMessage: Boolean = false, locale: Locale = Locale.getDefault()): String = buildString {
+    /** «Manda a un familiare»: cosa è stato analizzato (oscurato), verdetto, motivi e cosa fare. */
+    fun shareText(context: Context, r: CheckResult): String =
+        ShareTexts.familyText(context.getString(r.verdict.level.titleRes()), summary(r), r.verdict.reasonTexts(3), r.verdict.todoSteps(context))
+
+    fun shareSubject(context: Context, r: CheckResult): String =
+        ShareTexts.familySubject(context.getString(r.verdict.level.titleRes()), summary(r))
+
+    private fun dateTime(t: Long, locale: Locale) = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, locale).format(Date(t))
+
+    /** Report copiabile; il testo originale solo se [includeMessage] (scelta esplicita). */
+    fun report(context: Context, r: CheckResult, includeMessage: Boolean = false, locale: Locale = Locale.getDefault()): String {
         val v = r.verdict
-        appendLine(context.getString(R.string.report_header))
-        appendLine(context.getString(R.string.report_date, DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, locale).format(Date(r.createdAt))))
-        appendLine(context.getString(R.string.report_verdict, context.getString(v.level.titleRes())))
-        appendLine()
-        if (includeMessage) appendLine(context.getString(R.string.verdict_preview) + ": " + r.originalText.take(2000))
-        val reasons = v.reasonTexts()
-        if (reasons.isNotEmpty()) {
-            appendLine()
-            appendLine(context.getString(R.string.verdict_why))
-            reasons.forEach { appendLine("- $it") }
-        }
-        if (v.extracted.domains.isNotEmpty()) appendLine(context.getString(R.string.report_domains, v.extracted.domains.distinct().joinToString(", ") { Redactor.defang(it) }))
-        appendLine()
-        appendLine(context.getString(R.string.verdict_todo))
-        v.todoSteps(context).forEachIndexed { i, s -> appendLine("${i + 1}. $s") }
-        appendLine()
-        appendLine(context.getString(R.string.report_rules_version, v.rulesVersion))
-        append(context.getString(R.string.verdict_disclaimer_short))
+        return ShareTexts.report(
+            context.getString(v.level.titleRes()), dateTime(r.createdAt, locale), summary(r), v.reasonTexts(3), v.todoSteps(context),
+            v.rulesVersion, context.getString(R.string.verdict_disclaimer_short), if (includeMessage) r.originalText else null,
+        )
     }
 
-    /** «Il verdetto è sbagliato?»: solo esito, versione regole, motivi. Il messaggio lo aggiunge l'utente. */
-    fun wrongVerdictBody(context: Context, v: Verdict): String = context.getString(
-        R.string.wrong_body,
-        context.getString(v.level.titleRes()),
-        v.rulesVersion,
-        v.reasons.joinToString { it.ruleId }.ifBlank { "-" },
-    )
+    /** «Il verdetto è sbagliato?»: email con il testo COMPLETO, che l'utente rivede prima di inviare. */
+    fun feedbackBody(context: Context, r: CheckResult, view: ShareTexts.UserView, locale: Locale = Locale.getDefault()): String {
+        val v = r.verdict
+        return ShareTexts.feedbackBody(
+            r.originalText, context.getString(v.level.titleRes()), view, summary(r).line, v.score, v.reasons, v.extracted.domains, r.source,
+            app.eye.android.BuildConfig.VERSION_NAME, v.rulesVersion, dateTime(r.createdAt, locale),
+        )
+    }
+
+    fun feedbackSubject(context: Context, r: CheckResult, view: ShareTexts.UserView): String =
+        ShareTexts.feedbackSubject(view, context.getString(r.verdict.level.titleRes()))
 }

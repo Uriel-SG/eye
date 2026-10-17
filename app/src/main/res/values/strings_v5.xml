@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="card_analyzed">Cosa ho analizzato</string>
+    <string name="card_excerpt">Estratto (dati personali oscurati)</string>
+    <string name="card_full_message">Messaggio completo</string>
+    <string name="card_why_none">Non abbiamo riconosciuto segnali noti, ma non è una garanzia. Se non aspettavi questo messaggio, non cliccare e verifica dai canali ufficiali.</string>
+    <string name="wrong_view_question">Secondo te questo messaggio è…</string>
+    <string name="wrong_view_scam">Una truffa</string>
+    <string name="wrong_view_legit">Un messaggio legittimo</string>
+    <string name="wrong_view_other">Altro</string>
+    <string name="wrong_send">Invia segnalazione</string>
+    <string name="wrong_info_v2">Verrà preparata un\'email con il messaggio completo (non oscurato), da inviare allo sviluppatore per migliorare Eye. La vedrai e potrai modificarla prima di inviarla: se vuoi, togli nomi, numeri, indirizzi e codici. Eye non invia nulla da solo.</string>
+</resources>
