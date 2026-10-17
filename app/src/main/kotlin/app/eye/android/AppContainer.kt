@@ -73,9 +73,11 @@ class AppContainer(context: Context) {
     }
 
     private val db = Room.databaseBuilder(context, EyeDb::class.java, "eye.db")
-        .addMigrations(app.eye.android.data.MIGRATION_2_3)
+        .addMigrations(app.eye.android.data.MIGRATION_2_3, app.eye.android.data.MIGRATION_3_4)
         .fallbackToDestructiveMigrationFrom(true, 1) // solo lo schema v1 (mai pubblicato) può essere ricreato
         .build()
+    /** Avvisi della Protezione automatica in attesa: testo cifrato su disco finché l'utente non apre o scarta l'avviso. */
+    val alerts = app.eye.android.core.notif.AlertStore.create(appContext)
     val settings = SettingsStore(context)
     val history = HistoryRepository(
         db.history(), crypto = app.eye.android.data.HistoryVault,

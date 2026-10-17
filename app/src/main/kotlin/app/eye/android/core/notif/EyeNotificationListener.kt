@@ -77,10 +77,10 @@ class EyeNotificationListener : NotificationListenerService() {
         val verdict = app.container.analyzer.analyze(Input(text, Source.SHARE))
         if (!NotificationGate.shouldAlert(verdict.level) || !g.allowAlert(n.pkg)) return
         val label = MonitoredApps.presets(BuildConfig.DEBUG).firstOrNull { it.pkg == n.pkg }?.label ?: n.pkg
-        AlertNotifier.post(
-            applicationContext, label, verdict.level, PendingAlertTexts.shared.put(text),
-            id = alertId(n.pkg, n.title), loud = g.allowLoud(),
-        )
+        val id = alertId(n.pkg, n.title)
+        // cifrato su disco finché l'avviso non è aperto o scartato; senza cifratura non si avvisa (mai testo in chiaro)
+        if (!app.container.alerts.put(id, text, verdict.level.name)) return
+        if (!AlertNotifier.post(applicationContext, label, verdict.level, id, loud = g.allowLoud())) app.container.alerts.discard(id)
     }
 
     private fun read(sbn: StatusBarNotification): NotifData {
@@ -101,7 +101,22 @@ class EyeNotificationListener : NotificationListenerService() {
             bigText = cap(x.getCharSequence(Notification.EXTRA_BIG_TEXT)),
             lines = lines,
             lastMessage = last,
+            links = runCatching { spanLinks(listOf(x.getCharSequence(Notification.EXTRA_TEXT), x.getCharSequence(Notification.EXTRA_BIG_TEXT)) + lines + listOf(last)) }.getOrDefault(emptyList()),
         )
+    }
+
+    /** URL reali dagli URLSpan (i ClickableSpan senza URL si ignorano): (testo visibile, url). */
+    private fun spanLinks(parts: List<CharSequence?>): List<Pair<String, String>> {
+        val out = ArrayList<Pair<String, String>>()
+        for (c in parts) {
+            val sp = (cap(c) as? android.text.Spanned) ?: continue
+            for (u in sp.getSpans(0, sp.length, android.text.style.URLSpan::class.java).take(20)) {
+                val url = u.url ?: continue
+                val a = sp.getSpanStart(u); val b = sp.getSpanEnd(u)
+                out += (if (a in 0..b && b <= sp.length) sp.subSequence(a, b).toString() else "") to url
+            }
+        }
+        return out
     }
 
     /** Taglia PRIMA di copiare: un'app ostile non può farci allocare megabyte. */

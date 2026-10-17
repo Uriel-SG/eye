@@ -66,7 +66,7 @@ data class AiOpinion(val judgement: AiJudgement, val reasons: List<String>, val 
     private fun rank(j: AiJudgement) = when (j) { AiJudgement.TRUFFA -> 2; AiJudgement.SOSPETTO -> 1; AiJudgement.NESSUN_SEGNALE -> 0 }
 }
 
-enum class AiError { BAD_KEY, NOT_CONFIGURED, NETWORK, TIMEOUT, AUTH, RATE_LIMIT, HTTP, REFUSED, TRUNCATED, INVALID }
+enum class AiError { BAD_KEY, NOT_CONFIGURED, NETWORK, TIMEOUT, AUTH, RATE_LIMIT, OVERLOADED, HTTP, REFUSED, TRUNCATED, INVALID }
 
 sealed interface AiOutcome {
     data class Success(val opinion: AiOpinion) : AiOutcome
@@ -74,7 +74,7 @@ sealed interface AiOutcome {
 }
 
 /** Richiesta HTTP costruita senza rete (testabile). */
-data class HttpSpec(val url: String, val headers: Map<String, String>, val body: String) {
+data class HttpSpec(val url: String, val headers: Map<String, String>, val body: String, val readTimeoutMs: Int = 90_000) {
     override fun toString() = "HttpSpec($url)" // mai intestazioni (chiave)
 }
 

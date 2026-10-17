@@ -1,5 +1,6 @@
 package app.eye.android.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -39,6 +40,8 @@ import app.eye.android.core.ai.AiError
 import app.eye.android.core.ai.AiJudgement
 import app.eye.android.core.ai.AiOutcome
 import app.eye.android.core.ai.AiProvider
+import app.eye.android.data.AiOpinionJson
+import app.eye.android.data.SavedAiOpinion
 import app.eye.engine.Level
 
 fun AiProvider.labelRes(): Int = when (this) {
@@ -65,6 +68,7 @@ fun aiErrorText(f: AiOutcome.Failure): String = when (f.error) {
     AiError.TIMEOUT -> stringResource(R.string.ai_err_timeout)
     AiError.AUTH -> stringResource(R.string.ai_err_auth)
     AiError.RATE_LIMIT -> stringResource(R.string.ai_err_rate)
+    AiError.OVERLOADED -> stringResource(R.string.ai_err_overloaded, f.httpCode)
     AiError.HTTP -> stringResource(R.string.ai_err_http, f.httpCode)
     AiError.REFUSED -> stringResource(R.string.ai_err_refused)
     AiError.TRUNCATED -> stringResource(R.string.ai_err_truncated)
@@ -72,68 +76,64 @@ fun aiErrorText(f: AiOutcome.Failure): String = when (f.error) {
 }
 
 /**
- * Secondo parere AI: visibile solo se configurato, mai automatico, in una card separata.
- * Non modifica mai il verdetto delle regole; non salva nulla.
+ * Secondo parere AI: visibile solo se configurato, mai automatico, in una card con contorno blu e intestazione propria
+ * (distinta dal verdetto di Eye). Non modifica mai il verdetto delle regole. Il parere ricevuto resta salvato (cifrato)
+ * nella voce di cronologia [historyId], se c'è, e si rivede senza rifare la richiesta.
  */
 @Composable
-fun AiSecondOpinion(vm: AppViewModel, text: String, rulesLevel: Level) {
+fun AiSecondOpinion(vm: AppViewModel, text: String, rulesLevel: Level, historyId: Long? = null) {
     val settings by vm.settings.collectAsState()
-    val state by vm.ai.collectAsState()
+    val session by vm.ai.collectAsState()
+    val history by vm.history.collectAsState()
     var consent by remember { mutableStateOf(false) }
-    val ctx = androidx.compose.ui.platform.LocalContext.current
-    DisposableEffect(Unit) { onDispose { vm.clearAi() } }
+    DisposableEffect(Unit) { onDispose { vm.leaveAi() } }
     if (!settings.aiConfigured || text.isBlank()) return
 
-    OutlinedButton(
-        onClick = { if (settings.aiConsent) vm.askAi(text) else consent = true },
-        enabled = state !is AiUiState.Loading,
-        modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-    ) {
-        Icon(Icons.Rounded.AutoAwesome, contentDescription = null)
-        Spacer(Modifier.width(8.dp))
-        Text(stringResource(R.string.ai_ask_button))
+    val state = if (session.key == aiKey(text)) session.state else AiUiState.Idle
+    val stored = historyId?.let { id -> history.firstOrNull { it.id == id }?.aiOpinion }?.let(AiOpinionJson::decode)
+    val shown: SavedAiOpinion? = when (state) {
+        is AiUiState.Done -> state.saved
+        AiUiState.Idle -> stored
+        AiUiState.Loading -> null
     }
+    val loading = state == AiUiState.Loading
+    val hasCard = loading || shown != null || state is AiUiState.Done
+    val ask = { if (settings.aiConsent) vm.askAi(text, historyId) else consent = true }
 
-    when (val st = state) {
-        AiUiState.Idle -> {}
-        AiUiState.Loading -> Row(Modifier.semantics { liveRegion = LiveRegionMode.Polite }, verticalAlignment = Alignment.CenterVertically) {
-            CircularProgressIndicator(Modifier.size(24.dp))
-            Spacer(Modifier.width(12.dp))
-            Text(stringResource(R.string.ai_loading), style = MaterialTheme.typography.bodyLarge)
+    if (!hasCard) {
+        OutlinedButton(onClick = ask, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+            Icon(Icons.Rounded.AutoAwesome, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.ai_ask_button))
         }
-        is AiUiState.Done -> EyeCard(Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
+    } else {
+        EyeCard(
+            Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            borderOverride = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
+        ) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SectionTitle(stringResource(R.string.ai_card_title))
-                when (val o = st.outcome) {
-                    is AiOutcome.Failure -> Text(aiErrorText(o), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
-                    is AiOutcome.Success -> {
-                        val op = o.opinion
-                        if (op.softerThan(rulesLevel)) {
-                            Row(
-                                Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.errorContainer).padding(12.dp),
-                                verticalAlignment = Alignment.Top,
-                            ) {
-                                Icon(Icons.Rounded.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
-                                Spacer(Modifier.width(8.dp))
-                                Text(stringResource(R.string.ai_warning_softer), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onErrorContainer)
-                            }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(8.dp))
+                    SectionTitle(stringResource(R.string.ai_card_title))
+                }
+                when {
+                    loading -> {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(Modifier.size(24.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Text(stringResource(R.string.ai_loading), style = MaterialTheme.typography.bodyLarge)
                         }
-                        val judgement = when (op.judgement) {
-                            AiJudgement.TRUFFA -> R.string.ai_judgement_truffa
-                            AiJudgement.SOSPETTO -> R.string.ai_judgement_sospetto
-                            AiJudgement.NESSUN_SEGNALE -> R.string.ai_judgement_nessun_segnale
+                        TextButton(onClick = { vm.cancelAi() }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.ai_cancel)) }
+                    }
+                    shown != null -> OpinionBody(shown, rulesLevel) {
+                        OutlinedButton(onClick = ask, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.ai_ask_again)) }
+                    }
+                    state is AiUiState.Done -> {
+                        (state.outcome as? AiOutcome.Failure)?.let {
+                            Text(aiErrorText(it), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
                         }
-                        Text(stringResource(judgement), style = MaterialTheme.typography.titleMedium)
-                        op.reasons.forEach { Text("• $it", style = MaterialTheme.typography.bodyLarge) }
-                        if (op.advice.isNotEmpty()) Text(stringResource(R.string.ai_advice, op.advice), style = MaterialTheme.typography.bodyLarge)
-                        Text(stringResource(R.string.ai_no_guarantee), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(stringResource(R.string.ai_no_contacts), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        val providerName = providerLabel(settings.aiProvider, settings.aiBaseUrl)
-                        val subject = stringResource(R.string.ai_report_subject)
-                        val body = stringResource(R.string.ai_report_body, providerName, stringResource(judgement), op.reasons.joinToString("; "), op.advice)
-                        TextButton(onClick = { app.eye.android.core.ExternalIntents.shareText(ctx, body, subject) }, modifier = Modifier.heightIn(min = 48.dp)) {
-                            Text(stringResource(R.string.ai_report_button))
-                        }
+                        OutlinedButton(onClick = ask, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.ai_ask_again)) }
                     }
                 }
             }
@@ -151,10 +151,50 @@ fun AiSecondOpinion(vm: AppViewModel, text: String, rulesLevel: Level) {
                 TextButton(onClick = {
                     consent = false
                     vm.setAiConsent(true)
-                    vm.askAi(text, consentNow = true)
+                    vm.askAi(text, historyId, consentNow = true)
                 }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.ai_consent_accept)) }
             },
             dismissButton = { TextButton(onClick = { consent = false }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.action_cancel)) } },
         )
+    }
+}
+
+@Composable
+private fun OpinionBody(saved: SavedAiOpinion, rulesLevel: Level, again: @Composable () -> Unit) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val op = saved.opinion
+    if (op.softerThan(rulesLevel)) {
+        Row(
+            Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.errorContainer).padding(12.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Icon(Icons.Rounded.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.ai_warning_softer), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onErrorContainer)
+        }
+    }
+    val judgement = when (op.judgement) {
+        AiJudgement.TRUFFA -> R.string.ai_judgement_truffa
+        AiJudgement.SOSPETTO -> R.string.ai_judgement_sospetto
+        AiJudgement.NESSUN_SEGNALE -> R.string.ai_judgement_nessun_segnale
+    }
+    Text(stringResource(judgement), style = MaterialTheme.typography.titleMedium)
+    op.reasons.forEach { Text("• $it", style = MaterialTheme.typography.bodyLarge) }
+    if (op.advice.isNotEmpty()) Text(stringResource(R.string.ai_advice, op.advice), style = MaterialTheme.typography.bodyLarge)
+    val providerName = stringResource(AiProvider.fromId(saved.providerId).labelRes())
+    val whenText = java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT).format(java.util.Date(saved.at))
+    Text(
+        stringResource(R.string.ai_saved_meta, providerName, saved.model.ifEmpty { "?" }, whenText),
+        style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Text(stringResource(R.string.ai_no_guarantee), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Text(stringResource(R.string.ai_no_contacts), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    val subject = stringResource(R.string.ai_report_subject)
+    val body = stringResource(R.string.ai_report_body, providerName, stringResource(judgement), op.reasons.joinToString("; "), op.advice)
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        again()
+        TextButton(onClick = { app.eye.android.core.ExternalIntents.shareText(ctx, body, subject) }, modifier = Modifier.heightIn(min = 48.dp)) {
+            Text(stringResource(R.string.ai_report_button))
+        }
     }
 }

@@ -60,13 +60,14 @@ class MainActivity : ComponentActivity() {
         handleOpenCatalog(intent)
     }
 
-    /** Tocco su un avviso della Protezione automatica: il testo arriva solo dalla memoria dell'app (chiave casuale nell'Intent). */
+    /** Tocco su un avviso della Protezione automatica: il testo si legge (e si cancella) dall'archivio cifrato; l'Intent porta solo l'id. */
     private fun handleAlert(intent: Intent?) {
         if (intent?.action != app.eye.android.core.notif.AlertNotifier.ACTION_OPEN_ALERT) return
-        val key = runCatching { intent.getStringExtra(app.eye.android.core.notif.AlertNotifier.EXTRA_KEY) }.getOrNull()
+        val id = intent.getIntExtra(app.eye.android.core.notif.AlertNotifier.EXTRA_ID, Int.MIN_VALUE)
         intent.action = null
-        intent.removeExtra(app.eye.android.core.notif.AlertNotifier.EXTRA_KEY)
-        val text = app.eye.android.core.notif.PendingAlertTexts.shared.take(key)
+        intent.removeExtra(app.eye.android.core.notif.AlertNotifier.EXTRA_ID)
+        val text = if (id == Int.MIN_VALUE) null else (application as EyeApp).container.alerts.take(id)
+        if (id != Int.MIN_VALUE) getSystemService(android.app.NotificationManager::class.java)?.cancel(id)
         if (text == null) Toast.makeText(this, R.string.alert_expired, Toast.LENGTH_LONG).show() else vm.onShared(text)
     }
 

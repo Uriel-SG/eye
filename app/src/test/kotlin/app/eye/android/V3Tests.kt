@@ -5,7 +5,6 @@ import app.eye.android.core.notif.MonitoredApps
 import app.eye.android.core.notif.NotifData
 import app.eye.android.core.notif.NotificationGate
 import app.eye.android.core.notif.NotificationText
-import app.eye.android.core.notif.PendingAlertTexts
 import app.eye.android.core.notif.autoStatus
 import app.eye.android.data.HistoryRepository
 import app.eye.android.data.MIGRATION_2_3
@@ -95,19 +94,6 @@ class V3Tests {
         assertEquals(AutoStatus.NEEDS_ACCESS, autoStatus(true, false, true))
         assertEquals(AutoStatus.ALERTS_BLOCKED, autoStatus(true, true, false))
         assertEquals(AutoStatus.ACTIVE, autoStatus(true, true, true))
-    }
-
-    @Test fun pendingTextsAreOneShotAndExpire() {
-        var now = 0L
-        val p = PendingAlertTexts(clock = { now }, ttlMs = 1_000, max = 2)
-        val k = p.put("testo")
-        assertEquals("testo", p.take(k))
-        assertNull(p.take(k))
-        assertNull(p.take(null)); assertNull(p.take("sconosciuta"))
-        val k2 = p.put("a"); now = 2_000
-        assertNull(p.take(k2))
-        val a = p.put("1"); p.put("2"); p.put("3")
-        assertNull(p.take(a)) // oltre il massimo la più vecchia esce
     }
 
     // --- cronologia: salvate

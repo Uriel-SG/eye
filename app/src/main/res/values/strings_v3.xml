@@ -30,9 +30,9 @@
     <string name="auto_info_reads_h">Cosa legge</string>
     <string name="auto_info_reads">Titolo e testo delle notifiche (ad esempio il nome di chi scrive e il messaggio), solo delle app di messaggi che scegli tu. Android mostra a Eye anche le notifiche delle altre app: Eye le ignora senza leggerle né conservarle.</string>
     <string name="auto_info_stays_h">Dove resta</string>
-    <string name="auto_info_stays">Tutto resta su questo telefono. Il testo viene controllato con le regole di Eye e non viene salvato né inviato a nessuno, neanche a noi. Se Eye ti avvisa, tiene il messaggio in memoria al massimo 5 minuti, per mostrartelo quando tocchi l\'avviso.</string>
+    <string name="auto_info_stays">Tutto resta su questo telefono. Il testo viene controllato con le regole di Eye e non viene inviato a nessuno, neanche a noi. Se Eye ti avvisa, il messaggio resta cifrato sul telefono finché non apri o scarti l\'avviso: poi viene cancellato (quelli mai aperti, dopo 30 giorni).</string>
     <string name="auto_info_alert_h">Cosa succede</string>
-    <string name="auto_info_alert">Se una notifica sembra una truffa, Eye ti mostra un avviso. Solo se lo tocchi entro 5 minuti il messaggio si apre in Eye; viene salvato in cronologia solo se la cronologia è attiva. Eye non risponde, non apre link e non cancella messaggi.</string>
+    <string name="auto_info_alert">Se una notifica sembra una truffa, Eye ti mostra un avviso. Quando lo tocchi il messaggio si apre in Eye (l\'avviso resta valido finché non lo apri o lo scarti); viene salvato in cronologia solo se la cronologia è attiva. Eye non risponde, non apre link e non cancella messaggi.</string>
     <string name="auto_info_off_h">Come disattivare</string>
     <string name="auto_info_off">In qualsiasi momento dall\'interruttore in Impostazioni, oppure togliendo l\'accesso alle notifiche dalle impostazioni di sistema.</string>
     <string name="auto_info_continue">Accetto e attivo</string>
@@ -44,7 +44,7 @@
     <string name="alert_channel_high_desc">Quando una notifica sembra una probabile truffa.</string>
     <string name="alert_channel_default">Avvisi di messaggi sospetti</string>
     <string name="alert_channel_default_desc">Quando una notifica ha segnali sospetti.</string>
-    <string name="alert_expired">L\'avviso è scaduto: per sicurezza Eye non conserva il messaggio oltre 5 minuti.</string>
+    <string name="alert_expired">Questo avviso non è più disponibile: il messaggio era già stato aperto o scartato.</string>
 
 
     <!-- Il progetto Eye -->

@@ -15,8 +15,11 @@
 
     <!-- Secondo parere AI: verdetto -->
     <string name="ai_ask_button">Chiedi un secondo parere all\'AI</string>
-    <string name="ai_card_title">Secondo parere AI (può sbagliare)</string>
-    <string name="ai_loading">Sto chiedendo il parere all\'AI…</string>
+    <string name="ai_card_title">Secondo parere AI</string>
+    <string name="ai_ask_again">Chiedi di nuovo</string>
+    <string name="ai_cancel">Annulla la richiesta</string>
+    <string name="ai_saved_meta">Parere di %1$s · modello %2$s · %3$s. Salvato con questa analisi.</string>
+    <string name="ai_loading">Sto chiedendo il parere…</string>
     <string name="ai_warning_softer">Le regole di Eye hanno trovato segnali di rischio: vale il verdetto più prudente.</string>
     <string name="ai_judgement_truffa">L\'AI: probabile truffa</string>
     <string name="ai_judgement_sospetto">L\'AI: messaggio sospetto</string>
@@ -24,14 +27,15 @@
     <string name="ai_advice">Consiglio dell\'AI: %1$s</string>
     <string name="ai_no_guarantee">Il parere dell\'AI non cambia il verdetto di Eye e non è una garanzia.</string>
     <string name="ai_err_not_configured">Il secondo parere AI non è configurato correttamente. Controlla le Impostazioni.</string>
-    <string name="ai_err_network">Nessuna connessione o servizio non raggiungibile. Riprova più tardi.</string>
-    <string name="ai_err_timeout">Il servizio non ha risposto entro 30 secondi. Riprova più tardi.</string>
-    <string name="ai_err_auth">Chiave non accettata dal servizio (errore 401/403). Controlla la chiave e il modello nelle Impostazioni.</string>
-    <string name="ai_err_rate">Troppe richieste o credito esaurito (errore 429). Riprova più tardi.</string>
+    <string name="ai_err_network">Nessuna connessione a internet o servizio non raggiungibile. Controlla la rete e riprova.</string>
+    <string name="ai_err_timeout">Il servizio non ha risposto in tempo, nemmeno al secondo tentativo. Succede quando è molto richiesto: riprova tra qualche minuto.</string>
+    <string name="ai_err_overloaded">Il servizio è sovraccarico o non disponibile in questo momento (errore %1$d). Riprova tra qualche minuto.</string>
+    <string name="ai_err_auth">Chiave non valida o senza permessi (errore 401/403). Controlla la chiave API e il modello nelle Impostazioni.</string>
+    <string name="ai_err_rate">Limite di richieste o quota esaurita (errore 429). Aspetta un po\' o controlla il piano del tuo account.</string>
     <string name="ai_err_http">Il servizio ha risposto con un errore (%1$d). Controlla modello e indirizzo nelle Impostazioni.</string>
     <string name="ai_err_refused">L\'AI ha rifiutato di analizzare questo messaggio.</string>
     <string name="ai_err_truncated">La risposta dell\'AI è stata interrotta perché troppo lunga. Riprova.</string>
-    <string name="ai_err_invalid">La risposta dell\'AI non è in un formato comprensibile. Riprova.</string>
+    <string name="ai_err_invalid">La risposta non è valida: il servizio ha risposto in un formato che Eye non capisce. Riprova.</string>
 
     <!-- Consenso al primo uso -->
     <string name="ai_consent_title">Inviare il messaggio all\'AI?</string>

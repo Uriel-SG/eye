@@ -40,7 +40,33 @@ class NotifData(
     val lines: List<CharSequence> = emptyList(),
     /** Ultimo messaggio di una MessagingStyle. */
     val lastMessage: CharSequence? = null,
+    /** Link reali (testo visibile, URL) letti dagli URLSpan del testo; il motore analizza la destinazione vera. */
+    val links: List<Pair<String, String>> = emptyList(),
 )
+
+/** Righe da aggiungere al testo analizzato per i link reali dei span: puro, testabile senza Android. */
+object LinkLines {
+    const val MAX_LINKS = 10
+    const val MAX_URL = 2048
+    private const val MAX_VISIBLE = 200
+
+    private fun norm(u: String) = u.trim().lowercase().removePrefix("https://").removePrefix("http://").removePrefix("www.").trimEnd('/')
+
+    fun build(links: List<Pair<String, String>>): List<String> {
+        val kept = LinkedHashMap<String, String>() // url -> testo visibile
+        for ((visible, raw) in links) {
+            val url = raw.trim().take(MAX_URL)
+            if (!url.startsWith("http://", true) && !url.startsWith("https://", true)) continue
+            if (kept.size >= MAX_LINKS && url !in kept) continue
+            if (url !in kept) kept[url] = visible.trim().take(MAX_VISIBLE)
+        }
+        val out = kept.keys.map { "Link: $it" }.toMutableList()
+        for ((url, visible) in kept) {
+            if (visible.isNotEmpty() && norm(visible) != norm(url)) out += "Il testo del link mostra $visible ma porta a $url"
+        }
+        return out
+    }
+}
 
 object NotificationText {
     const val MAX_CHARS = 10_000
@@ -55,7 +81,9 @@ object NotificationText {
             title.isEmpty() || body.startsWith(title) -> body
             else -> "$title\n$body"
         }
-        return full.take(MAX_CHARS).ifBlank { null }
+        val base = full.take(MAX_CHARS).ifBlank { return null }
+        val extra = LinkLines.build(n.links)
+        return if (extra.isEmpty()) base else base + "\n" + extra.joinToString("\n")
     }
 }
 
@@ -134,30 +162,6 @@ fun autoStatus(wanted: Boolean, accessGranted: Boolean, alertsAllowed: Boolean):
     !accessGranted -> AutoStatus.NEEDS_ACCESS
     !alertsAllowed -> AutoStatus.ALERTS_BLOCKED
     else -> AutoStatus.ACTIVE
-}
-
-/** Testi degli avvisi tenuti SOLO in memoria (max pochi, a scadenza): l'Intent porta soltanto una chiave casuale. */
-class PendingAlertTexts(private val clock: () -> Long = System::currentTimeMillis, private val ttlMs: Long = 5 * 60_000L, private val max: Int = 5) {
-    private val map = LinkedHashMap<String, Pair<Long, String>>()
-
-    @Synchronized
-    fun put(text: String): String {
-        val now = clock()
-        map.entries.removeAll { now - it.value.first > ttlMs }
-        val key = java.util.UUID.randomUUID().toString()
-        map[key] = now to text
-        while (map.size > max) map.remove(map.keys.first())
-        return key
-    }
-
-    /** Restituisce e rimuove il testo; null se scaduto, già aperto o sconosciuto. */
-    @Synchronized
-    fun take(key: String?): String? {
-        val e = map.remove(key ?: return null) ?: return null
-        return e.second.takeIf { clock() - e.first <= ttlMs }
-    }
-
-    companion object { val shared = PendingAlertTexts() }
 }
 
 /** SHA-256 (primi 16 byte, esadecimale): chiave di dedupe robusta a collisioni costruite ad arte. */

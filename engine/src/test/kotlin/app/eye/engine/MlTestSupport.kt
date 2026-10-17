@@ -13,7 +13,7 @@ object MlTestSupport {
     val valTokenIds = File("../ml/out/val_token_ids.jsonl")
     val extraTokenIds = File("../ml/out/extra_token_ids.jsonl")
     val valScores = File("../ml/out/val_scores_minilm.csv")
-    const val THRESHOLD = 0.998
+    const val THRESHOLD = 0.4915
 
     fun tokenizer() = MiniLmTokenizer(File(assets, "tokenizer.json").readText())
 

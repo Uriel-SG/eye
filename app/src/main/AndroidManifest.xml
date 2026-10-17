@@ -87,6 +87,8 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+        <!-- Scarto di un avviso: cancella il dato cifrato. Non esportato; riceve solo PendingIntent immutabili di Eye. -->
+        <receiver android:name=".core.notif.AlertDismissReceiver" android:exported="false" />
         <!-- Riquadro Impostazioni rapide: il sistema lo lega con BIND_QUICK_SETTINGS_TILE. -->
         <service
             android:name=".EyeTileService"

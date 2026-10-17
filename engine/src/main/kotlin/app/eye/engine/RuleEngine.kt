@@ -109,7 +109,10 @@ class RuleEngine(
             .takeIf { level != Level.NESSUN_SEGNALE }
 
         val base = Verdict(level, score, reasons, actionsFor(level, category), extracted, category, rules.version)
-        return if (incomplete) base else combineWithClassifier(base, fired.map { it.def.id }, raw)
+        // Link tutti verso siti ufficiali o molto diffusi (es. un amico che condivide reddit/youtube): il modello non alza il verdetto.
+        val linksAllKnown = urls.isNotEmpty() && scan.anomalies == 0 &&
+            urls.all { ctx.isKnown(it.registrable) && it.registrable !in GROUP_INVITE_DOMAINS && it.registrable !in rules.lists.shorteners }
+        return if (incomplete) base else combineWithClassifier(base, fired.map { it.def.id }, raw, linksAllKnown)
     }
 
     /**
@@ -117,14 +120,14 @@ class RuleEngine(
      * abbassa SOSPETTO a NESSUN_SEGNALE (AI-02) solo se p <= soglia bassa e nessun segnale «grave» (ai.hardRuleIds).
      * Mai PROBABILE_TRUFFA toccato. Classificatore assente, lento o in errore: verdetto delle regole invariato.
      */
-    private fun combineWithClassifier(v: Verdict, firedIds: List<String>, text: String): Verdict {
+    private fun combineWithClassifier(v: Verdict, firedIds: List<String>, text: String, linksAllKnown: Boolean = false): Verdict {
         val c = classifier ?: return v
         if (v.level == Level.PROBABILE_TRUFFA) return v
         val ai = rules.ai
         val lowering = v.level == Level.SOSPETTO
         if (lowering && firedIds.any { it in ai.hardRuleIds }) return v // grave: non si declassa, niente inferenza
         val p = classify(c, text) ?: return v
-        if (!lowering && p >= ai.raiseThreshold) {
+        if (!lowering && p >= ai.raiseThreshold && !linksAllKnown) {
             val reasons = listOf(Reason(AI_RAISE_ID, AI_RAISE_TEXT, rules.thresholds.suspect)) + v.reasons
             return v.copy(
                 level = Level.SOSPETTO, score = maxOf(v.score, rules.thresholds.suspect), reasons = reasons,
@@ -183,6 +186,8 @@ class RuleEngine(
     }
 
     companion object {
+        /** Domini «ufficiali» usati dai truffatori per portarti in gruppi/chat: non bastano per fidarsi del link. */
+        private val GROUP_INVITE_DOMAINS = setOf("t.me", "telegram.me", "telegram.org", "whatsapp.com", "wa.me", "discord.gg", "discord.com", "signal.group", "signal.me")
         const val AI_RAISE_ID = "AI-01"
         const val AI_LOWER_ID = "AI-02"
         const val AI_RAISE_TEXT = "Il testo somiglia molto a messaggi truffa noti (analisi del modello AI sul telefono)."

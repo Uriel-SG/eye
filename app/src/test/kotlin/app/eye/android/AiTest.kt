@@ -178,7 +178,8 @@ class AiTest {
         assertEquals(AiError.AUTH, (AiResponses.parse(AiProvider.OPENAI, 403, "") as AiOutcome.Failure).error)
         assertEquals(AiError.RATE_LIMIT, (AiResponses.parse(AiProvider.OPENAI, 429, "x") as AiOutcome.Failure).error)
         val f = AiResponses.parse(AiProvider.OPENAI, 500, "boom") as AiOutcome.Failure
-        assertEquals(AiError.HTTP, f.error); assertEquals(500, f.httpCode)
+        assertEquals(AiError.OVERLOADED, f.error); assertEquals(500, f.httpCode)
+        assertEquals(AiError.HTTP, (AiResponses.parse(AiProvider.OPENAI, 404, "x") as AiOutcome.Failure).error)
     }
 
     @Test fun maliciousOrNonJsonResponsesAreInvalidNotCrashes() {
@@ -220,7 +221,7 @@ class AiTest {
     // --- servizio con trasporto finto
     @Test fun serviceMapsTransportFailures() {
         val c = cfg(AiProvider.OPENAI)
-        assertEquals(AiError.TIMEOUT, ((AiService { throw SocketTimeoutException() }).ask(c, "x") as AiOutcome.Failure).error)
+        assertEquals(AiError.TIMEOUT, ((AiService(sleeper = {}) { throw SocketTimeoutException() }).ask(c, "x") as AiOutcome.Failure).error)
         assertEquals(AiError.NETWORK, ((AiService { throw IOException() }).ask(c, "x") as AiOutcome.Failure).error)
         assertEquals(AiError.AUTH, ((AiService { HttpResult(401, "") }).ask(c, "x") as AiOutcome.Failure).error)
         assertEquals(AiError.NOT_CONFIGURED, (AiService { error("non deve partire") }.ask(cfg(AiProvider.OPENAI, key = ""), "x") as AiOutcome.Failure).error)

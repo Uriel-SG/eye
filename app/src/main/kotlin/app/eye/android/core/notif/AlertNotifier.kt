@@ -18,7 +18,9 @@ object AlertNotifier {
     const val CHANNEL_HIGH = "alert_high"
     const val CHANNEL_DEFAULT = "alert_default"
     const val ACTION_OPEN_ALERT = "app.eye.android.action.OPEN_ALERT"
-    const val EXTRA_KEY = "app.eye.android.extra.ALERT_KEY"
+    const val ACTION_DISMISS_ALERT = "app.eye.android.action.DISMISS_ALERT"
+    /** Id dell'avviso (= id della notifica): indice del dato cifrato in [AlertStore]. */
+    const val EXTRA_ID = "app.eye.android.extra.ALERT_ID"
 
     fun ensureChannels(ctx: Context) {
         val nm = ctx.getSystemService(NotificationManager::class.java) ?: return
@@ -37,15 +39,18 @@ object AlertNotifier {
         return ctx.getSystemService(NotificationManager::class.java)?.areNotificationsEnabled() == true
     }
 
-    /** [key]: chiave del testo tenuto in memoria in [PendingAlertTexts]; l'Intent non porta mai il testo. */
-    fun post(ctx: Context, appLabel: String, level: Level, key: String, id: Int, loud: Boolean) {
-        if (!canPost(ctx)) return
-        val nm = ctx.getSystemService(NotificationManager::class.java) ?: return
+    /** [id]: indice del testo cifrato in [AlertStore]; gli Intent portano solo l'id, mai il testo. false se non pubblicato. */
+    fun post(ctx: Context, appLabel: String, level: Level, id: Int, loud: Boolean): Boolean {
+        if (!canPost(ctx)) return false
+        val nm = ctx.getSystemService(NotificationManager::class.java) ?: return false
         ensureChannels(ctx)
         val open = Intent(ctx, MainActivity::class.java) // esplicito
-            .setAction(ACTION_OPEN_ALERT).putExtra(EXTRA_KEY, key)
+            .setAction(ACTION_OPEN_ALERT).putExtra(EXTRA_ID, id)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         val pi = PendingIntent.getActivity(ctx, id, open, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+        val dismiss = Intent(ctx, AlertDismissReceiver::class.java) // esplicito, ricevitore non esportato
+            .setAction(ACTION_DISMISS_ALERT).putExtra(EXTRA_ID, id)
+        val deletePi = PendingIntent.getBroadcast(ctx, id, dismiss, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         val high = level == Level.PROBABILE_TRUFFA && loud
         val body = ctx.getString(if (level == Level.PROBABILE_TRUFFA) R.string.alert_body_scam else R.string.alert_body_suspicious)
         val n = Notification.Builder(ctx, if (high) CHANNEL_HIGH else CHANNEL_DEFAULT)
@@ -54,14 +59,16 @@ object AlertNotifier {
             .setContentText(body)
             .setStyle(Notification.BigTextStyle().bigText(body))
             .setContentIntent(pi)
+            .setDeleteIntent(deletePi)
             .setVisibility(Notification.VISIBILITY_PRIVATE)
             .setPublicVersion(
                 Notification.Builder(ctx, if (high) CHANNEL_HIGH else CHANNEL_DEFAULT).setSmallIcon(R.drawable.ic_stat_eye)
                     .setContentTitle(ctx.getString(R.string.alert_public_title)).build(),
             )
-            .setAutoCancel(true)
+            .setAutoCancel(false) // al tocco la toglie l'app dopo aver letto il dato: lo scarto non può cancellare il testo prima
             .setOnlyAlertOnce(true) // id stabile per conversazione: gli aggiornamenti non rifanno suono
             .build()
         nm.notify(id, n)
+        return true
     }
 }

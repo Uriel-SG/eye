@@ -216,7 +216,7 @@ fun VerdictScreen(result: CheckResult, vm: AppViewModel, onClose: () -> Unit, fr
         }
 
         // Secondo parere AI: facoltativo, mai automatico, mai al posto del verdetto delle regole
-        AiSecondOpinion(vm, result.originalText, v.level)
+        AiSecondOpinion(vm, result.originalText, v.level, entryId)
 
         Text(stringResource(R.string.verdict_disclaimer_short), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 

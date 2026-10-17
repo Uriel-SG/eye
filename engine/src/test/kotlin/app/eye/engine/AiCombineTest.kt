@@ -8,7 +8,10 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class AiCombineTest {
-    private val rules = RuleEngine.loadBundled()
+    private val bundled = RuleEngine.loadBundled()
+    // Il declassamento AI-02 è DISATTIVATO nelle regole incluse (lowerThreshold = 0): i test della funzione
+    // (che resta configurabile via feed) usano una copia con la soglia storica 0.005.
+    private val rules = bundled.copy(ai = bundled.ai.copy(lowerThreshold = 0.005))
     private fun engine(c: TextClassifier?) = RuleEngine(rules, classifier = c)
     private fun engineT(timeout: Long, c: TextClassifier) = RuleEngine(rules, classifier = c, classifierTimeoutMillis = timeout)
     private fun v(e: RuleEngine, t: String) = e.analyze(Input(t, Source.PASTE))
@@ -31,8 +34,9 @@ class AiCombineTest {
     }
 
     @Test fun noRaiseBelowThreshold() {
-        assertEquals(Level.NESSUN_SEGNALE, v(engine { 0.99f }, neutral).level)
-        assertEquals(Level.NESSUN_SEGNALE, v(engine { 0.9979f }, neutral).level)
+        val t = rules.ai.raiseThreshold.toFloat()
+        assertEquals(Level.NESSUN_SEGNALE, v(engine { t - 0.01f }, neutral).level)
+        assertEquals(Level.NESSUN_SEGNALE, v(engine { t * 0.5f }, neutral).level)
     }
 
     @Test fun unavailableOrBrokenClassifierIgnored() {
@@ -108,5 +112,22 @@ class AiCombineTest {
         }
         println("validation: declassati $lowered (truffe: $scamLowered), alzati $raised (truffe: $scamRaised)")
         assertEquals(0, scamLowered, "nessuna truffa deve essere declassata")
+    }
+
+    @Test fun bundledRulesNeverLowerAVerdict() {
+        assertEquals(0.0, bundled.ai.lowerThreshold)
+        val base = RuleEngine(bundled).analyze(Input(weak, Source.PASTE))
+        val r = RuleEngine(bundled, classifier = { 0.0001f }).analyze(Input(weak, Source.PASTE))
+        assertEquals(base.level, r.level, "con le regole incluse il modello non deve mai abbassare il verdetto")
+    }
+
+    @Test fun noRaiseWhenAllLinksAreWellKnown() {
+        val friend = "guarda qua https://www.reddit.com/r/Android/comments/abc/novita_google/ fa ridere"
+        assertEquals(Level.NESSUN_SEGNALE, RuleEngine(bundled, classifier = { 0.999f }).analyze(Input(friend, Source.PASTE)).level)
+    }
+
+    @Test fun groupInviteLinksAreNotTrusted() {
+        val invite = "Entra nel gruppo, guadagni ogni giorno: https://t.me/+gruppoXq7k"
+        assertTrue(RuleEngine(bundled, classifier = { 0.999f }).analyze(Input(invite, Source.PASTE)).level != Level.NESSUN_SEGNALE)
     }
 }

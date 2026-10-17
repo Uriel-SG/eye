@@ -1,12 +1,12 @@
 {
- "version": 4,
+ "version": 8,
  "thresholds": {
   "probable": 55,
   "suspect": 25
  },
  "ai": {
-  "raiseThreshold": 0.998,
-  "lowerThreshold": 0.005,
+  "raiseThreshold": 0.4915,
+  "lowerThreshold": 0.0,
   "hardRuleIds": [
    "URL-01",
    "URL-02",
@@ -36,7 +36,10 @@
    "SEX-01",
    "FAM-01",
    "SUP-01",
-   "INC-01"
+   "INC-01",
+   "BAN-12",
+   "CRD-02",
+   "MBX-01"
   ]
  },
  "lists": {
@@ -1611,6 +1614,22 @@
    "unless": "codice\\b.{0,30}$"
   },
   {
+   "id": "BAN-12",
+   "category": "banca",
+   "weight": 20,
+   "explanation": "Ti invita ad accedere all'area riservata, a «risincronizzare» o a ripristinare l'accesso con un pulsante: è il passo con cui le truffe rubano le credenziali.",
+   "example": "Accedi all'Area Riservata per avviare la procedura di risincronizzazione. Risincronizza ora →",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:accedi|accedere|effettua(?:re)? l'accesso|clicca|premi|tocca|entra)\\b.{0,40}\\b(?:area riservata|home ?banking|internet banking|area clienti|tuo profilo|tuo conto)\\b",
+    "\\brisincronizz\\w{0,12}|\\bnon risult\\w{0,12} (?:più )?sincronizzat\\w{0,12}|\\bsincronizzazione (?:del|dei) dispositiv\\w{0,12}",
+    "\\b(?:ripristinare|riattivare|sbloccare|ristabilire) (?:l'|la |il |le )?(?:operatività|accesso|conto|carta|carte|servizio|utenza)\\b",
+    "\\b(?:verifica|conferma|accedi|risincronizza|sblocca|riattiva|aggiorna) ora\\s{0,3}[→>»]"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
    "id": "BAN-03",
    "category": "banca",
    "weight": 40,
@@ -2589,6 +2608,62 @@
    "example": "Ultimo avviso... sito-sconosciuto.com",
    "kind": "detector",
    "detector": "pressure_unknown_link"
+  },
+  {
+   "id": "PAC-05",
+   "category": "pacco",
+   "weight": 30,
+   "explanation": "Dice che la consegna non è riuscita e ti chiede di «riprogrammarla» o di confermare dove: è uno dei pretesti più usati dai finti corrieri.",
+   "example": "Abbiamo tentato di consegnare la tua spedizione. Riprogramma la consegna",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:tentato|tentativo) di consegn\\w{0,10}\\b.{0,160}\\b(?:riprogramm|ripianific|reprogramm|conferma l'indirizzo|aggiorna l'indirizzo|scegli (?:una|la) (?:nuova )?data)\\w{0,10}",
+    "\\b(?:riprogramm|ripianific)\\w{0,10} (?:la |il )?(?:tua |sua )?(?:consegna|spedizione|pacco)"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "ACC-05",
+   "category": "account",
+   "weight": 30,
+   "explanation": "Segnala un nuovo dispositivo o accesso e ti chiede di reagire subito con un pulsante («Non sono stato io»): è un modo per farti entrare in una pagina falsa.",
+   "example": "È stato aggiunto un nuovo dispositivo. Se non è stato Lei, annulli subito. [Non sono stato io]",
+   "kind": "regex",
+   "patterns": [
+    "\\bnuov[oa] (?:dispositiv|accesso|login|telefono)\\w{0,3}\\b.{0,200}\\b(?:non sono stat[oa] io|se non (?:è|sei|e') stat[oa] (?:lei|tu)|annull\\w{0,6} (?:subito|ora)|blocc\\w{0,6} (?:subito|ora))",
+    "\\[\\s{0,2}non sono stat[oa] io\\s{0,2}\\]"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "CRD-02",
+   "category": "credenziali",
+   "weight": 45,
+   "explanation": "Ti chiede di accedere con le credenziali della tua email o del tuo account per vedere un documento: è il modo più comune per rubare la password.",
+   "example": "Per visualizzarlo acceda con le credenziali della Sua posta.",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:acced\\w{1,4}|entr\\w{1,4}|inserisc\\w{1,4}|conferm\\w{1,4}|verific\\w{1,4})\\b.{0,40}\\b(?:credenziali|password|nome utente e password)\\b.{0,30}\\b(?:posta|e-?mail|casella|account|microsoft|office|outlook|webmail)",
+    "\\b(?:documento|file|fattura|preventivo)\\b.{0,60}\\bcondivis\\w{1,4}\\b.{0,160}\\b(?:credenziali|password|acced\\w{1,4})"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "MBX-01",
+   "category": "account",
+   "weight": 40,
+   "explanation": "Dice che la casella di posta è piena o sta per essere disattivata e ti chiede di verificare: è un falso avviso per rubare la password dell'email.",
+   "example": "La casella è al 99%. Verifica ora per non perdere i messaggi.",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:casella|mailbox|spazio di archiviazione|quota)\\b.{0,40}\\b(?:piena|pieno|al 9\\d ?%|esaurit\\w|superat\\w|in scadenza|disattivat\\w)",
+    "\\b(?:non perdere|perderai|perdere) (?:i |i tuoi |i suoi )?(?:messaggi|email|mail)\\b"
+   ],
+   "keywords": [],
+   "unless": null
   }
  ]
 }

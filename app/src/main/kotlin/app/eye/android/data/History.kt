@@ -36,6 +36,8 @@ data class HistoryEntity(
     val verdictJson: String = "",
     /** Segnalibro «Salva»: le voci salvate non scadono mai (decide l utente). */
     @ColumnInfo(defaultValue = "0") val saved: Boolean = false,
+    /** [AiOpinionJson] del secondo parere AI (già oscurato), cifrato su disco; vuoto = nessun parere salvato. */
+    @ColumnInfo(defaultValue = "''") val aiOpinion: String = "",
 )
 
 @Dao
@@ -58,6 +60,9 @@ interface HistoryDao {
     @Query("UPDATE history SET saved = :saved WHERE id = :id")
     suspend fun setSaved(id: Long, saved: Boolean)
 
+    @Query("UPDATE history SET aiOpinion = :value WHERE id = :id")
+    suspend fun setAiOpinion(id: Long, value: String)
+
     @Query("DELETE FROM history WHERE saved = 0")
     suspend fun deleteUnsaved()
 
@@ -72,7 +77,14 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
     }
 }
 
-@Database(entities = [HistoryEntity::class], version = 3, exportSchema = false)
+/** v3 -> v4: aggiunge il secondo parere AI salvato (cifrato). Non distruttiva: le righe esistenti restano, senza parere. */
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE history ADD COLUMN aiOpinion TEXT NOT NULL DEFAULT ''")
+    }
+}
+
+@Database(entities = [HistoryEntity::class], version = 4, exportSchema = false)
 abstract class EyeDb : RoomDatabase() {
     abstract fun history(): HistoryDao
 }
@@ -103,7 +115,9 @@ class HistoryRepository(
     private fun open(e: HistoryEntity): HistoryEntity? {
         val text = if (e.fullText.isEmpty()) "" else crypto.decrypt(e.fullText) ?: return null
         val json = if (e.verdictJson.isEmpty()) "" else crypto.decrypt(e.verdictJson) ?: return null
-        return e.copy(fullText = text, verdictJson = json)
+        // un parere illeggibile non nasconde l'analisi: si perde solo il parere
+        val ai = if (e.aiOpinion.isEmpty()) "" else crypto.decrypt(e.aiOpinion).orEmpty()
+        return e.copy(fullText = text, verdictJson = json, aiOpinion = ai)
     }
 
     /** Cancellazione fisica dei record più vecchi oltre la conservazione scelta (GDPR-07) e di quelli illeggibili. */
@@ -127,6 +141,9 @@ class HistoryRepository(
             ),
         )
     }
+
+    /** Salva (cifrato) il parere AI nella voce [id]; [json] vuoto lo rimuove. */
+    suspend fun setAiOpinion(id: Long, json: String) = dao.setAiOpinion(id, if (json.isEmpty()) "" else crypto.encrypt(json))
 
     suspend fun delete(id: Long) = dao.delete(id)
     suspend fun setSaved(id: Long, saved: Boolean) = dao.setSaved(id, saved)

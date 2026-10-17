@@ -81,9 +81,9 @@ data class Thresholds(
 @Serializable
 data class AiConfig(
     /** p >= raiseThreshold con regole NESSUN_SEGNALE → SOSPETTO (AI-01). */
-    val raiseThreshold: Double = 0.998,
+    val raiseThreshold: Double = 0.4915,
     /** p <= lowerThreshold con regole SOSPETTO → NESSUN_SEGNALE (AI-02), se nessun motivo e' «grave». */
-    val lowerThreshold: Double = 0.005,
+    val lowerThreshold: Double = 0.0, // disattivato: il modello non abbassa mai un verdetto (decisione utente 2026-10-17)
     /** Regole «grave»: se scattate, il verdetto non viene mai declassato dal classificatore. */
     val hardRuleIds: List<String> = DEFAULT_HARD_RULES,
 ) {
@@ -99,6 +99,9 @@ data class AiConfig(
             "CRY-01", "CRY-02", "SEX-01", "FAM-01", "SUP-01",
             // analisi incompleta (fail-safe)
             "INC-01",
+            "BAN-12",
+            "CRD-02",
+            "MBX-01",
         )
     }
 }
@@ -140,7 +143,7 @@ object RuleLoader {
         require(rs.rules.size in 1..MAX_RULES) { "numero regole fuori limite" }
         require(rs.thresholds.suspect in 1 until rs.thresholds.probable) { "soglie incoerenti" }
         require(rs.rules.map { it.id }.toSet().size == rs.rules.size) { "id regola duplicati" }
-        require(rs.ai.lowerThreshold in 0.0..0.1 && rs.ai.raiseThreshold in 0.9..1.0) { "soglie AI fuori range" }
+        require(rs.ai.lowerThreshold in 0.0..0.1 && rs.ai.raiseThreshold in 0.3..1.0) { "soglie AI fuori range" }
         for (p in rs.lists.pressurePatterns + rs.lists.valuePatterns + rs.lists.dataPatterns) {
             RegexLint.check(p)?.let { err -> throw IllegalArgumentException("lista: $err") }
             try { java.util.regex.Pattern.compile(p) } catch (e: Exception) { throw IllegalArgumentException("lista: regex non compilabile") }

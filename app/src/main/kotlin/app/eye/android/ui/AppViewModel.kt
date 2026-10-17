@@ -22,7 +22,9 @@ import app.eye.android.core.ai.AiKeys
 import app.eye.android.core.ai.AiOutcome
 import app.eye.android.core.ai.AiProvider
 import app.eye.android.core.ai.AiService
+import app.eye.android.data.AiOpinionJson
 import app.eye.android.data.HistoryEntity
+import app.eye.android.data.SavedAiOpinion
 import app.eye.android.data.KeyVault
 import app.eye.android.data.Settings
 import app.eye.engine.Source
@@ -81,29 +83,47 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
         }
     }
 
-    // --- Secondo parere AI (facoltativo, mai automatico, mai salvato) ---
+    // --- Secondo parere AI (facoltativo, mai automatico). La richiesta vive nello scope dell'app: continua se si cambia schermata. ---
     private val aiService = AiService()
-    private val _ai = MutableStateFlow<AiUiState>(AiUiState.Idle)
-    val ai: StateFlow<AiUiState> = _ai
+    private val _ai = MutableStateFlow(AiSession(0, AiUiState.Idle))
+    val ai: StateFlow<AiSession> = _ai
+    private var aiJob: kotlinx.coroutines.Job? = null
     private val _aiTest = MutableStateFlow<AiUiState>(AiUiState.Idle)
     val aiTest: StateFlow<AiUiState> = _aiTest
 
-    fun clearAi() { _ai.value = AiUiState.Idle }
+    /** Annulla l'eventuale richiesta e azzera lo stato. */
+    fun clearAi() { aiJob?.cancel(); aiJob = null; _ai.value = AiSession(0, AiUiState.Idle) }
+    fun cancelAi() = clearAi()
+    /** Si lascia la schermata: l'esito resta (salvato in cronologia se c'è la voce), una richiesta in corso continua. */
+    fun leaveAi() { if (_ai.value.state is AiUiState.Done) _ai.value = AiSession(0, AiUiState.Idle) }
     fun clearAiTest() { _aiTest.value = AiUiState.Idle }
 
     /** Invia [text] al provider scelto con la chiave dell'utente; il risultato non tocca il verdetto delle regole. */
-    fun askAi(text: String, consentNow: Boolean = false, unredactedNow: Boolean? = null) {
+    fun askAi(text: String, historyId: Long? = null, consentNow: Boolean = false, unredactedNow: Boolean? = null) {
         val st = settings.value
         if (!st.aiConfigured || !(st.aiConsent || consentNow)) return
         val raw = unredactedNow ?: st.aiSendUnredacted
-        _ai.value = AiUiState.Loading
-        viewModelScope.launch {
+        aiJob?.cancel()
+        val sessionKey = aiKey(text)
+        _ai.value = AiSession(sessionKey, AiUiState.Loading)
+        aiJob = (c.appContext as app.eye.android.EyeApp).appScope.launch {
+            var model = st.aiModel
             val outcome = withContext(Dispatchers.IO) {
                 val key = st.aiKeyCipher?.let { KeyVault.decrypt(it) }
                 if (key == null) AiOutcome.Failure(AiError.NOT_CONFIGURED)
-                else aiService.ask(AiConfig(st.aiProvider, st.aiModel, st.aiBaseUrl, key), if (raw) text else Redactor.redactKeepLinks(text))
+                else {
+                    val cfg = AiConfig(st.aiProvider, st.aiModel, st.aiBaseUrl, key)
+                    model = cfg.model
+                    aiService.ask(cfg, if (raw) text else Redactor.redactKeepLinks(text))
+                }
             }
-            _ai.value = AiUiState.Done(outcome)
+            var saved: SavedAiOpinion? = null
+            if (outcome is AiOutcome.Success) {
+                saved = SavedAiOpinion(outcome.opinion, st.aiProvider.id, model, System.currentTimeMillis())
+                // resta salvato (cifrato) con l'analisi, anche se nel frattempo l'utente ha cambiato schermata
+                if (historyId != null) runCatching { c.history.setAiOpinion(historyId, AiOpinionJson.encode(saved)) }
+            }
+            _ai.value = AiSession(sessionKey, AiUiState.Done(outcome, saved))
         }
     }
 
@@ -241,6 +261,7 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
     fun setSaveHistory(v: Boolean) = viewModelScope.launch { c.settings.setSaveHistory(v) }
     fun clearAllData() = viewModelScope.launch {
         c.history.deleteAll()
+        c.alerts.purge(-1) // tutti gli avvisi in attesa
         c.settings.clearAll()
         app.eye.android.core.notif.ListenerControl.setEnabled(c.appContext, false)
         withContext(Dispatchers.IO) { KeyVault.deleteKey(); app.eye.android.data.HistoryVault.deleteKey() }
@@ -257,8 +278,13 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
 sealed interface AiUiState {
     data object Idle : AiUiState
     data object Loading : AiUiState
-    data class Done(val outcome: AiOutcome) : AiUiState
+    data class Done(val outcome: AiOutcome, val saved: SavedAiOpinion? = null) : AiUiState
 }
+
+/** Stato della richiesta AI per il testo identificato da [key] (vedi [aiKey]). */
+data class AiSession(val key: Int, val state: AiUiState)
+
+fun aiKey(text: String): Int = text.hashCode()
 
 /** Esito dell'ultimo «Aggiorna» del catalogo. */
 enum class CatalogUpdate { IDLE, LOADING, UPDATED, UP_TO_DATE, OFFLINE, ERROR }

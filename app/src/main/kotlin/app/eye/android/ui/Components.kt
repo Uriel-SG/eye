@@ -49,9 +49,10 @@ fun Level.icon(): ImageVector = when (this) {
 
 /** Card con bordo 1dp (2dp in Modalità Famiglia) come da DESIGN: forme 16, elevazione tonale. */
 @Composable
-fun EyeCard(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, content: @Composable () -> Unit) {
+fun EyeCard(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, borderOverride: BorderStroke? = null, content: @Composable () -> Unit) {
     val family = MaterialTheme.extras.familyMode
-    val border = if (family) BorderStroke(2.dp, MaterialTheme.colorScheme.outline)
+    val border = if (borderOverride != null) borderOverride
+    else if (family) BorderStroke(2.dp, MaterialTheme.colorScheme.outline)
     else if (isSystemInDarkTheme()) BorderStroke(1.dp, MaterialTheme.colorScheme.outline) else null
     val colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = if (family) 1f else 0.9f))
     if (onClick != null) {

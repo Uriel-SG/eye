@@ -17,6 +17,7 @@ object AiResponses {
         when {
             code == 401 || code == 403 -> return AiOutcome.Failure(AiError.AUTH, code)
             code == 429 -> return AiOutcome.Failure(AiError.RATE_LIMIT, code)
+            code == 500 || code == 502 || code == 503 || code == 504 || code == 529 -> return AiOutcome.Failure(AiError.OVERLOADED, code)
             code !in 200..299 -> return AiOutcome.Failure(AiError.HTTP, code)
         }
         val root = MiniJson.parse(body) as? Map<*, *> ?: return AiOutcome.Failure(AiError.INVALID)
@@ -109,23 +110,23 @@ fun interface HttpTransport {
     fun post(spec: HttpSpec): HttpResult
 }
 
-/** Trasporto reale: HttpURLConnection, timeout 30 s, nessun redirect (la chiave non segue mai un reindirizzamento). */
+/** Trasporto reale: HttpURLConnection, connessione 15 s, lettura [HttpSpec.readTimeoutMs], scadenza complessiva 120 s, nessun redirect (la chiave non segue mai un reindirizzamento). */
 object UrlConnectionTransport : HttpTransport {
-    private const val TIMEOUT_MS = 30_000
+    private const val CONNECT_TIMEOUT_MS = 15_000
     private const val MAX_BYTES = 1_000_000
-    private const val DEADLINE_MS = 60_000L
+    private const val DEADLINE_MS = AiService.TOTAL_DEADLINE_MS
 
     override fun post(spec: HttpSpec): HttpResult {
+        val started = System.currentTimeMillis()
         val conn = URL(spec.url).openConnection() as HttpURLConnection
         try {
             conn.requestMethod = "POST"
-            conn.connectTimeout = TIMEOUT_MS
-            conn.readTimeout = TIMEOUT_MS
+            conn.connectTimeout = CONNECT_TIMEOUT_MS
+            conn.readTimeout = spec.readTimeoutMs
             conn.instanceFollowRedirects = false
             conn.doOutput = true
             spec.headers.forEach { (k, v) -> conn.setRequestProperty(k, v) }
             conn.outputStream.use { it.write(spec.body.toByteArray(Charsets.UTF_8)) }
-            val started = System.currentTimeMillis()
             val code = conn.responseCode
             val stream = if (code in 200..299) conn.inputStream else conn.errorStream
             val body = stream?.use { s ->
@@ -146,10 +147,33 @@ object UrlConnectionTransport : HttpTransport {
     }
 }
 
-class AiService(private val transport: HttpTransport = UrlConnectionTransport) {
+/**
+ * [sleeper], [backoffMs] e [clock] sono iniettabili per i test. Un solo nuovo tentativo automatico (timeout, 429, 500/502/503/504)
+ * con attesa di 2-4 s, purché resti tempo nella scadenza complessiva di 120 s.
+ */
+class AiService(
+    private val sleeper: (Long) -> Unit = Thread::sleep,
+    private val backoffMs: () -> Long = { 2_000L + java.util.concurrent.ThreadLocalRandom.current().nextLong(2_001L) },
+    private val clock: () -> Long = System::currentTimeMillis,
+    private val transport: HttpTransport = UrlConnectionTransport,
+) {
     /** Bloccante: chiamare fuori dal thread principale. Mai logga chiave, testo o corpo della risposta. */
     fun ask(config: AiConfig, text: String): AiOutcome {
         val spec = AiRequests.build(config, text) ?: return AiOutcome.Failure(AiError.NOT_CONFIGURED)
+        val start = clock()
+        var retried = false
+        while (true) {
+            val left = TOTAL_DEADLINE_MS - (clock() - start)
+            val out = once(config, spec.copy(readTimeoutMs = minOf(READ_TIMEOUT_MS, left).toInt().coerceAtLeast(1_000)))
+            if (retried || !retryable(out)) return out
+            val wait = backoffMs()
+            if (TOTAL_DEADLINE_MS - (clock() - start) - wait < MIN_RETRY_BUDGET_MS) return out
+            sleeper(wait)
+            retried = true
+        }
+    }
+
+    private fun once(config: AiConfig, spec: HttpSpec): AiOutcome {
         val res = try {
             transport.post(spec)
         } catch (_: SocketTimeoutException) {
@@ -163,7 +187,15 @@ class AiService(private val transport: HttpTransport = UrlConnectionTransport) {
         return AiResponses.parse(config.provider, res.code, res.body)
     }
 
+    private fun retryable(o: AiOutcome) = o is AiOutcome.Failure &&
+        (o.error == AiError.TIMEOUT || o.httpCode in RETRY_CODES)
+
     companion object {
+        const val READ_TIMEOUT_MS = 90_000L
+        const val TOTAL_DEADLINE_MS = 120_000L
+        private const val MIN_RETRY_BUDGET_MS = 15_000L
+        private val RETRY_CODES = setOf(429, 500, 502, 503, 504)
+
         /** Messaggio innocuo per «Prova connessione». */
         const val TEST_TEXT = "Messaggio di prova: ciao, ci vediamo domani."
 

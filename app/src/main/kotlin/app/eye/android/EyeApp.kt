@@ -31,6 +31,7 @@ class EyeApp : Application() {
         }
         appScope.launch {
             container.history.purge() // GDPR-07: purge all'avvio
+            container.alerts.purge() // avvisi orfani oltre 30 giorni
             app.eye.android.core.ShareCard.clearCache(this@EyeApp) // F-05
         }
     }
