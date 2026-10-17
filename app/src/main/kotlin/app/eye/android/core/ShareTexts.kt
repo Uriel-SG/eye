@@ -135,6 +135,34 @@ object ShareTexts {
         null -> "non disponibile"
     }
 
+    const val TRUNCATED_NOTE = "\n[messaggio troncato: il testo completo è negli appunti]"
+    const val MAX_MAILTO_BODY = 8000
+
+    /** Percent-encoding UTF-8 (Uri.encode non è disponibile nei test JVM); a capo diventa %0A. */
+    fun percentEncode(s: String): String = buildString {
+        for (b in s.toByteArray(Charsets.UTF_8)) {
+            val c = b.toInt() and 0xFF
+            if ((c in 'A'.code..'Z'.code) || (c in 'a'.code..'z'.code) || (c in '0'.code..'9'.code) || c == '-'.code || c == '.'.code || c == '_'.code || c == '~'.code) append(c.toChar())
+            else append('%').append("0123456789ABCDEF"[c shr 4]).append("0123456789ABCDEF"[c and 15])
+        }
+    }
+
+    /** mailto: con oggetto e corpo codificati; se il corpo codificato supera [maxBody] taglia la coda e aggiunge una nota. */
+    fun mailtoUri(to: String, subject: String, body: String, maxBody: Int = MAX_MAILTO_BODY): String {
+        var text = body.replace("\r\n", "\n")
+        if (percentEncode(text).length > maxBody) {
+            var lo = 0
+            var hi = text.length
+            while (lo < hi) {
+                val mid = (lo + hi + 1) / 2
+                if (percentEncode(text.substring(0, mid) + TRUNCATED_NOTE).length <= maxBody) lo = mid else hi = mid - 1
+            }
+            if (lo > 0 && text[lo - 1].isHighSurrogate()) lo--
+            text = text.substring(0, lo) + TRUNCATED_NOTE
+        }
+        return "mailto:$to?subject=${percentEncode(subject)}&body=${percentEncode(text)}"
+    }
+
     const val COMMENT_LABEL = "Il tuo commento:"
     const val TECH_LABEL = "Dettagli tecnici"
     const val TECH_SEPARATOR = "----------------------------------------"

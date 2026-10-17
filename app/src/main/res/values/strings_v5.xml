@@ -8,6 +8,7 @@
     <string name="wrong_view_scam">Una truffa</string>
     <string name="wrong_view_legit">Un messaggio legittimo</string>
     <string name="wrong_view_other">Altro</string>
+    <string name="wrong_clip_hint">Prepariamo l\'email per te e copiamo la segnalazione negli appunti: se l\'email si apre vuota, tieni premuto nel testo e scegli «Incolla».</string>
     <string name="wrong_send">Invia segnalazione</string>
     <string name="wrong_info_v2">Verrà preparata un\'email con il messaggio completo (non oscurato), da inviare allo sviluppatore per migliorare Eye. La vedrai e potrai modificarla prima di inviarla: se vuoi, togli nomi, numeri, indirizzi e codici. Eye non invia nulla da solo.</string>
 </resources>

@@ -33,27 +33,31 @@ object ExternalIntents {
         context.startActivity(Intent.createChooser(send, context.getString(R.string.share_chooser)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
-    /** Email precompilata (ACTION_SENDTO mailto:) che l'utente rivede e invia; senza app email ripiega sulla condivisione testo. */
-    fun composeEmail(context: Context, to: String, subject: String, body: String, attachment: Uri? = null) {
-        if (attachment != null) {
+
+    /** Copia il testo negli appunti su azione dell'utente; su Android 13+ la clip è marcata sensibile (contiene il messaggio). */
+    fun copyToClipboard(context: Context, label: String, text: String) {
+        val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager ?: return
+        val clip = android.content.ClipData.newPlainText(label, text)
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            clip.description.extras = android.os.PersistableBundle().apply { putBoolean(android.content.ClipDescription.EXTRA_IS_SENSITIVE, true) }
+        }
+        runCatching { cm.setPrimaryClip(clip) }
+    }
+
+    /**
+     * Email precompilata con mailto:?subject=&body= (Gmail e la maggior parte dei client la leggono; con ACTION_SEND + selector
+     * Gmail perde oggetto e corpo). Senza app per SENDTO ripiega su ACTION_SEND text/plain con chooser.
+     */
+    fun composeEmail(context: Context, to: String, subject: String, body: String) {
+        val mail = Intent(Intent.ACTION_SENDTO, Uri.parse(ShareTexts.mailtoUri(to, subject, body))).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try { context.startActivity(mail) } catch (_: ActivityNotFoundException) {
             val send = Intent(Intent.ACTION_SEND).apply {
-                type = "image/png"
+                type = "text/plain"
                 putExtra(Intent.EXTRA_EMAIL, arrayOf(to))
                 putExtra(Intent.EXTRA_SUBJECT, subject)
                 putExtra(Intent.EXTRA_TEXT, body)
-                putExtra(Intent.EXTRA_STREAM, attachment)
-                clipData = android.content.ClipData.newRawUri("", attachment)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
-                selector = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:"))
             }
-            try { context.startActivity(send); return } catch (_: ActivityNotFoundException) { /* ripiega sul mailto senza allegato */ }
+            context.startActivity(Intent.createChooser(send, context.getString(R.string.share_chooser)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }
-        val mail = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:$to")).apply {
-            putExtra(Intent.EXTRA_EMAIL, arrayOf(to))
-            putExtra(Intent.EXTRA_SUBJECT, subject)
-            putExtra(Intent.EXTRA_TEXT, body)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        try { context.startActivity(mail) } catch (_: ActivityNotFoundException) { shareText(context, body, subject) }
     }
 }

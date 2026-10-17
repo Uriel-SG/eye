@@ -311,6 +311,7 @@ fun VerdictScreen(result: CheckResult, vm: AppViewModel, onClose: () -> Unit, fr
                 Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(stringResource(R.string.wrong_info_v2))
                     Text(stringResource(R.string.wrong_view_question), style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.wrong_clip_hint), style = MaterialTheme.typography.bodyMedium)
                     Column(Modifier.selectableGroup()) {
                         labels.forEach { (opt, label) ->
                             Row(
@@ -330,15 +331,9 @@ fun VerdictScreen(result: CheckResult, vm: AppViewModel, onClose: () -> Unit, fr
                 TextButton(enabled = view != null, onClick = {
                     val choice = view ?: return@TextButton
                     wrongDialog = false
-                    scope.launch {
-                        val uri = try {
-                            withContext(Dispatchers.Default) { ShareCard.save(ctx, ShareCard.render(ctx, result, false)) }
-                        } catch (_: Exception) { null }
-                        ExternalIntents.composeEmail(
-                            ctx, app.eye.android.core.REPORT_EMAIL, ReportBuilder.feedbackSubject(ctx, result, choice),
-                            ReportBuilder.feedbackBody(ctx, result, choice), uri,
-                        )
-                    }
+                    val body = ReportBuilder.feedbackBody(ctx, result, choice)
+                    ExternalIntents.copyToClipboard(ctx, "Segnalazione Eye", body)
+                    ExternalIntents.composeEmail(ctx, app.eye.android.core.REPORT_EMAIL, ReportBuilder.feedbackSubject(ctx, result, choice), body)
                 }) { Text(stringResource(R.string.wrong_send)) }
             },
             dismissButton = { TextButton(onClick = { wrongDialog = false }) { Text(stringResource(R.string.action_cancel)) } },

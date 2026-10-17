@@ -69,6 +69,21 @@ class ShareTextsTest {
         sms, "Probabile truffa", ShareTexts.UserView.SCAM, summary().line, 83, r.toList(), listOf("brt-consegna.com"), Source.OCR, "1.0.1", 12L, "oggi",
     )
 
+    @Test fun mailtoUriEncodesSubjectAndBody() {
+        val u = ShareTexts.mailtoUri("a@b.it", "Eye – falso allarme (x)", "riga1\nè & = ?")
+        assertEquals("mailto:a@b.it?subject=Eye%20%E2%80%93%20falso%20allarme%20%28x%29&body=riga1%0A%C3%A8%20%26%20%3D%20%3F", u)
+    }
+
+    @Test fun mailtoUriTruncatesLongBodyWithNote() {
+        val u = ShareTexts.mailtoUri("a@b.it", "s", "Il tuo commento:\n" + "è".repeat(5000), maxBody = 8000)
+        val enc = u.substringAfter("&body=")
+        assertTrue(enc.length <= 8000)
+        assertTrue(enc.endsWith(ShareTexts.percentEncode(ShareTexts.TRUNCATED_NOTE)))
+        assertTrue(enc.startsWith("Il%20tuo%20commento"))
+        val short = ShareTexts.mailtoUri("a@b.it", "s", "breve")
+        assertFalse(short.contains("%5B"))
+    }
+
     @Test fun feedbackSubjectForEveryCombination() {
         val v = ShareTexts.UserView.entries
         for (l in listOf("Probabile truffa", "Sospetto", "Nessun segnale evidente")) {
