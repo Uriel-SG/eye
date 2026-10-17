@@ -28,6 +28,7 @@ class MiniLmTokenizerTest {
     }
 
     @Test fun edgeCasesIdentical() {
+        assumeTrue(extraTokenIds.exists(), "ml/out/extra_token_ids.jsonl non disponibile")
         val bad = extraTokenIds.readLines().filter { it.isNotBlank() }.mapNotNull { line ->
             val o = Json.parseToJsonElement(line).jsonObject
             val (id, exp) = ids(line)
