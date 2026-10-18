@@ -56,6 +56,11 @@ class AppContainer(context: Context) {
     val analyzer = SwappableAnalyzer(bestEngine())
     fun reloadRules() { analyzer.delegate = bestEngine() }
 
+    /** Eccezioni dell'utente (cifrate su disco). */
+    val exceptions = app.eye.android.data.ExceptionStore.create(appContext)
+    /** Regole + AI, poi le eccezioni dell'utente: è l'analizzatore usato da tutta l'app. */
+    val checker: app.eye.engine.Analyzer = app.eye.engine.ExceptionAwareAnalyzer(analyzer, { exceptions.snapshot() })
+
     val feedUpdater = FeedUpdater(
         UrlConnectionFeedHttp(FeedConfig.allowCleartext), FeedConfig.baseUrl, rulesStore, campaignStore, feedState, bundled.version,
     )

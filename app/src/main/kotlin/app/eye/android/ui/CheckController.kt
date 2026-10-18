@@ -36,19 +36,19 @@ class CheckController(
     fun set(s: CheckState) { _state.value = s }
 
     /** Testo da Share Target: analisi automatica; oltre il limite si controllano i primi MAX_CHARS caratteri. */
-    fun onShared(text: String?) {
+    fun onShared(text: String?, origin: String? = null, sender: String? = null) {
         if (text.isNullOrBlank()) return
-        check(text, Source.SHARE)
+        check(text, Source.SHARE, origin = origin, sender = sender)
     }
 
     /** [alreadyTruncated]: il chiamante ha gia' tagliato il testo (es. campo di input). */
-    fun check(text: String, source: Source = Source.PASTE, alreadyTruncated: Boolean = false) {
+    fun check(text: String, source: Source = Source.PASTE, alreadyTruncated: Boolean = false, origin: String? = null, sender: String? = null) {
         val truncated = alreadyTruncated || text.length > CheckUseCase.MAX_CHARS
         val t = text.take(CheckUseCase.MAX_CHARS)
         _state.value = CheckState.Running
         scope.launch {
             _state.value = try {
-                when (val o = withContext(dispatcher) { useCase.run(t, source, truncated) }) {
+                when (val o = withContext(dispatcher) { useCase.run(t, source, truncated, origin, sender) }) {
                     is CheckOutcome.Done -> CheckState.Done(o.result)
                     CheckOutcome.TooLong -> CheckState.TooLong
                     CheckOutcome.Empty -> CheckState.Error

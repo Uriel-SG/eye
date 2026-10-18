@@ -188,7 +188,7 @@ fun HistoryDetailScreen(vm: AppViewModel, id: Long, onBack: () -> Unit) {
 }
 
 @Composable
-fun SettingsScreen(vm: AppViewModel, onBack: (() -> Unit)?, onAutoInfo: () -> Unit = {}, onLicenses: () -> Unit = {}) {
+fun SettingsScreen(vm: AppViewModel, onBack: (() -> Unit)?, onAutoInfo: () -> Unit = {}, onLicenses: () -> Unit = {}, onExceptions: () -> Unit = {}) {
     val s by vm.settings.collectAsState()
     var familyDialog by remember { mutableStateOf(false) }
     var clearData by remember { mutableStateOf(false) }
@@ -246,6 +246,15 @@ fun SettingsScreen(vm: AppViewModel, onBack: (() -> Unit)?, onAutoInfo: () -> Un
 
         HorizontalDivider()
         AiSettingsSection(vm, s)
+
+        HorizontalDivider()
+        val excCount by vm.exceptions.collectAsState()
+        TextButton(onClick = onExceptions, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+            Column(Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.exc_settings_title), style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.exc_settings_sub, excCount.size), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
 
         // Stacco netto prima di «Informazioni»
         Spacer(Modifier.height(16.dp))
@@ -425,7 +434,7 @@ private fun OnboardingPage(p: Int) {
             }
             1 -> {
                 Text(stringResource(R.string.onb_title_2), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
-                listOf(R.string.onb_does_1, R.string.onb_does_2, R.string.onb_does_3, R.string.onb_does_4).forEach { Bullet(true, stringResource(it)) }
+                listOf(R.string.onb_does_1, R.string.onb_does_2, R.string.onb_does_3, R.string.onb_does_4, R.string.onb_does_5).forEach { Bullet(true, stringResource(it)) }
                 listOf(R.string.onb_doesnt_1, R.string.onb_doesnt_2, R.string.onb_doesnt_3, R.string.onb_doesnt_4).forEach { Bullet(false, stringResource(it)) }
             }
             else -> {

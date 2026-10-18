@@ -15,6 +15,8 @@ data class Input(
     val source: Source,
     /** Mittente dichiarato, se noto (es. "Poste" in un SMS). */
     val declaredSender: String? = null,
+    /** Package dell'app che ha generato la notifica; null per condivisioni, incolla e OCR. */
+    val origin: String? = null,
 )
 
 /** Mai «Sicuro»: l'assenza di segnali non è una garanzia. */

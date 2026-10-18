@@ -64,6 +64,19 @@ class V6Tests {
         assertTrue(b.m.isEmpty())
     }
 
+    @Test fun alertRoundTripKeepsOriginAndSender() {
+        val b = MapBackend()
+        val s = AlertStore(b, Rot)
+        assertTrue(s.put(11, "testo", "SOSPETTO", "com.verisure.app", "Verisure"))
+        assertFalse(b.m.values.any { it.contains("verisure") || it.contains("Verisure") })
+        val a = AlertStore(b, Rot).takeAlert(11)!!
+        assertEquals(Triple("testo", "com.verisure.app", "Verisure"), Triple(a.text, a.origin, a.sender))
+        // avviso salvato dalla versione precedente: solo testo e livello
+        b.m["d12"] = Rot.encrypt(app.eye.android.core.MiniJson.stringify(mapOf("t" to "vecchio", "l" to "SOSPETTO")))
+        val old = s.takeAlert(12)!!
+        assertEquals("vecchio", old.text); assertNull(old.origin); assertNull(old.sender)
+    }
+
     @Test fun dismissDeletesAndUnknownIdsAreSafe() {
         val b = MapBackend()
         val s = AlertStore(b, Rot)

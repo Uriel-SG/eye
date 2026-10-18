@@ -92,10 +92,12 @@ fun ScreenScaffold(
     onBack: (() -> Unit)? = null,
     actions: @Composable () -> Unit = {},
     scroll: Boolean = true,
+    snackbar: androidx.compose.material3.SnackbarHostState? = null,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { if (snackbar != null) androidx.compose.material3.SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
                 title = { Text(title, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() }) },

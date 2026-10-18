@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onb_does_5">Se sei certo che un verdetto sia sbagliato, puoi segnarlo: Eye riconoscerà i messaggi simili (puoi annullare in Impostazioni › Eccezioni).</string>
+    <string name="exc_fp_button">Segna come falso positivo (non è sospetto)</string>
+    <string name="exc_fn_button">Segna come falso negativo (è sospetto)</string>
+    <string name="exc_fp_title">Considerare affidabili messaggi come questo?</string>
+    <string name="exc_fp_body">Da ora Eye considererà affidabili i messaggi simili a questo, dalla stessa app e dallo stesso mittente: non verranno più segnalati come sospetti e non riceverai avvisi. Le eccezioni non valgono se compaiono link nuovi o richieste di dati sensibili. Puoi rimuoverla in Impostazioni › Eccezioni. Sei sicuro della scelta?</string>
+    <string name="exc_fn_title">Considerare sospetti messaggi come questo?</string>
+    <string name="exc_fn_body">Da ora Eye considererà almeno sospetti i messaggi simili a questo, dalla stessa app e dallo stesso mittente, e ti avviserà. Puoi rimuovere l’eccezione in Impostazioni › Eccezioni. Sei sicuro della scelta?</string>
+    <string name="exc_any_app">Questa eccezione varrà per messaggi simili da qualsiasi app.</string>
+    <string name="exc_yes">Sì</string>
+    <string name="exc_no">No</string>
+    <string name="exc_saved">Eccezione salvata</string>
+    <string name="exc_save_failed">Non è stato possibile salvare l’eccezione.</string>
+    <string name="exc_settings_title">Eccezioni</string>
+    <string name="exc_settings_sub">Messaggi che hai segnato come affidabili o sospetti: %1$d</string>
+    <string name="exc_empty">Non hai ancora impostato eccezioni. Puoi crearne dalla schermata di un verdetto.</string>
+    <string name="exc_kind_trusted">Affidabile</string>
+    <string name="exc_kind_suspicious">Sospetto</string>
+    <string name="exc_app">App: %1$s</string>
+    <string name="exc_app_none">Condivisione o testo incollato</string>
+    <string name="exc_sender">Mittente: %1$s</string>
+    <string name="exc_delete_one">Elimina questa eccezione</string>
+    <string name="exc_delete_all">Elimina tutte</string>
+    <string name="exc_delete_all_confirm">Eliminare tutte le eccezioni? Eye tornerà a valutare questi messaggi come tutti gli altri.</string>
+</resources>

@@ -14,8 +14,8 @@ android {
         applicationId = "com.urielsec.eye"
         minSdk = 26
         targetSdk = 36
-        versionCode = 7
-        versionName = "1.2.0"
+        versionCode = 8
+        versionName = "1.3.0"
         // Simboli nativi (librerie ML Kit) nell'AAB: Play Console li usa per leggere crash/ANR.
         ndk { debugSymbolLevel = "SYMBOL_TABLE" }
     }

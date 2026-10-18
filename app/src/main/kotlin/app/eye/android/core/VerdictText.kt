@@ -20,6 +20,9 @@ data class CheckResult(
     val historyId: Long? = null,
     /** Origine del testo; null se il controllo viene dalla cronologia. */
     val source: app.eye.engine.Source? = null,
+    /** App di origine e mittente (solo avvisi della Protezione automatica). */
+    val origin: String? = null,
+    val sender: String? = null,
 )
 
 fun Level.titleRes(): Int = when (this) {

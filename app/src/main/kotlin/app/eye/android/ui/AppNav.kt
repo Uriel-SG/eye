@@ -42,6 +42,7 @@ object Route {
     fun historyItem(id: Long) = "history/$id"
     const val SETTINGS = "settings"
     const val LICENSES = "licenses"
+    const val EXCEPTIONS = "exceptions"
     const val AUTO_INFO = "auto_info"
     fun card(id: String) = "catalog/$id"
 }
@@ -151,7 +152,8 @@ fun AppNav(vm: AppViewModel) {
             composable(Route.HISTORY_ITEM, arguments = listOf(androidx.navigation.navArgument("id") { type = androidx.navigation.NavType.LongType })) { e ->
                 HistoryDetailScreen(vm, e.arguments?.getLong("id") ?: -1L, { nav.popBackStack() })
             }
-            composable(Route.SETTINGS) { SettingsScreen(vm, onBack = null, onAutoInfo = { nav.navigate(Route.AUTO_INFO) }, onLicenses = { nav.navigate(Route.LICENSES) }) }
+            composable(Route.SETTINGS) { SettingsScreen(vm, onBack = null, onAutoInfo = { nav.navigate(Route.AUTO_INFO) }, onLicenses = { nav.navigate(Route.LICENSES) }, onExceptions = { nav.navigate(Route.EXCEPTIONS) }) }
+            composable(Route.EXCEPTIONS) { ExceptionsScreen(vm) { nav.popBackStack() } }
             composable(Route.LICENSES) { LicensesScreen { nav.popBackStack() } }
             composable(Route.AUTO_INFO) { AutoProtectInfoScreen(vm) { nav.popBackStack() } }
         }

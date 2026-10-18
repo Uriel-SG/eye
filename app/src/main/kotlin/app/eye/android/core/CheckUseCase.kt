@@ -19,14 +19,14 @@ class CheckUseCase(
     private val saveHistory: suspend () -> Boolean,
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
-    suspend fun run(text: String, source: Source, truncated: Boolean = false): CheckOutcome {
+    suspend fun run(text: String, source: Source, truncated: Boolean = false, origin: String? = null, sender: String? = null): CheckOutcome {
         if (text.isBlank()) return CheckOutcome.Empty
         if (text.length > MAX_CHARS) return CheckOutcome.TooLong // SEC-05
-        val verdict = analyzer.analyze(Input(text, source))
+        val verdict = analyzer.analyze(Input(text, source, sender, origin))
         val id = if (saveHistory()) {
             history.save(verdict.level.name, Redactor.preview(text), verdict.reasonTexts(), text, VerdictJson.encode(verdict))
         } else null
-        return CheckOutcome.Done(CheckResult(verdict, text, clock(), truncated, id, source))
+        return CheckOutcome.Done(CheckResult(verdict, text, clock(), truncated, id, source, origin, sender))
     }
 
     companion object {

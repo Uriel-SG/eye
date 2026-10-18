@@ -44,11 +44,11 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
     val history: StateFlow<List<HistoryEntity>> = c.history.observe()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    private val useCase = CheckUseCase(c.analyzer, c.history, { c.settings.settings.first().saveHistory })
+    private val useCase = CheckUseCase(c.checker, c.history, { c.settings.settings.first().saveHistory })
     private val controller = CheckController(viewModelScope, useCase, Dispatchers.Default)
     val state: StateFlow<CheckState> = controller.state
 
-    fun onShared(text: String?) = controller.onShared(text)
+    fun onShared(text: String?, origin: String? = null, sender: String? = null) = controller.onShared(text, origin, sender)
     fun reset() = controller.reset()
     fun check(text: String, source: Source = Source.PASTE, alreadyTruncated: Boolean = false) = controller.check(text, source, alreadyTruncated)
 
@@ -180,6 +180,29 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
     }
 
 
+    // --- Eccezioni dell'utente ---
+    val exceptions: StateFlow<List<app.eye.engine.UserException>> = c.exceptions.items
+
+    /**
+     * Salva un'eccezione dal verdetto mostrato e restituisce il verdetto aggiornato (null se non si è potuto cifrare).
+     * Un'eccezione di segno opposto per lo stesso messaggio viene tolta, così l'ultima scelta prevale.
+     */
+    fun saveException(kind: app.eye.engine.ExceptionKind, result: CheckResult, current: app.eye.engine.Verdict, onDone: (app.eye.engine.Verdict?) -> Unit) {
+        viewModelScope.launch {
+            val v = withContext(Dispatchers.Default) {
+                val input = app.eye.engine.Input(result.originalText.take(CheckUseCase.MAX_CHARS), result.source ?: Source.PASTE, result.sender, result.origin)
+                val fp = app.eye.engine.MessageFingerprint.of(input)
+                if (fp.shingles.isEmpty()) return@withContext null
+                c.exceptions.snapshot().filter { it.kind != kind && app.eye.engine.UserExceptions.similar(it, fp) }.forEach { c.exceptions.remove(it.id) }
+                val e = app.eye.engine.UserExceptions.create(kind, current, fp, java.util.UUID.randomUUID().toString(), System.currentTimeMillis())
+                if (!c.exceptions.add(e)) null else c.checker.analyze(input)
+            }
+            onDone(v)
+        }
+    }
+    fun removeException(id: String) = c.exceptions.remove(id)
+    fun clearExceptions() = c.exceptions.clear()
+
     // --- Stato dei feed ---
     val rulesStaleDays: StateFlow<Long?> = c.rulesStaleDays
     val campaignStaleDays: StateFlow<Long?> = c.campaignStaleDays
@@ -262,9 +285,10 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
     fun clearAllData() = viewModelScope.launch {
         c.history.deleteAll()
         c.alerts.purge(-1) // tutti gli avvisi in attesa
+        c.exceptions.clear()
         c.settings.clearAll()
         app.eye.android.core.notif.ListenerControl.setEnabled(c.appContext, false)
-        withContext(Dispatchers.IO) { KeyVault.deleteKey(); app.eye.android.data.HistoryVault.deleteKey() }
+        withContext(Dispatchers.IO) { KeyVault.deleteKey(); app.eye.android.data.HistoryVault.deleteKey(); app.eye.android.data.ExceptionsVault.deleteKey() }
         withContext(Dispatchers.IO) { app.eye.android.core.ShareCard.clearCache(c.appContext) } // F-05
         c.feedState.clear()
     }

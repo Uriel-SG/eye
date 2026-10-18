@@ -88,7 +88,12 @@ private val OfficialChannels = listOf(
 @Composable
 fun VerdictScreen(result: CheckResult, vm: AppViewModel, onClose: () -> Unit, fromHistory: Boolean = false) {
     val ctx = LocalContext.current
-    val v = result.verdict
+    var updated by remember { mutableStateOf<app.eye.engine.Verdict?>(null) } // dopo una nuova eccezione
+    val v = updated ?: result.verdict
+    var excDialog by remember { mutableStateOf<app.eye.engine.ExceptionKind?>(null) }
+    val snackbar = remember { androidx.compose.material3.SnackbarHostState() }
+    val excSaved = stringResource(R.string.exc_saved)
+    val excFailed = stringResource(R.string.exc_save_failed)
     val family = MaterialTheme.extras.familyMode
     val colors = MaterialTheme.extras.of(v.level)
     val scope = rememberCoroutineScope()
@@ -129,7 +134,7 @@ fun VerdictScreen(result: CheckResult, vm: AppViewModel, onClose: () -> Unit, fr
         }
     }
 
-    ScreenScaffold(stringResource(R.string.app_name), onBack = onClose) {
+    ScreenScaffold(stringResource(R.string.app_name), onBack = onClose, snackbar = snackbar) {
         // Card verdetto: icona + titolo + colore + barra 8dp (mai solo colore)
         Row(
             Modifier.fillMaxWidth().height(IntrinsicSize.Min)
@@ -220,6 +225,18 @@ fun VerdictScreen(result: CheckResult, vm: AppViewModel, onClose: () -> Unit, fr
 
         Text(stringResource(R.string.verdict_disclaimer_short), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
+        // Eccezioni dell'utente: falso positivo / falso negativo (con conferma)
+        OutlinedButton(
+            onClick = { excDialog = app.eye.engine.ExceptionKind.TRUSTED },
+            enabled = v.level != app.eye.engine.Level.NESSUN_SEGNALE,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+        ) { Text(stringResource(R.string.exc_fp_button)) }
+        OutlinedButton(
+            onClick = { excDialog = app.eye.engine.ExceptionKind.SUSPICIOUS },
+            enabled = v.level == app.eye.engine.Level.NESSUN_SEGNALE,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+        ) { Text(stringResource(R.string.exc_fn_button)) }
+
         // Azioni
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Switch(checked = showMessage, onCheckedChange = { showMessage = it })
@@ -273,6 +290,26 @@ fun VerdictScreen(result: CheckResult, vm: AppViewModel, onClose: () -> Unit, fr
         TextButton(onClick = { wrongDialog = true }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.verdict_wrong)) }
     }
 
+    excDialog?.let { kind ->
+        val fp = kind == app.eye.engine.ExceptionKind.TRUSTED
+        AlertDialog(
+            onDismissRequest = { excDialog = null },
+            title = { Text(stringResource(if (fp) R.string.exc_fp_title else R.string.exc_fn_title)) },
+            text = { Column(Modifier.verticalScroll(rememberScrollState())) { Text(stringResource(if (fp) R.string.exc_fp_body else R.string.exc_fn_body))
+                if (result.origin == null) Text(stringResource(R.string.exc_any_app), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
+            } },
+            confirmButton = {
+                TextButton(onClick = {
+                    excDialog = null
+                    vm.saveException(kind, result, v) { nv ->
+                        if (nv != null) updated = nv
+                        scope.launch { snackbar.showSnackbar(if (nv != null) excSaved else excFailed) }
+                    }
+                }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.exc_yes)) }
+            },
+            dismissButton = { TextButton(onClick = { excDialog = null }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.exc_no)) } },
+        )
+    }
     if (pdfDialog) PdfExportDialog(result, onDismiss = { pdfDialog = false })
     if (reportDialog) {
         AlertDialog(

@@ -33,21 +33,28 @@ class AlertStore(
 ) {
     /** false se non si è potuto cifrare: in quel caso non si salva nulla in chiaro. */
     @Synchronized
-    fun put(id: Int, text: String, level: String): Boolean {
-        val enc = runCatching { crypto.encrypt(MiniJson.stringify(mapOf("t" to text, "l" to level))) }.getOrNull() ?: return false
+    fun put(id: Int, text: String, level: String, origin: String? = null, sender: String? = null): Boolean {
+        val enc = runCatching { crypto.encrypt(MiniJson.stringify(mapOf("t" to text, "l" to level, "o" to origin, "s" to sender))) }.getOrNull() ?: return false
         backend.put(DATA + id, enc)
         backend.put(TIME + id, clock().toString())
         return true
     }
 
-    /** Restituisce il testo e lo cancella; null se già aperto/scartato, sconosciuto o illeggibile. */
+    /** Testo, app di origine e mittente di un avviso (origine/mittente null per avvisi salvati da versioni precedenti). */
+    class AlertData(val text: String, val origin: String?, val sender: String?)
+
+    /** Restituisce i dati e li cancella; null se già aperto/scartato, sconosciuto o illeggibile. */
     @Synchronized
-    fun take(id: Int): String? {
+    fun takeAlert(id: Int): AlertData? {
         val enc = backend.get(DATA + id)
         discard(id)
         val plain = enc?.let { crypto.decrypt(it) } ?: return null
-        return (MiniJson.parse(plain) as? Map<*, *>)?.get("t") as? String
+        val m = MiniJson.parse(plain) as? Map<*, *> ?: return null
+        return AlertData(m["t"] as? String ?: return null, m["o"] as? String, m["s"] as? String)
     }
+
+    @Synchronized
+    fun take(id: Int): String? = takeAlert(id)?.text
 
     @Synchronized
     fun discard(id: Int) {
