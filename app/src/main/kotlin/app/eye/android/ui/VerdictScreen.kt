@@ -1,7 +1,12 @@
 package app.eye.android.ui
 
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import app.eye.android.core.CheckUseCase
+import app.eye.engine.Level
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
@@ -86,10 +91,11 @@ private val OfficialChannels = listOf(
 )
 
 @Composable
-fun VerdictScreen(result: CheckResult, vm: AppViewModel, onClose: () -> Unit, fromHistory: Boolean = false) {
+fun VerdictScreen(result0: CheckResult, vm: AppViewModel, onClose: () -> Unit, fromHistory: Boolean = false, onExceptions: () -> Unit = {}) {
     val ctx = LocalContext.current
     var updated by remember { mutableStateOf<app.eye.engine.Verdict?>(null) } // dopo una nuova eccezione
-    val v = updated ?: result.verdict
+    val v = updated ?: result0.verdict
+    val result = if (updated != null) result0.copy(verdict = v) else result0 // condivisione e report riflettono il verdetto aggiornato
     var excDialog by remember { mutableStateOf<app.eye.engine.ExceptionKind?>(null) }
     val snackbar = remember { androidx.compose.material3.SnackbarHostState() }
     val excSaved = stringResource(R.string.exc_saved)
@@ -109,11 +115,14 @@ fun VerdictScreen(result: CheckResult, vm: AppViewModel, onClose: () -> Unit, fr
     var entryId by remember { mutableStateOf(result.historyId) }
     var createdForBookmark by remember { mutableStateOf(false) }
     val history by vm.history.collectAsState()
-    val saved = history.firstOrNull { it.id == entryId }?.saved == true
+    val entry = history.firstOrNull { it.id == entryId }
+    val saved = entry?.saved == true
+    // eccezione: voce marcata in cronologia oppure motivo USR-01/USR-02 nel verdetto
+    val excKind = entry?.exceptionKind?.takeIf { it > 0 } ?: CheckUseCase.exceptionKindOf(v)
 
     SecureWindow(fromHistory && showSensitive)
 
-    val title = stringResource(v.level.titleRes())
+    val title = stringResource(if (excKind == 1) R.string.exc_entry_title else if (excKind == 2) R.string.exc_entry_title_suspicious else v.level.titleRes())
     val subtitle = stringResource(v.level.subtitleRes())
     val cd = stringResource(R.string.cd_verdict, title, subtitle)
     val cardFail = stringResource(R.string.verdict_card_error)
@@ -145,24 +154,22 @@ fun VerdictScreen(result: CheckResult, vm: AppViewModel, onClose: () -> Unit, fr
                 Modifier.weight(1f).background(colors.container).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Icon(v.level.icon(), contentDescription = null, tint = colors.icon, modifier = Modifier.size(if (family) 72.dp else 48.dp))
+                val iconTint = if (excKind > 0 && !family) MaterialTheme.extras.of(Level.NESSUN_SEGNALE).icon else colors.icon
+                // pupilla verde leggibile sul fondo della card: più chiara su fondo scuro, più scura su fondo chiaro
+                val pupil = if (colors.container.luminance() < 0.4f) Color(0xFF00E676) else Color(0xFF007A3D)
+                LevelIcon(v.level, iconTint, Modifier.size(if (family) 72.dp else 48.dp), pupil)
                 Text(title, style = MaterialTheme.typography.displaySmall, color = colors.text)
                 Text(if (family) stringResource(v.level.familyLineRes()) else subtitle, style = MaterialTheme.typography.bodyLarge, color = colors.text)
             }
         }
 
-        if (family) {
-            Button(
-                onClick = { ExternalIntents.shareText(ctx, ReportBuilder.shareText(ctx, result), ReportBuilder.shareSubject(ctx, result)) },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp),
-            ) {
-                Icon(Icons.Rounded.Share, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.verdict_send_family), style = MaterialTheme.typography.titleMedium)
+        if (excKind > 0) {
+            EyeCard(borderOverride = BorderStroke(2.dp, MaterialTheme.extras.of(Level.NESSUN_SEGNALE).icon)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(stringResource(R.string.exc_banner), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    TextButton(onClick = onExceptions, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.exc_banner_link)) }
+                }
             }
-            OutlinedButton(onClick = onClose, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text(stringResource(R.string.action_close)) }
-            Text(stringResource(R.string.verdict_disclaimer_short), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            return@ScreenScaffold
         }
 
         if (result.truncated) Text(stringResource(R.string.truncated_warning), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
@@ -212,10 +219,10 @@ fun VerdictScreen(result: CheckResult, vm: AppViewModel, onClose: () -> Unit, fr
         val steps = v.todoSteps(ctx)
         EyeCard {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SectionTitle(stringResource(R.string.verdict_todo))
+                SectionTitle(stringResource(R.string.verdict_todo), color = MaterialTheme.extras.green)
                 steps.forEachIndexed { i, s ->
                     val stepCd = stringResource(R.string.cd_step, i + 1, steps.size)
-                    Text("${i + 1}. $s", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.semantics { contentDescription = "$stepCd. $s" })
+                    Text("${i + 1}. $s", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.extras.green, modifier = Modifier.semantics { contentDescription = "$stepCd. $s" })
                 }
             }
         }
@@ -301,7 +308,7 @@ fun VerdictScreen(result: CheckResult, vm: AppViewModel, onClose: () -> Unit, fr
             confirmButton = {
                 TextButton(onClick = {
                     excDialog = null
-                    vm.saveException(kind, result, v) { nv ->
+                    vm.saveException(kind, result, v, entryId) { nv ->
                         if (nv != null) updated = nv
                         scope.launch { snackbar.showSnackbar(if (nv != null) excSaved else excFailed) }
                     }

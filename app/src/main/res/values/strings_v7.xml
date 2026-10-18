@@ -23,4 +23,10 @@
     <string name="exc_delete_one">Elimina questa eccezione</string>
     <string name="exc_delete_all">Elimina tutte</string>
     <string name="exc_delete_all_confirm">Eliminare tutte le eccezioni? Eye tornerà a valutare questi messaggi come tutti gli altri.</string>
+    <string name="exc_entry_title">Eccezione</string>
+    <string name="exc_entry_title_suspicious">Eccezione · sospetto</string>
+    <string name="exc_banner">Hai aggiunto questa analisi alle eccezioni</string>
+    <string name="exc_banner_link">Vai a Impostazioni › Eccezioni</string>
+    <string name="history_filter_exceptions">Eccezioni</string>
+    <string name="history_empty_exceptions">Nessuna analisi trasformata in eccezione.</string>
 </resources>

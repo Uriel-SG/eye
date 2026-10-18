@@ -92,7 +92,13 @@ private val DarkHC = darkColorScheme(
 )
 
 @Immutable
-class EyeExtras(val verdict: Map<Level, VerdictColors>, val familyMode: Boolean) {
+class EyeExtras(
+    val verdict: Map<Level, VerdictColors>, val familyMode: Boolean,
+    /** Verde per il TESTO (contrasto AA sullo sfondo del tema). */
+    val green: Color = Color(0xFF0B6E2B),
+    /** Verde per elementi grafici (pupilla dell'occhio, contrasto >= 3:1). */
+    val pupil: Color = Color(0xFF00A84F),
+) {
     fun of(level: Level): VerdictColors = verdict.getValue(level)
 }
 
@@ -145,7 +151,13 @@ fun EyeTheme(familyMode: Boolean = false, dark: Boolean = isSystemInDarkTheme(),
         else -> Dark
     }
     val vc = if (familyMode) familyVerdictColors(dark) else verdictColors(dark)
-    CompositionLocalProvider(LocalExtras provides EyeExtras(vc, familyMode)) {
+    val green = when {
+        familyMode -> if (dark) Color(0xFF3DFF8A) else Color(0xFF00531F)
+        dark -> Color(0xFF00E676)
+        else -> Color(0xFF0B6E2B)
+    }
+    val pupil = if (dark) Color(0xFF00E676) else Color(0xFF00A84F)
+    CompositionLocalProvider(LocalExtras provides EyeExtras(vc, familyMode, green, pupil)) {
         MaterialTheme(colorScheme = scheme, typography = typography(familyMode), shapes = EyeShapes, content = content)
     }
 }

@@ -187,7 +187,7 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
      * Salva un'eccezione dal verdetto mostrato e restituisce il verdetto aggiornato (null se non si è potuto cifrare).
      * Un'eccezione di segno opposto per lo stesso messaggio viene tolta, così l'ultima scelta prevale.
      */
-    fun saveException(kind: app.eye.engine.ExceptionKind, result: CheckResult, current: app.eye.engine.Verdict, onDone: (app.eye.engine.Verdict?) -> Unit) {
+    fun saveException(kind: app.eye.engine.ExceptionKind, result: CheckResult, current: app.eye.engine.Verdict, historyId: Long?, onDone: (app.eye.engine.Verdict?) -> Unit) {
         viewModelScope.launch {
             val v = withContext(Dispatchers.Default) {
                 val input = app.eye.engine.Input(result.originalText.take(CheckUseCase.MAX_CHARS), result.source ?: Source.PASTE, result.sender, result.origin)
@@ -196,6 +196,9 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
                 c.exceptions.snapshot().filter { it.kind != kind && app.eye.engine.UserExceptions.similar(it, fp) }.forEach { c.exceptions.remove(it.id) }
                 val e = app.eye.engine.UserExceptions.create(kind, current, fp, java.util.UUID.randomUUID().toString(), System.currentTimeMillis())
                 if (!c.exceptions.add(e)) null else c.checker.analyze(input)
+            }
+            if (v != null && historyId != null) runCatching {
+                c.history.setExceptionKind(historyId, if (kind == app.eye.engine.ExceptionKind.TRUSTED) 1 else 2)
             }
             onDone(v)
         }
@@ -216,7 +219,7 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
         val v = result.verdict
         val id = c.history.save(
             v.level.name, Redactor.preview(result.originalText), v.reasonTexts(), result.originalText,
-            app.eye.android.data.VerdictJson.encode(v), saved = true,
+            app.eye.android.data.VerdictJson.encode(v), saved = true, exceptionKind = CheckUseCase.exceptionKindOf(v),
         )
         onId(id)
     }

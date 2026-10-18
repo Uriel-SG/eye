@@ -144,13 +144,13 @@ fun AppNav(vm: AppViewModel) {
             }
             composable(Route.VERDICT) {
                 val s = state
-                if (s is CheckState.Done) VerdictScreen(s.result, vm, onClose = { vm.reset(); nav.popBackStack(Route.HOME, false) })
+                if (s is CheckState.Done) VerdictScreen(s.result, vm, onClose = { vm.reset(); nav.popBackStack(Route.HOME, false) }, onExceptions = { nav.navigate(Route.EXCEPTIONS) })
             }
             composable(Route.CATALOG) { CatalogScreen(vm) { nav.navigate(Route.card(it)) } }
             composable(Route.CARD) { e -> CatalogDetailScreen(vm, e.arguments?.getString("id").orEmpty()) { nav.popBackStack() } }
             composable(Route.HISTORY) { HistoryScreen(vm) { nav.navigate(Route.historyItem(it)) { launchSingleTop = true } } }
             composable(Route.HISTORY_ITEM, arguments = listOf(androidx.navigation.navArgument("id") { type = androidx.navigation.NavType.LongType })) { e ->
-                HistoryDetailScreen(vm, e.arguments?.getLong("id") ?: -1L, { nav.popBackStack() })
+                HistoryDetailScreen(vm, e.arguments?.getLong("id") ?: -1L, { nav.popBackStack() }, { nav.navigate(Route.EXCEPTIONS) })
             }
             composable(Route.SETTINGS) { SettingsScreen(vm, onBack = null, onAutoInfo = { nav.navigate(Route.AUTO_INFO) }, onLicenses = { nav.navigate(Route.LICENSES) }, onExceptions = { nav.navigate(Route.EXCEPTIONS) }) }
             composable(Route.EXCEPTIONS) { ExceptionsScreen(vm) { nav.popBackStack() } }

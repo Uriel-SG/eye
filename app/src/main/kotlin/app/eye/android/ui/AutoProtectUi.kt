@@ -99,7 +99,7 @@ fun AutoProtectSection(vm: AppViewModel, s: Settings, onStartActivation: () -> U
             OutlinedButton(onClick = { openAppNotificationSettings(ctx) }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text(stringResource(R.string.auto_open_notif_settings)) }
         }
         if (s.autoProtect) {
-            Text(stringResource(R.string.auto_apps_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+            SectionTitle(stringResource(R.string.auto_apps_title))
             if (apps.isEmpty()) Text(stringResource(R.string.auto_apps_none), style = MaterialTheme.typography.bodyMedium)
             apps.forEach { a ->
                 val on = a.pkg !in s.autoDisabledApps

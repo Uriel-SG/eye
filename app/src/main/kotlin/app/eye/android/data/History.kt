@@ -38,6 +38,8 @@ data class HistoryEntity(
     @ColumnInfo(defaultValue = "0") val saved: Boolean = false,
     /** [AiOpinionJson] del secondo parere AI (già oscurato), cifrato su disco; vuoto = nessun parere salvato. */
     @ColumnInfo(defaultValue = "''") val aiOpinion: String = "",
+    /** Eccezione dell'utente collegata a questa analisi: 0 = nessuna, 1 = affidabile (USR-01), 2 = sospetta (USR-02). */
+    @ColumnInfo(defaultValue = "0") val exceptionKind: Int = 0,
 )
 
 @Dao
@@ -63,6 +65,9 @@ interface HistoryDao {
     @Query("UPDATE history SET aiOpinion = :value WHERE id = :id")
     suspend fun setAiOpinion(id: Long, value: String)
 
+    @Query("UPDATE history SET exceptionKind = :kind WHERE id = :id")
+    suspend fun setExceptionKind(id: Long, kind: Int)
+
     @Query("DELETE FROM history WHERE saved = 0")
     suspend fun deleteUnsaved()
 
@@ -84,7 +89,14 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
     }
 }
 
-@Database(entities = [HistoryEntity::class], version = 4, exportSchema = false)
+/** v4 -> v5: marca le analisi diventate eccezioni. Non distruttiva: le righe esistenti restano, non marcate. */
+val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE history ADD COLUMN exceptionKind INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
+@Database(entities = [HistoryEntity::class], version = 5, exportSchema = false)
 abstract class EyeDb : RoomDatabase() {
     abstract fun history(): HistoryDao
 }
@@ -130,6 +142,7 @@ class HistoryRepository(
 
     suspend fun save(
         level: String, preview: String, reasons: List<String>, fullText: String = "", verdictJson: String = "", saved: Boolean = false,
+        exceptionKind: Int = 0,
     ): Long {
         purge()
         return dao.insert(
@@ -137,13 +150,15 @@ class HistoryRepository(
                 createdAt = clock(), level = level, preview = preview, reasons = reasons.joinToString("\n"),
                 fullText = if (fullText.isEmpty()) "" else crypto.encrypt(fullText),
                 verdictJson = if (verdictJson.isEmpty()) "" else crypto.encrypt(verdictJson),
-                saved = saved,
+                saved = saved, exceptionKind = exceptionKind,
             ),
         )
     }
 
     /** Salva (cifrato) il parere AI nella voce [id]; [json] vuoto lo rimuove. */
     suspend fun setAiOpinion(id: Long, json: String) = dao.setAiOpinion(id, if (json.isEmpty()) "" else crypto.encrypt(json))
+
+    suspend fun setExceptionKind(id: Long, kind: Int) = dao.setExceptionKind(id, kind)
 
     suspend fun delete(id: Long) = dao.delete(id)
     suspend fun setSaved(id: Long, saved: Boolean) = dao.setSaved(id, saved)

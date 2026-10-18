@@ -71,18 +71,20 @@ import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
 
+private enum class HistoryFilter { ALL, SAVED, EXCEPTIONS }
+
 @Composable
 fun HistoryScreen(vm: AppViewModel, onOpen: (Long) -> Unit) {
     val items by vm.history.collectAsState()
     val settings by vm.settings.collectAsState()
     var confirmAll by remember { mutableStateOf(false) }
-    var onlySaved by remember { mutableStateOf(false) }
+    var filter by remember { mutableStateOf(HistoryFilter.ALL) }
     LaunchedEffect(Unit) { vm.purgeHistory() }
     var query by remember { mutableStateOf("") }
     // ricerca sul testo già decifrato in memoria: nessun indice su disco
-    val shown = items.filter { (!onlySaved || it.saved) && app.eye.android.core.HistorySearch.matches(query, it.fullText, it.preview, it.reasons) }
+    val shown = items.filter { (filter == HistoryFilter.ALL || (filter == HistoryFilter.SAVED && it.saved) || (filter == HistoryFilter.EXCEPTIONS && it.exceptionKind > 0)) && app.eye.android.core.HistorySearch.matches(query, it.fullText, it.preview, it.reasons) }
 
-    ScreenScaffold(stringResource(R.string.history_title), scroll = false) { pad ->
+    ScreenScaffold(stringResource(R.string.history_title), scroll = false, backdrop = true) { pad ->
         LazyColumn(Modifier.fillMaxSize().padding(pad), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             item { Text(stringResource(R.string.history_note), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             item {
@@ -94,14 +96,21 @@ fun HistoryScreen(vm: AppViewModel, onOpen: (Long) -> Unit) {
                 )
             }
             item {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = !onlySaved, onClick = { onlySaved = false }, label = { Text(stringResource(R.string.history_filter_all)) })
-                    FilterChip(selected = onlySaved, onClick = { onlySaved = true }, label = { Text(stringResource(R.string.history_filter_saved)) })
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    FilterChip(
+                        selected = filter == HistoryFilter.EXCEPTIONS,
+                        onClick = { filter = if (filter == HistoryFilter.EXCEPTIONS) HistoryFilter.ALL else HistoryFilter.EXCEPTIONS },
+                        label = { Text(stringResource(R.string.history_filter_exceptions)) },
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(selected = filter == HistoryFilter.ALL, onClick = { filter = HistoryFilter.ALL }, label = { Text(stringResource(R.string.history_filter_all)) })
+                        FilterChip(selected = filter == HistoryFilter.SAVED, onClick = { filter = HistoryFilter.SAVED }, label = { Text(stringResource(R.string.history_filter_saved)) })
+                    }
                 }
             }
             if (!settings.saveHistory) item { Text(stringResource(R.string.history_off), style = MaterialTheme.typography.bodyMedium) }
             if (shown.isEmpty()) item {
-                Text(stringResource(if (query.isNotBlank()) R.string.history_empty_search else if (onlySaved) R.string.history_empty_saved else R.string.history_empty), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(vertical = 24.dp))
+                Text(stringResource(if (query.isNotBlank()) R.string.history_empty_search else if (filter == HistoryFilter.SAVED) R.string.history_empty_saved else if (filter == HistoryFilter.EXCEPTIONS) R.string.history_empty_exceptions else R.string.history_empty), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(vertical = 24.dp))
             }
             items(shown, key = { it.id }) { e ->
                 HistoryRow(e, onOpen = { onOpen(e.id) }, onDelete = { vm.deleteHistory(e.id) }, onToggleSaved = { vm.setSaved(e.id, !e.saved) })
@@ -146,17 +155,18 @@ private fun ClearHistoryDialog(hasSaved: Boolean, onDismiss: () -> Unit, onConfi
 private fun HistoryRow(e: HistoryEntity, onOpen: () -> Unit, onDelete: () -> Unit, onToggleSaved: () -> Unit) {
     val level = runCatching { Level.valueOf(e.level) }.getOrDefault(Level.SOSPETTO)
     val colors = MaterialTheme.extras.of(level)
-    val title = stringResource(level.titleRes())
+    val exc = e.exceptionKind
+    val title = stringResource(if (exc == 1) R.string.exc_entry_title else if (exc == 2) R.string.exc_entry_title_suspicious else level.titleRes())
     val date = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(e.createdAt))
     val openCd = stringResource(R.string.history_open_cd, title)
     EyeCard(onClick = onOpen, modifier = Modifier.semantics { contentDescription = openCd }) {
         Row(Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(level.icon(), contentDescription = null, tint = colors.solid, modifier = Modifier.size(32.dp))
+            LevelIcon(level, if (exc > 0) MaterialTheme.extras.of(Level.NESSUN_SEGNALE).solid else colors.solid, Modifier.size(32.dp))
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.titleMedium)
                 Text(e.preview, maxLines = 1, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(date, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                MetaText(date)
             }
             IconButton(onClick = onToggleSaved, modifier = Modifier.size(48.dp)) {
                 Icon(
@@ -174,7 +184,7 @@ private fun HistoryRow(e: HistoryEntity, onOpen: () -> Unit, onDelete: () -> Uni
 
 /** Riapre il verdetto completo di un controllo salvato; il testo si mostra oscurato finché l'utente non lo scopre. */
 @Composable
-fun HistoryDetailScreen(vm: AppViewModel, id: Long, onBack: () -> Unit) {
+fun HistoryDetailScreen(vm: AppViewModel, id: Long, onBack: () -> Unit, onExceptions: () -> Unit = {}) {
     val items by vm.history.collectAsState()
     val e = items.firstOrNull { it.id == id }
     val verdict = e?.let { app.eye.android.data.VerdictJson.decode(it.verdictJson) }
@@ -184,7 +194,7 @@ fun HistoryDetailScreen(vm: AppViewModel, id: Long, onBack: () -> Unit) {
         }
         return
     }
-    VerdictScreen(app.eye.android.core.CheckResult(verdict, e.fullText, e.createdAt, historyId = e.id), vm, onClose = onBack, fromHistory = true)
+    VerdictScreen(app.eye.android.core.CheckResult(verdict, e.fullText, e.createdAt, historyId = e.id), vm, onClose = onBack, fromHistory = true, onExceptions = onExceptions)
 }
 
 @Composable
@@ -308,7 +318,7 @@ private fun RetentionSection(current: app.eye.android.data.HistoryRetention, onS
         app.eye.android.data.HistoryRetention.FOREVER to R.string.retention_forever,
     )
     Column {
-        Text(stringResource(R.string.retention_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+        SectionTitle(stringResource(R.string.retention_title))
         Text(stringResource(R.string.retention_sub), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Column(Modifier.selectableGroup()) {
             options.forEach { (r, label) ->
@@ -335,7 +345,7 @@ private fun AppearanceSection(current: app.eye.android.data.ThemeMode, onSelect:
         app.eye.android.data.ThemeMode.OLED to R.string.theme_oled,
     )
     Column {
-        Text(stringResource(R.string.theme_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+        SectionTitle(stringResource(R.string.theme_title))
         Column(Modifier.selectableGroup()) {
             options.forEach { (mode, label) ->
                 Row(
@@ -423,10 +433,10 @@ fun OnboardingScreen(onDone: () -> Unit) {
 @Composable
 private fun OnboardingPage(p: Int) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Icon(
-            if (p == 1) Icons.Rounded.Lock else Icons.Rounded.Visibility, contentDescription = null,
+        if (p == 1) Icon(
+            Icons.Rounded.Lock, contentDescription = null,
             tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(96.dp).align(Alignment.CenterHorizontally),
-        )
+        ) else EyeIcon(Modifier.size(96.dp).align(Alignment.CenterHorizontally))
         when (p) {
             0 -> {
                 Text(stringResource(R.string.onb_title_1), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })

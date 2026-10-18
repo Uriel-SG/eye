@@ -2,7 +2,11 @@ package app.eye.android.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.semantics.heading
+import app.eye.android.ui.theme.extras
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
@@ -65,9 +69,20 @@ fun SupportSection() {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         val titleCd = stringResource(R.string.support_title_cd) // senza emoji per TalkBack
         val bodyCd = stringResource(R.string.support_body_cd)
-        SectionTitle(stringResource(R.string.support_title), Modifier.semantics { contentDescription = titleCd })
-        Text(stringResource(R.string.support_body), style = MaterialTheme.typography.bodyLarge, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, modifier = Modifier.semantics { contentDescription = bodyCd })
-        Text(stringResource(R.string.support_note), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        val green = MaterialTheme.extras.green
+        val body = MaterialTheme.typography.bodyLarge
+        Text(
+            stringResource(R.string.support_title), color = green, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+            style = MaterialTheme.typography.titleLarge.copy(fontSize = MaterialTheme.typography.titleMedium.fontSize * 1.3f),
+            modifier = Modifier.semantics { heading(); contentDescription = titleCd },
+        )
+        Text(
+            stringResource(R.string.support_body), style = body.copy(fontSize = body.fontSize * 1.1f, lineHeight = body.lineHeight * 1.1f),
+            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, modifier = Modifier.semantics { contentDescription = bodyCd },
+        )
+        Spacer(Modifier.height(16.dp)) // una riga di spazio prima di «Vuoi scoprire…»
+        Text(stringResource(R.string.support_note), style = MaterialTheme.typography.bodyLarge, color = green)
+        Spacer(Modifier.height(8.dp))
         Button(onClick = { link = DONATE_URL }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text(stringResource(R.string.support_site)) }
         OutlinedButton(onClick = { link = REPO_URL }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text(stringResource(R.string.support_source)) }
     }

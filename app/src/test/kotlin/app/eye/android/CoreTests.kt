@@ -32,6 +32,7 @@ class FakeDao : HistoryDao {
     override suspend fun delete(id: Long) { rows.value = rows.value.filter { it.id != id } }
     override suspend fun setSaved(id: Long, saved: Boolean) { rows.value = rows.value.map { if (it.id == id) it.copy(saved = saved) else it } }
     override suspend fun setAiOpinion(id: Long, value: String) { rows.value = rows.value.map { if (it.id == id) it.copy(aiOpinion = value) else it } }
+    override suspend fun setExceptionKind(id: Long, kind: Int) { rows.value = rows.value.map { if (it.id == id) it.copy(exceptionKind = kind) else it } }
     override suspend fun deleteUnsaved() { rows.value = rows.value.filter { it.saved } }
     override suspend fun deleteAll() { rows.value = emptyList() }
 }

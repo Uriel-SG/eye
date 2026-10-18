@@ -41,6 +41,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.eye.android.R
 import app.eye.android.core.Catalog
+import app.eye.android.ui.theme.extras
 import app.eye.android.core.ExternalIntents
 import app.eye.android.core.ReportLink
 import app.eye.android.core.ScamCard
@@ -81,7 +82,7 @@ fun CatalogScreen(vm: AppViewModel, onCard: (String) -> Unit) {
     else stringResource(R.string.catalog_updated, Catalog.UPDATED)
 
     ScreenScaffold(
-        stringResource(R.string.catalog_title), scroll = false,
+        stringResource(R.string.catalog_title), scroll = false, backdrop = true,
         actions = {
             IconButton(onClick = vm::refreshCatalog, enabled = update != CatalogUpdate.LOADING, modifier = Modifier.size(48.dp)) {
                 Icon(Icons.Rounded.Refresh, contentDescription = stringResource(R.string.catalog_refresh))
@@ -114,7 +115,7 @@ fun CatalogScreen(vm: AppViewModel, onCard: (String) -> Unit) {
                             androidx.compose.material3.CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                             Spacer(Modifier.width(8.dp))
                         }
-                        Text(updatedText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        MetaText(updatedText)
                     }
                     val msg = when (update) {
                         CatalogUpdate.UPDATED -> R.string.catalog_update_ok
@@ -139,7 +140,7 @@ fun CatalogScreen(vm: AppViewModel, onCard: (String) -> Unit) {
 @Composable
 private fun CatalogRow(c: ScamCard, onCard: (String) -> Unit) {
     EyeCard(onClick = { onCard(c.id) }) {
-        IconRow(Icons.Rounded.Visibility, c.name, c.summary, onClick = { onCard(c.id) }, subtitleMaxLines = 3) {
+        IconRow(null, c.name, c.summary, onClick = { onCard(c.id) }, subtitleMaxLines = 3) {
             if (c.ongoing) {
                 Text(stringResource(R.string.catalog_ongoing), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.error)
                 Spacer(Modifier.width(8.dp))
@@ -170,15 +171,15 @@ fun CatalogDetailScreen(vm: AppViewModel, id: String, onBack: () -> Unit) {
         },
     ) {
         if (card == null) return@ScreenScaffold
-        Text(card.category.label(), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        MetaText(card.category.label())
         Text(card.summary, style = MaterialTheme.typography.bodyLarge)
-        card.updatedAt?.let { Text(stringResource(R.string.catalog_card_updated, formatIsoDate(it)), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        card.updatedAt?.let { MetaText(stringResource(R.string.catalog_card_updated, formatIsoDate(it))) }
         SectionTitle(stringResource(R.string.catalog_recognize))
         card.recognize.forEach { Text("• $it", style = MaterialTheme.typography.bodyLarge) }
         SectionTitle(stringResource(R.string.catalog_example))
         EyeCard { Text(card.example, Modifier.padding(16.dp), style = MaterialTheme.typography.bodyLarge) }
-        SectionTitle(stringResource(R.string.catalog_todo))
-        card.actions.forEachIndexed { i, s -> Text("${i + 1}. $s", style = MaterialTheme.typography.bodyLarge) }
+        SectionTitle(stringResource(R.string.catalog_todo), color = MaterialTheme.extras.green)
+        card.actions.forEachIndexed { i, s -> Text("${i + 1}. $s", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.extras.green) }
         SectionTitle(stringResource(R.string.catalog_report_where))
         card.reportLinks.forEach { l -> TextButton(onClick = { confirm = l }, modifier = Modifier.padding(vertical = 4.dp)) { Text(l.label) } }
     }

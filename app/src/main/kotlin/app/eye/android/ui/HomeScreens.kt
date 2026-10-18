@@ -99,7 +99,7 @@ fun HomeScreen(
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Rounded.Visibility, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        EyeIcon()
                         Spacer(Modifier.width(8.dp))
                         Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineSmall)
                     }
@@ -156,7 +156,7 @@ fun HomeScreen(
                     Column(Modifier.padding(vertical = 8.dp)) {
                         SectionTitle(stringResource(R.string.home_trending), Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
                         ongoing.forEach { c ->
-                            IconRow(Icons.Rounded.Visibility, c.name, c.summary, onClick = { onCatalogCard(c.id) }, minHeight = 72) {
+                            IconRow(null, c.name, c.summary, onClick = { onCatalogCard(c.id) }, minHeight = 72) {
                                 Icon(Icons.Rounded.ChevronRight, contentDescription = null)
                             }
                         }

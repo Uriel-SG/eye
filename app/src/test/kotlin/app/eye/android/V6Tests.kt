@@ -215,6 +215,26 @@ class V6Tests {
         assertTrue(sql.none { it.contains("DROP", ignoreCase = true) })
     }
 
+    @Test fun migration4to5AddsExceptionColumnWithoutDroppingData() {
+        val sql = mutableListOf<String>()
+        val db = Proxy.newProxyInstance(javaClass.classLoader, arrayOf(androidx.sqlite.db.SupportSQLiteDatabase::class.java)) { _, m, a ->
+            if (m.name == "execSQL") sql += a!![0] as String
+            null
+        } as androidx.sqlite.db.SupportSQLiteDatabase
+        app.eye.android.data.MIGRATION_4_5.migrate(db)
+        assertEquals(4, app.eye.android.data.MIGRATION_4_5.startVersion); assertEquals(5, app.eye.android.data.MIGRATION_4_5.endVersion)
+        assertEquals(1, sql.size)
+        assertTrue(sql[0].startsWith("ALTER TABLE history ADD COLUMN exceptionKind INTEGER NOT NULL DEFAULT 0"))
+        assertTrue(sql.none { it.contains("DROP", ignoreCase = true) })
+    }
+
+    @Test fun exceptionKindFromVerdictReasons() {
+        fun v(id: String) = app.eye.engine.Verdict(app.eye.engine.Level.SOSPETTO, 1, listOf(app.eye.engine.Reason(id, "x", 0)), emptyList(), app.eye.engine.Extracted(), null, 0L)
+        assertEquals(1, app.eye.android.core.CheckUseCase.exceptionKindOf(v("USR-01")))
+        assertEquals(2, app.eye.android.core.CheckUseCase.exceptionKindOf(v("USR-02")))
+        assertEquals(0, app.eye.android.core.CheckUseCase.exceptionKindOf(v("R-1")))
+    }
+
     // --- link reali dagli span
     @Test fun linkLinesDedupeCapAndMismatch() {
         val l = LinkLines.build(listOf(

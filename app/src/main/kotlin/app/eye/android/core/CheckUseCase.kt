@@ -24,12 +24,18 @@ class CheckUseCase(
         if (text.length > MAX_CHARS) return CheckOutcome.TooLong // SEC-05
         val verdict = analyzer.analyze(Input(text, source, sender, origin))
         val id = if (saveHistory()) {
-            history.save(verdict.level.name, Redactor.preview(text), verdict.reasonTexts(), text, VerdictJson.encode(verdict))
+            history.save(verdict.level.name, Redactor.preview(text), verdict.reasonTexts(), text, VerdictJson.encode(verdict), exceptionKind = exceptionKindOf(verdict))
         } else null
         return CheckOutcome.Done(CheckResult(verdict, text, clock(), truncated, id, source, origin, sender))
     }
 
     companion object {
+        /** 1 = eccezione «affidabile» (USR-01), 2 = «sospetta» (USR-02), 0 = nessuna. */
+        fun exceptionKindOf(v: app.eye.engine.Verdict): Int = when {
+            v.reasons.any { it.ruleId == app.eye.engine.UserExceptions.TRUSTED_ID } -> 1
+            v.reasons.any { it.ruleId == app.eye.engine.UserExceptions.SUSPICIOUS_ID } -> 2
+            else -> 0
+        }
         const val MAX_CHARS = 10_000
     }
 }
