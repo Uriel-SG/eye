@@ -8,7 +8,10 @@ import app.eye.android.core.notif.NotificationText
 import app.eye.android.core.notif.autoStatus
 import app.eye.android.data.HistoryRepository
 import app.eye.android.data.MIGRATION_2_3
+import app.eye.engine.Extracted
 import app.eye.engine.Level
+import app.eye.engine.Reason
+import app.eye.engine.Verdict
 import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -76,10 +79,14 @@ class V3Tests {
         now = 10_000; assertTrue(g.allowAlert(wa))
     }
 
-    @Test fun alertOnlyFromSuspectUp() {
-        assertTrue(NotificationGate.shouldAlert(Level.PROBABILE_TRUFFA))
-        assertTrue(NotificationGate.shouldAlert(Level.SOSPETTO))
-        assertFalse(NotificationGate.shouldAlert(Level.NESSUN_SEGNALE))
+    private fun verdict(level: Level, vararg ids: String) =
+        Verdict(level, 0, ids.map { Reason(it, "", 0) }, emptyList(), Extracted(), null, 1)
+
+    @Test fun alertPolicyProbableAlwaysSuspectOnlyWithStrongSignal() {
+        assertTrue(NotificationGate.shouldAlert(verdict(Level.PROBABILE_TRUFFA, "URG-05")))
+        assertTrue(NotificationGate.shouldAlert(verdict(Level.SOSPETTO, "URL-01")))
+        assertFalse(NotificationGate.shouldAlert(verdict(Level.SOSPETTO, "URG-05", "COM-02")))
+        assertFalse(NotificationGate.shouldAlert(verdict(Level.NESSUN_SEGNALE)))
     }
 
     @Test fun monitoredAppsRespectDisabledAndDebugOnlyShell() {

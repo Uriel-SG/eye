@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="update_available_title">È disponibile una nuova versione di Eye</string>
+    <string name="update_ready_title">Aggiornamento pronto</string>
+    <string name="update_now">Aggiorna</string>
+    <string name="update_later">Più tardi</string>
+    <string name="update_downloading">Sto scaricando l\'aggiornamento in background. Puoi continuare a usare Eye.</string>
+    <string name="update_restart">Riavvia</string>
+</resources>

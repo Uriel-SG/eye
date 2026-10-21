@@ -124,6 +124,25 @@ object Catalog {
             "Hai una multa non pagata. Paga entro oggi con lo sconto: [link nascosto]",
             commonActions, listOf(polizia, cert),
         ),
+        ScamCard(
+            "romance-scam", ScamCategory.ALTRO, "Truffa sentimentale (romance scam)",
+            "Qualcuno conosciuto online ti fa innamorare, poi ti chiede soldi.", false,
+            listOf(
+                "Ti scrive una persona che non conosci, sui social o su un'app di incontri.",
+                "Ti riempie di attenzioni e parla presto d'amore.",
+                "Trova sempre scuse per non incontrarti e per non fare videochiamate.",
+                "Dopo un po' chiede soldi: un'emergenza, un viaggio, la dogana o un investimento in criptovalute.",
+            ),
+            "Amore mio, sono bloccato in aeroporto e mi servono 800 euro. Appena arrivo ti restituisco tutto.",
+            listOf(
+                "Non mandare soldi a chi non hai mai incontrato di persona.",
+                "Chiedi una videochiamata: se rifiuta, è un campanello d'allarme.",
+                "Racconta la situazione a un familiare o a un amico fidato.",
+                "Non dare dati dei documenti né della carta e non investire su consiglio suo.",
+                "Se hai già pagato, avvisa subito la banca e fai denuncia.",
+            ),
+            listOf(polizia),
+        ),
     )
 
     fun byId(id: String, list: List<ScamCard> = cards): ScamCard? = list.firstOrNull { it.id == id }

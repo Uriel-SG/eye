@@ -22,6 +22,10 @@ import app.eye.android.core.ai.AiKeys
 import app.eye.android.core.ai.AiOutcome
 import app.eye.android.core.ai.AiProvider
 import app.eye.android.core.ai.AiService
+import app.eye.android.core.ai.GeminiNanoLlm
+import app.eye.engine.llm.LlmOpinion
+import app.eye.engine.llm.LlmStatus
+import app.eye.engine.llm.OnDeviceLlm
 import app.eye.android.data.AiOpinionJson
 import app.eye.android.data.HistoryEntity
 import app.eye.android.data.SavedAiOpinion
@@ -44,7 +48,7 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
     val history: StateFlow<List<HistoryEntity>> = c.history.observe()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    private val useCase = CheckUseCase(c.checker, c.history, { c.settings.settings.first().saveHistory })
+    private val useCase = CheckUseCase(c.checker, c.history, { c.settings.settings.first().saveHistory }, expand = { c.shortLinks.expand(it) })
     private val controller = CheckController(viewModelScope, useCase, Dispatchers.Default)
     val state: StateFlow<CheckState> = controller.state
 
@@ -127,6 +131,96 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
         }
     }
 
+    // --- Secondo parere sul telefono (Gemini Nano): solo in primo piano, mai dal servizio notifiche ---
+    private val nano: OnDeviceLlm = GeminiNanoLlm()
+    private val _nanoStatus = MutableStateFlow<LlmStatus?>(null)
+    /** null = non ancora controllato. */
+    val nanoStatus: StateFlow<LlmStatus?> = _nanoStatus
+    private val _nanoSession = MutableStateFlow(NanoSession(0, NanoUiState.Idle))
+    val nanoSession: StateFlow<NanoSession> = _nanoSession
+    private var nanoJob: kotlinx.coroutines.Job? = null
+    private val _nanoDownloading = MutableStateFlow(false)
+    val nanoDownloading: StateFlow<Boolean> = _nanoDownloading
+
+    private var nanoDownloadTried = false
+
+    /** Controlla lo stato; se il modello e' scaricabile avvia (una volta per processo) lo scarico in background, senza UI. */
+    fun refreshNano() {
+        viewModelScope.launch {
+            val st = nano.status()
+            _nanoStatus.value = st
+            if (st == LlmStatus.DOWNLOADABLE && !nanoDownloadTried) { nanoDownloadTried = true; downloadNano() }
+        }
+    }
+
+    private fun downloadNano() {
+        if (_nanoDownloading.value) return
+        _nanoDownloading.value = true
+        viewModelScope.launch {
+            nano.download()
+            _nanoStatus.value = nano.status()
+            _nanoDownloading.value = false
+        }
+    }
+
+    /** Avvia il parere sul telefono per [input]; il verdetto delle regole e' gia' mostrato. */
+    fun askNano(input: app.eye.engine.Input, verdict: app.eye.engine.Verdict) {
+        val key = aiKey(input.text)
+        val cur = _nanoSession.value
+        if (cur.key == key && cur.state != NanoUiState.Idle) return
+        nanoJob?.cancel()
+        _nanoSession.value = NanoSession(key, NanoUiState.Loading)
+        nanoJob = viewModelScope.launch {
+            val op = withContext(Dispatchers.Default) { nano.opinion(input, verdict) }
+            _nanoSession.value = NanoSession(key, NanoUiState.Done(op))
+        }
+    }
+
+    /** Salva (cifrato) il parere Nano con la voce di cronologia; [raisedTo] aggiorna anche il livello mostrato in elenco. */
+    fun saveNanoOpinion(historyId: Long, op: LlmOpinion, raisedTo: app.eye.engine.Level?) {
+        viewModelScope.launch {
+            runCatching {
+                c.history.setNanoOpinion(historyId, app.eye.android.data.NanoOpinionJson.encode(op, System.currentTimeMillis()))
+                if (raisedTo != null) c.history.setLevel(historyId, raisedTo.name)
+            }
+        }
+    }
+
+    // --- Eta' del dominio (RDAP): solo in primo piano; si invia solo il nome del dominio al registro ---
+    private val _ageSession = MutableStateFlow(AgeSession(0, AgeUiState.Idle))
+    val ageSession: StateFlow<AgeSession> = _ageSession
+    private var ageJob: kotlinx.coroutines.Job? = null
+
+    /** Domini da controllare (max 3, senza popolari/ufficiali/shortener). */
+    fun ageCandidates(domains: List<String>): List<String> = app.eye.engine.enrich.DomainAge.candidates(domains, c.lists)
+
+    fun askDomainAge(key: Int, domains: List<String>) {
+        val cur = _ageSession.value
+        if (cur.key == key && cur.state != AgeUiState.Idle) return
+        ageJob?.cancel()
+        _ageSession.value = AgeSession(key, AgeUiState.Loading)
+        ageJob = viewModelScope.launch {
+            val r = c.domainAge.check(domains)
+            _ageSession.value = AgeSession(key, AgeUiState.Done(r))
+        }
+    }
+
+    /** Salva (cifrata) l'eta' con la voce di cronologia; [raisedTo] alza anche il livello mostrato in elenco (mai lo abbassa). */
+    fun saveDomainAge(historyId: Long, r: app.eye.android.core.age.DomainAgeResult, raisedTo: app.eye.engine.Level?) {
+        viewModelScope.launch {
+            runCatching {
+                c.history.setDomainAge(historyId, app.eye.android.data.DomainAgeJson.encode(r))
+                if (raisedTo != null) c.history.setLevel(historyId, raisedTo.name)
+            }
+        }
+    }
+
+    fun clearDomainAge() { ageJob?.cancel(); ageJob = null; _ageSession.value = AgeSession(0, AgeUiState.Idle) }
+    fun setDomainAgeCheck(on: Boolean) = viewModelScope.launch { c.settings.setDomainAgeCheck(on) }
+    fun setVtNoticeDismissed() = viewModelScope.launch { c.settings.setVtNoticeDismissed(true) }
+
+    fun clearNano() { nanoJob?.cancel(); nanoJob = null; _nanoSession.value = NanoSession(0, NanoUiState.Idle) }
+
     private val _aiKeyError = MutableStateFlow(false)
     /** true se l'ultima chiave inserita non è stata accettata (caratteri non validi o errore di cifratura). */
     val aiKeyError: StateFlow<Boolean> = _aiKeyError
@@ -180,6 +274,15 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
     }
 
 
+    // --- Avviso di aggiornamento dell'app (Google Play, flusso flexible): scheda in Home, mai un popup ---
+    private val update = app.eye.android.core.update.UpdateController(
+        app.eye.android.core.update.PlayUpdateClient(c.appContext), c.settings.updateSnooze, viewModelScope,
+    )
+    val updateCard: StateFlow<app.eye.android.core.update.UpdateCardState> = update.state
+    fun startUpdate(launcher: androidx.activity.result.ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>) = update.start(launcher)
+    fun updateLater() { viewModelScope.launch { update.later() } }
+    fun restartForUpdate() = update.restart()
+
     // --- Eccezioni dell'utente ---
     val exceptions: StateFlow<List<app.eye.engine.UserException>> = c.exceptions.items
 
@@ -195,7 +298,7 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
                 if (fp.shingles.isEmpty()) return@withContext null
                 c.exceptions.snapshot().filter { it.kind != kind && app.eye.engine.UserExceptions.similar(it, fp) }.forEach { c.exceptions.remove(it.id) }
                 val e = app.eye.engine.UserExceptions.create(kind, current, fp, java.util.UUID.randomUUID().toString(), System.currentTimeMillis())
-                if (!c.exceptions.add(e)) null else c.checker.analyze(input)
+                if (!c.exceptions.add(e)) null else c.checker.analyze(input.copy(resolvedLinks = c.shortLinks.expandBlocking(input.text)))
             }
             if (v != null && historyId != null) runCatching {
                 c.history.setExceptionKind(historyId, if (kind == app.eye.engine.ExceptionKind.TRUSTED) 1 else 2)
@@ -209,6 +312,18 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
     // --- Stato dei feed ---
     val rulesStaleDays: StateFlow<Long?> = c.rulesStaleDays
     val campaignStaleDays: StateFlow<Long?> = c.campaignStaleDays
+
+    /** Impostazioni › Info: versione regole, ultimo aggiornamento e consistenza dell'elenco siti malevoli. */
+    class FeedInfo(val rulesVersion: Long, val lastUpdate: Long, val blocklist: app.eye.android.AppContainer.BlocklistSummary?)
+    private val _feedInfo = MutableStateFlow(FeedInfo(c.rulesVersion.value, c.feedState.lastFeedUpdate(), null))
+    val feedInfo: StateFlow<FeedInfo> = _feedInfo
+    /** Rilegge le informazioni (carica l'elenco: fuori dal main thread). */
+    fun refreshFeedInfo() {
+        viewModelScope.launch {
+            val bl = withContext(Dispatchers.IO) { runCatching { c.blocklistSummary() }.getOrNull() }
+            _feedInfo.value = FeedInfo(c.rulesVersion.value, c.feedState.lastFeedUpdate(), bl)
+        }
+    }
     fun setRetention(r: app.eye.android.data.HistoryRetention) = viewModelScope.launch { c.settings.setRetention(r); c.history.purge() }
 
     // --- Cronologia: salvate ---
@@ -240,8 +355,13 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
         if (_catalogUpdate.value == CatalogUpdate.LOADING) return
         _catalogUpdate.value = CatalogUpdate.LOADING
         viewModelScope.launch {
-            val r = withContext(Dispatchers.IO) { c.feedUpdater.updateCampaigns(app.eye.android.core.feed.FeedUpdater.FREE_MIN_INTERVAL_MS) }
+            // regole, campagne e elenco siti malevoli: un solo tasto (le campagne non si ricontrollano prima di un'ora)
+            val all = withContext(Dispatchers.IO) { c.feedUpdater.updateAll(app.eye.android.core.feed.FeedUpdater.FREE_MIN_INTERVAL_MS) }
+            val r = all.summary
             _lastCatalogCheck.value = c.feedState.lastCampaignCheck()
+            if (all.rules is app.eye.android.core.feed.FeedResult.Updated) c.reloadRules()
+            if (all.blocklist is app.eye.android.core.feed.FeedResult.Updated) c.reloadBlocklist()
+            refreshFeedInfo()
             _catalogUpdate.value = when (r) {
                 is app.eye.android.core.feed.FeedResult.Updated -> { c.reloadCampaigns(); CatalogUpdate.UPDATED }
                 app.eye.android.core.feed.FeedResult.UpToDate -> CatalogUpdate.UP_TO_DATE
@@ -294,6 +414,7 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
         withContext(Dispatchers.IO) { KeyVault.deleteKey(); app.eye.android.data.HistoryVault.deleteKey(); app.eye.android.data.ExceptionsVault.deleteKey() }
         withContext(Dispatchers.IO) { app.eye.android.core.ShareCard.clearCache(c.appContext) } // F-05
         c.feedState.clear()
+        withContext(Dispatchers.IO) { c.domainAge.clear() }
     }
 
     class Factory(private val c: AppContainer) : ViewModelProvider.Factory {
@@ -310,6 +431,23 @@ sealed interface AiUiState {
 
 /** Stato della richiesta AI per il testo identificato da [key] (vedi [aiKey]). */
 data class AiSession(val key: Int, val state: AiUiState)
+
+sealed interface AgeUiState {
+    data object Idle : AgeUiState
+    data object Loading : AgeUiState
+    data class Done(val result: app.eye.android.core.age.DomainAgeResult) : AgeUiState
+}
+
+data class AgeSession(val key: Int, val state: AgeUiState)
+
+sealed interface NanoUiState {
+    data object Idle : NanoUiState
+    data object Loading : NanoUiState
+    /** [opinion] null = parere non disponibile (timeout, app in background, errore). */
+    data class Done(val opinion: LlmOpinion?) : NanoUiState
+}
+
+data class NanoSession(val key: Int, val state: NanoUiState)
 
 fun aiKey(text: String): Int = text.hashCode()
 

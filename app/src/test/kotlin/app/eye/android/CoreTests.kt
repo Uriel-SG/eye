@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -33,6 +34,10 @@ class FakeDao : HistoryDao {
     override suspend fun setSaved(id: Long, saved: Boolean) { rows.value = rows.value.map { if (it.id == id) it.copy(saved = saved) else it } }
     override suspend fun setAiOpinion(id: Long, value: String) { rows.value = rows.value.map { if (it.id == id) it.copy(aiOpinion = value) else it } }
     override suspend fun setExceptionKind(id: Long, kind: Int) { rows.value = rows.value.map { if (it.id == id) it.copy(exceptionKind = kind) else it } }
+    override suspend fun setNanoOpinion(id: Long, value: String) { rows.value = rows.value.map { if (it.id == id) it.copy(nanoOpinion = value) else it } }
+    override suspend fun setDomainAge(id: Long, value: String) { rows.value = rows.value.map { if (it.id == id) it.copy(domainAge = value) else it } }
+    private fun rank(l: String) = when (l) { "PROBABILE_TRUFFA" -> 0; "SOSPETTO" -> 1; else -> 2 }
+    override suspend fun setLevel(id: Long, level: String) { rows.value = rows.value.map { if (it.id == id && rank(level) < rank(it.level)) it.copy(level = level) else it } }
     override suspend fun deleteUnsaved() { rows.value = rows.value.filter { it.saved } }
     override suspend fun deleteAll() { rows.value = emptyList() }
 }
@@ -87,6 +92,7 @@ class CoreTests {
 
     @Test fun catalogHasEnoughCards() {
         assertTrue(Catalog.cards.size >= 10)
+        assertNotNull(Catalog.byId("romance-scam"))
         assertEquals(Catalog.cards.size, Catalog.cards.map { it.id }.toSet().size)
         assertTrue(Catalog.ongoing().isNotEmpty())
         assertTrue(Catalog.cards.all { c -> c.reportLinks.all { it.url.startsWith("https://") } })

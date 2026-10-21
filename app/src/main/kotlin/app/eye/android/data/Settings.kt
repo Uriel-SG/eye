@@ -2,6 +2,10 @@ package app.eye.android.data
 
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
+import app.eye.android.core.update.UpdateSnooze
+import app.eye.android.core.update.UpdateSnoozeStore
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import app.eye.android.core.ai.AiProvider
@@ -45,6 +49,11 @@ data class Settings(
     /** Avvisi automatici sulle nuove campagne (opt-in, spenti di default). */
     val alertCampaigns: Boolean = false,
     val retention: HistoryRetention = HistoryRetention.DAYS_7,
+    /** Controllo dell'eta' dei siti via RDAP (invia solo il nome del dominio al registro). Attivo di default. */
+    val domainAgeCheck: Boolean = false,
+    /** Chiede al servizio di accorciamento dove porta il link (mai il sito finale). */
+    /** L'avviso prima di aprire VirusTotal non va piu' mostrato. */
+    val vtNoticeDismissed: Boolean = false,
 ) {
     val aiHasKey: Boolean get() = !aiKeyCipher.isNullOrEmpty()
 
@@ -69,6 +78,17 @@ class SettingsStore(private val context: Context) {
     private val autoOff = androidx.datastore.preferences.core.stringSetPreferencesKey("auto_disabled_apps")
     private val retentionKey = stringPreferencesKey("history_retention")
     private val alertKey = booleanPreferencesKey("alert_campaigns")
+    private val ageKey = booleanPreferencesKey("domain_age_check_v2") // v2: dalla 1.6.1 disattivato di default (la vecchia chiave, predefinita ON, e' ignorata)
+    private val vtKey = booleanPreferencesKey("vt_notice_dismissed")
+
+    private val updCode = intPreferencesKey("update_snooze_code")
+    private val updUntil = longPreferencesKey("update_snooze_until")
+
+    /** «Più tardi» sull'avviso di aggiornamento dell'app (per versione disponibile). */
+    val updateSnooze: UpdateSnoozeStore = object : UpdateSnoozeStore {
+        override val snooze: Flow<UpdateSnooze> = context.dataStore.data.map { UpdateSnooze(it[updCode] ?: 0, it[updUntil] ?: 0L) }
+        override suspend fun set(s: UpdateSnooze) = edit { it[updCode] = s.versionCode; it[updUntil] = s.untilMs }
+    }
 
     val settings: Flow<Settings> = context.dataStore.data.map {
         Settings(
@@ -78,6 +98,7 @@ class SettingsStore(private val context: Context) {
             ThemeMode.entries.firstOrNull { m -> m.name == it[theme] } ?: ThemeMode.SYSTEM,
             autoProtect = it[autoKey] ?: false, autoDisabledApps = it[autoOff] ?: emptySet(), alertCampaigns = it[alertKey] ?: false,
             retention = HistoryRetention.fromId(it[retentionKey]),
+            domainAgeCheck = it[ageKey] ?: false, vtNoticeDismissed = it[vtKey] ?: false,
         )
     }
 
@@ -99,6 +120,8 @@ class SettingsStore(private val context: Context) {
     }
     suspend fun setRetention(r: HistoryRetention) = edit { it[retentionKey] = r.name }
     suspend fun setAlertCampaigns(v: Boolean) = edit { it[alertKey] = v }
+    suspend fun setDomainAgeCheck(v: Boolean) = edit { it[ageKey] = v }
+    suspend fun setVtNoticeDismissed(v: Boolean) = edit { it[vtKey] = v }
     suspend fun clearAll() = context.dataStore.edit { it.clear() }
 
     private suspend fun edit(block: (androidx.datastore.preferences.core.MutablePreferences) -> Unit) {

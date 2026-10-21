@@ -13,12 +13,15 @@ import app.eye.android.core.feed.UrlConnectionFeedHttp
 import app.eye.android.core.notif.NotifData
 import app.eye.android.core.notif.NotificationGate
 import app.eye.android.core.notif.alertId
+import app.eye.engine.BlocklistVerifier
+import app.eye.engine.HashBlocklist
 import app.eye.engine.Campaign
 import app.eye.engine.CampaignFeedVerifier
 import app.eye.engine.CampaignSource
 import app.eye.engine.FeedIndex
 import app.eye.engine.RulePackStore
 import app.eye.engine.RulePackVerifier
+import app.eye.engine.loadBlocklist
 import com.sun.net.httpserver.HttpServer
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -44,12 +47,30 @@ private class TestKey(val id: String) {
 
     private fun gzip(b: ByteArray): ByteArray = ByteArrayOutputStream().also { o -> GZIPOutputStream(o).use { it.write(b) } }.toByteArray()
 
-    fun envelope(format: Int, domain: String, version: Long, plain: String): ByteArray {
-        val payload = gzip(plain.toByteArray())
+    fun envelope(format: Int, domain: String, version: Long, plain: String): ByteArray = envelopeBytes(format, domain, version, plain.toByteArray())
+
+    fun envelopeBytes(format: Int, domain: String, version: Long, plain: ByteArray): ByteArray {
+        val payload = gzip(plain)
         val msg = "$domain$id\n$version\n".toByteArray() + payload
         val sig = Signature.getInstance("Ed25519").run { initSign(pair.private); update(msg); sign() }
         val b = Base64.getEncoder()
         return """{"format":$format,"alg":"Ed25519","keyId":"$id","version":$version,"createdAt":"2026-10-15","payload":"${b.encodeToString(payload)}","sig":"${b.encodeToString(sig)}"}""".toByteArray()
+    }
+
+    /** Feed siti malevoli (format 3): stesso contenitore EBL1 del tool Python (differenze u32, escape se grandi). */
+    fun blocklist(version: Long, vararg hosts: String): ByteArray {
+        val hs = hosts.map { HashBlocklist.hashOf(it) }.distinct().sorted()
+        val header = """{"version":$version,"keyId":"$id","issuedAt":"2026-10-15T00:00:00Z","expiresAt":"2026-11-29T00:00:00Z","count":${hs.size},"hashBytes":6}""".toByteArray()
+        val o = ByteArrayOutputStream()
+        o.write("EBL1".toByteArray()); o.write(java.nio.ByteBuffer.allocate(4).putInt(header.size).array()); o.write(header)
+        fun u48(v: Long) = repeat(6) { o.write(((v shr (8 * (5 - it))) and 0xFF).toInt()) }
+        hs.forEachIndexed { i, v ->
+            if (i == 0) u48(v) else {
+                val gap = v - hs[i - 1]
+                if (gap < 0xFFFFFFFFL) o.write(java.nio.ByteBuffer.allocate(4).putInt(gap.toInt()).array()) else { repeat(4) { o.write(0xFF) }; u48(v) }
+            }
+        }
+        return envelopeBytes(3, "EYE-BLOCKLIST-v1\n", version, o.toByteArray())
     }
 
     fun campaigns(version: Long, vararg ids: String, status: String = "in_corso"): ByteArray {
@@ -88,6 +109,9 @@ private class MemState : FeedState {
     override fun setSeenCampaignIds(ids: Set<String>) { seen = ids }
     override fun notifiedCampaignIds() = notified
     override fun setNotifiedCampaignIds(ids: Set<String>) { notified = ids }
+    var lastAll = 0L
+    override fun lastFeedUpdate() = lastAll
+    override fun setLastFeedUpdate(t: Long) { lastAll = t }
     override fun clear() { etags.clear(); checked = 0; seen = null; notified = emptySet() }
 }
 
@@ -111,11 +135,12 @@ class FeedTests {
     private val key = TestKey("test-a")
     private val base = "https://example.test/data/"
 
-    private class Env(val http: FakeHttp, val rules: MemStore, val camp: MemStore, val state: MemState, val updater: FeedUpdater)
+    private class Env(val http: FakeHttp, val rules: MemStore, val camp: MemStore, val state: MemState, val updater: FeedUpdater, val bl: MemStore)
 
     private fun env(bundled: Long = 1, clock: () -> Long = { 1_000_000 }): Env {
-        val http = FakeHttp(); val r = MemStore(); val c = MemStore(); val s = MemState()
-        return Env(http, r, c, s, FeedUpdater(http, base, r, c, s, bundled, RulePackVerifier(key.pinned), CampaignFeedVerifier(key.pinned), clock))
+        val http = FakeHttp(); val r = MemStore(); val c = MemStore(); val s = MemState(); val b = MemStore()
+        return Env(http, r, c, s, FeedUpdater(http, base, r, c, s, bundled, RulePackVerifier(key.pinned), CampaignFeedVerifier(key.pinned), clock,
+            blocklistStore = b, blocklistVerifier = BlocklistVerifier(key.pinned)), b)
     }
 
     private fun sha(b: ByteArray) = FeedIndex.sha256Hex(b)
@@ -125,6 +150,68 @@ class FeedTests {
         http.files["version.json"] = index(rules, rv, camp, cv)
         rules?.let { http.files["rules.eye.json"] = it }
         camp?.let { http.files["campaigns.eye.json"] = it }
+    }
+
+    private fun Env.publishBlocklist(bl: ByteArray, v: Long) {
+        http.files["version.json"] = ("""{"rules":{"version":1,"sha256":"${sha(ByteArray(1))}","url":"rules.eye.json"},"campaigns":{"version":1,"sha256":"${sha(ByteArray(1))}","url":"campaigns.eye.json"},""" +
+            """"blocklist":{"version":$v,"sha256":"${sha(bl)}","url":"blocklist.eye.json"}}""").toByteArray()
+        http.files["blocklist.eye.json"] = bl
+    }
+
+    @Test fun blocklistInstallsVerifiedAndUsable() {
+        val e = env(); val pack = key.blocklist(3, "evil.com", "x.github.io")
+        e.publishBlocklist(pack, 3)
+        assertEquals(FeedResult.Updated(3), e.updater.updateBlocklist())
+        assertEquals(3L, e.bl.version)
+        val list = e.bl.loadBlocklist(BlocklistVerifier(key.pinned))!!
+        assertTrue(list.isKnownMalicious("a.evil.com", "evil.com")); assertFalse(list.isKnownMalicious("other.com", "other.com"))
+        e.http.requests.clear()
+        assertEquals(FeedResult.UpToDate, e.updater.updateBlocklist()) // 304
+        assertEquals(listOf("version.json"), e.http.requests)
+    }
+
+    @Test fun blocklistForgedTamperedOrRolledBackIsRefused() {
+        val e = env()
+        e.publishBlocklist(TestKey("test-a").blocklist(1, "evil.com"), 1) // stessa id, chiave diversa
+        assertEquals(FeedResult.Failed(FeedFailure.REJECTED), e.updater.updateBlocklist())
+        assertEquals(0L, e.bl.version); assertNull(e.bl.pack)
+        val ok = key.blocklist(5, "evil.com")
+        e.publishBlocklist(ok, 5); assertEquals(FeedResult.Updated(5), e.updater.updateBlocklist())
+        // file piu' vecchio (valido) dichiarato come v6: rollback rifiutato
+        e.http.etag = "v2"; e.publishBlocklist(key.blocklist(3, "evil.com"), 6)
+        assertEquals(FeedResult.Failed(FeedFailure.REJECTED), e.updater.updateBlocklist())
+        assertEquals(5L, e.bl.version)
+        // sha256 dell'indice diverso dal file scaricato: scartato prima della firma
+        e.http.etag = "v3"; e.publishBlocklist(ok, 7); e.http.files["blocklist.eye.json"] = ok.copyOf(ok.size - 3)
+        assertEquals(FeedResult.Failed(FeedFailure.BAD_DOWNLOAD), e.updater.updateBlocklist())
+    }
+
+    @Test fun blocklistHasItsOwnSizeLimitAndIndexStaysCompatible() {
+        val e = env()
+        e.publishBlocklist(ByteArray(BlocklistVerifier.MAX_ENVELOPE + 1), 2)
+        assertEquals(FeedResult.Failed(FeedFailure.BAD_DOWNLOAD), e.updater.updateBlocklist())
+        // indice senza voce blocklist (sito vecchio): nessun errore
+        e.http.etag = "v2"; e.publish(camp = key.campaigns(1, "a"))
+        assertEquals(FeedResult.UpToDate, e.updater.updateBlocklist())
+        assertNull(FeedIndex.parse(index(null, 1, null, 1)).getOrThrow().blocklist)
+        // voce blocklist malformata: l'indice resta valido per regole e campagne
+        val bad = """{"rules":{"version":1,"sha256":"${sha(ByteArray(1))}","url":"rules.eye.json"},"campaigns":{"version":1,"sha256":"${sha(ByteArray(1))}","url":"campaigns.eye.json"},"blocklist":{"version":"x","sha256":"zz","url":"../x"}}"""
+        assertNull(FeedIndex.parse(bad.toByteArray()).getOrThrow().blocklist)
+    }
+
+    @Test fun updateAllRefreshesEverythingAndStampsTime() {
+        val e = env(bundled = 1, clock = { 5_000_000 })
+        val rules = key.rules(2); val camp = key.campaigns(1, "uno"); val bl = key.blocklist(1, "evil.com")
+        e.http.files["version.json"] = ("""{"rules":{"version":2,"sha256":"${sha(rules)}","url":"rules.eye.json"},"campaigns":{"version":1,"sha256":"${sha(camp)}","url":"campaigns.eye.json"},""" +
+            """"blocklist":{"version":1,"sha256":"${sha(bl)}","url":"blocklist.eye.json"}}""").toByteArray()
+        e.http.files["rules.eye.json"] = rules; e.http.files["campaigns.eye.json"] = camp; e.http.files["blocklist.eye.json"] = bl
+        val all = e.updater.updateAll()
+        assertEquals(FeedResult.Updated(2), all.rules); assertEquals(FeedResult.Updated(1), all.campaigns); assertEquals(FeedResult.Updated(1), all.blocklist)
+        assertEquals(FeedResult.Updated(2), all.summary)
+        assertEquals(5_000_000L, e.state.lastAll)
+        e.state.lastAll = 0; e.http.offline = true
+        assertEquals(FeedResult.Failed(FeedFailure.NETWORK), e.updater.updateAll().summary)
+        assertEquals(0L, e.state.lastAll) // un tentativo fallito non aggiorna la data
     }
 
     @Test fun campaignsInstallThenNotModified() {

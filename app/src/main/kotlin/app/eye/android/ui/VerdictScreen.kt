@@ -94,8 +94,14 @@ private val OfficialChannels = listOf(
 fun VerdictScreen(result0: CheckResult, vm: AppViewModel, onClose: () -> Unit, fromHistory: Boolean = false, onExceptions: () -> Unit = {}) {
     val ctx = LocalContext.current
     var updated by remember { mutableStateOf<app.eye.engine.Verdict?>(null) } // dopo una nuova eccezione
-    val v = updated ?: result0.verdict
-    val result = if (updated != null) result0.copy(verdict = v) else result0 // condivisione e report riflettono il verdetto aggiornato
+    var entryId by remember { mutableStateOf(result0.historyId) }
+    val baseV = updated ?: result0.verdict
+    // parere di Gemini Nano (appena ricevuto o salvato in cronologia): se alza il livello vale ovunque, anche in condivisione e PDF
+    // eta' del dominio (RDAP, solo in primo piano): puo' solo alzare il livello; poi l'eventuale parere Nano
+    val ageResult = domainAgeFor(vm, result0.originalText, entryId)
+    val agedV = if (ageResult == null) baseV else app.eye.engine.enrich.DomainAge.apply(baseV, ageResult.entries, ageResult.checkedAt)
+    val v = app.eye.engine.llm.LlmCombiner.apply(agedV, nanoOpinionFor(vm, result0.originalText, entryId))
+    val result = if (v !== result0.verdict) result0.copy(verdict = v) else result0 // condivisione, report e PDF riflettono il verdetto aggiornato (eccezione, parere Nano)
     var excDialog by remember { mutableStateOf<app.eye.engine.ExceptionKind?>(null) }
     val snackbar = remember { androidx.compose.material3.SnackbarHostState() }
     val excSaved = stringResource(R.string.exc_saved)
@@ -104,7 +110,7 @@ fun VerdictScreen(result0: CheckResult, vm: AppViewModel, onClose: () -> Unit, f
     val colors = MaterialTheme.extras.of(v.level)
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboard.current
-    var showMessage by remember { mutableStateOf(false) } // contenuto sensibile oscurato di default
+    var showMessage by remember { mutableStateOf(true) } // «Includi il messaggio»: attivo a ogni apertura, l'utente può disattivarlo
     var showSensitive by remember { mutableStateOf(false) } // solo dettaglio cronologia: testo oscurato di default
     var expanded by remember { mutableStateOf(false) }
     var reportDialog by remember { mutableStateOf(false) }
@@ -112,7 +118,6 @@ fun VerdictScreen(result0: CheckResult, vm: AppViewModel, onClose: () -> Unit, f
     var wrongDialog by remember { mutableStateOf(false) }
     var pdfDialog by remember { mutableStateOf(false) }
 
-    var entryId by remember { mutableStateOf(result.historyId) }
     var createdForBookmark by remember { mutableStateOf(false) }
     val history by vm.history.collectAsState()
     val entry = history.firstOrNull { it.id == entryId }
@@ -228,7 +233,8 @@ fun VerdictScreen(result0: CheckResult, vm: AppViewModel, onClose: () -> Unit, f
         }
 
         // Secondo parere AI: facoltativo, mai automatico, mai al posto del verdetto delle regole
-        AiSecondOpinion(vm, result.originalText, v.level, entryId)
+        DomainAgeCheck(vm, result.originalText, baseV, entryId)
+        AiSecondOpinion(vm, result.originalText, v.level, entryId, agedV)
 
         Text(stringResource(R.string.verdict_disclaimer_short), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
@@ -237,7 +243,8 @@ fun VerdictScreen(result0: CheckResult, vm: AppViewModel, onClose: () -> Unit, f
             onClick = { excDialog = app.eye.engine.ExceptionKind.TRUSTED },
             enabled = v.level != app.eye.engine.Level.NESSUN_SEGNALE,
             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-        ) { Text(stringResource(R.string.exc_fp_button)) }
+            border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.extras.orange),
+        ) { Text(stringResource(R.string.exc_fp_button), color = MaterialTheme.extras.orange, fontWeight = androidx.compose.ui.text.font.FontWeight.Normal) }
         OutlinedButton(
             onClick = { excDialog = app.eye.engine.ExceptionKind.SUSPICIOUS },
             enabled = v.level == app.eye.engine.Level.NESSUN_SEGNALE,
@@ -277,7 +284,7 @@ fun VerdictScreen(result0: CheckResult, vm: AppViewModel, onClose: () -> Unit, f
             OutlinedButton(
                 onClick = {
                     scope.launch {
-                        clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("report", ReportBuilder.report(ctx, result, includeMessage = showMessage))))
+                        clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("report", ShareTexts.safeOutgoing(ReportBuilder.report(ctx, result, includeMessage = showMessage)))))
                     }
                     Toast.makeText(ctx, copied, Toast.LENGTH_SHORT).show()
                 },
@@ -289,6 +296,7 @@ fun VerdictScreen(result0: CheckResult, vm: AppViewModel, onClose: () -> Unit, f
             }
         }
         OutlinedButton(onClick = { pdfDialog = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text(stringResource(R.string.pdf_button)) }
+        VirusTotalButton(vm, v)
         TextButton(onClick = { reportDialog = true }, modifier = Modifier.heightIn(min = 48.dp)) {
             Icon(Icons.Rounded.Flag, contentDescription = null)
             Spacer(Modifier.width(8.dp))
@@ -375,7 +383,7 @@ fun VerdictScreen(result0: CheckResult, vm: AppViewModel, onClose: () -> Unit, f
                 TextButton(enabled = view != null, onClick = {
                     val choice = view ?: return@TextButton
                     wrongDialog = false
-                    val body = ReportBuilder.feedbackBody(ctx, result, choice)
+                    val body = ShareTexts.safeOutgoing(ReportBuilder.feedbackBody(ctx, result, choice))
                     ExternalIntents.copyToClipboard(ctx, "Segnalazione Eye", body)
                     ExternalIntents.composeEmail(ctx, app.eye.android.core.REPORT_EMAIL, ReportBuilder.feedbackSubject(ctx, result, choice), body)
                 }) { Text(stringResource(R.string.wrong_send)) }

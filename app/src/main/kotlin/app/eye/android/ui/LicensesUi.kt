@@ -43,6 +43,7 @@ private val Libraries = listOf(
     R.string.lic_figtree to R.string.lic_ofl,
     R.string.lic_minilm to R.string.lic_apache,
     R.string.lic_ai_data to R.string.lic_ai_data_terms,
+    R.string.lic_blocklist to R.string.lic_blocklist_terms,
 )
 
 @Composable

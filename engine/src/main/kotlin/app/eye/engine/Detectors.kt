@@ -13,6 +13,10 @@ internal class Ctx(
     val lists: RuleLists,
     /** Link anomali: frammenti simili a domini non estratti o URL http(s) non validi. >0 => nessuno sconto "ufficiale". */
     val anomalies: Int = 0,
+    /** Elenco locale di siti malevoli noti (BLK-01). */
+    val reputation: DomainReputation = DomainReputation.NONE,
+    /** Link accorciati risolti: (shortener, destinazione). La destinazione e' gia' in [urls] al posto dello shortener. */
+    val expansions: List<Pair<ParsedUrl, ParsedUrl>> = emptyList(),
 ) {
     /** Testo con budget di tempo per i rilevatori che usano regex (lancia BudgetExceeded). */
     var scanText: CharSequence = text
@@ -122,6 +126,9 @@ internal object Detectors {
         "incomplete_analysis" to { _ -> null }, // gestito dal motore (budget scaduto)
         "unresolved_link" to { c -> if (c.anomalies > 0) Hit() else null },
         "shortener_official_context" to ::shortenerOfficialContext,
+        "known_malicious_domain" to ::knownMaliciousDomain,
+        "shortener_resolved" to ::shortenerResolved,
+        "shortener_resolved_unknown" to ::shortenerResolvedUnknown,
     )
 
     val names: Set<String> get() = impl.keys
@@ -129,6 +136,25 @@ internal object Detectors {
     fun run(name: String, ctx: Ctx): Hit? = impl[name]?.invoke(ctx)
 
     // ---- URL ----
+    /** BLK-01: host (o suo dominio padre) nell'elenco pubblico di siti di truffa/malware. Mai per domini ufficiali o molto diffusi. */
+    private fun knownMaliciousDomain(c: Ctx): Hit? {
+        for (u in c.urls) {
+            if (c.isKnown(u.registrable)) continue
+            if (c.reputation.isKnownMalicious(u.host, u.registrable)) return Hit(mapOf("domain" to u.host))
+        }
+        return null
+    }
+
+    /** URL-11 (informativa, peso 0): il link accorciato e' stato risolto. */
+    private fun shortenerResolved(c: Ctx): Hit? =
+        c.expansions.firstOrNull()?.let { (s, d) -> Hit(mapOf("domain" to s.registrable, "dest" to d.host)) }
+
+    /** URL-12: la destinazione risolta non e' un sito noto e pulito (peso ridotto, non e' un segnale forte). */
+    private fun shortenerResolvedUnknown(c: Ctx): Hit? =
+        c.expansions.firstOrNull { (_, d) ->
+            !c.isKnown(d.registrable) || d.registrable in RuleEngine.GROUP_INVITE_DOMAINS || d.hasUserInfo || d.isPunycode
+        }?.let { (s, d) -> Hit(mapOf("domain" to s.registrable, "dest" to d.host)) }
+
     private fun suspectUrls(c: Ctx) = c.urls.filter { !c.isOfficial(it.registrable) }
 
     private fun labelMatches(labelSk: String, tokSk: String): Boolean {
@@ -183,7 +209,7 @@ internal object Detectors {
     }
 
     private fun shortener(c: Ctx): Hit? =
-        c.urls.firstOrNull { it.registrable in c.shorteners }?.let { Hit(mapOf("domain" to it.registrable)) }
+        c.urls.firstOrNull { it.registrable in c.shorteners && !it.isGoogleShareShortLink }?.let { Hit(mapOf("domain" to it.registrable)) }
 
     private fun homograph(c: Ctx): Hit? =
         c.urls.firstOrNull { it.isPunycode || Text.hasNonAsciiLetters(it.hostUnicode) }

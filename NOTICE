@@ -44,3 +44,10 @@ Dati usati per il fine-tuning (non distribuiti con l'app; vedi ml/DATA.md)
 Figtree (font, app/src/main/res/font/figtree.ttf)
 Copyright 2022 The Figtree Project Authors (https://github.com/erikdkennedy/figtree)
 Licenza: SIL Open Font License 1.1 (https://openfontlicense.org), testo in app/src/main/res/raw/ofl_figtree.txt
+
+Phishing.Database (https://github.com/Phishing-Database/Phishing.Database)
+Copyright (c) 2018-2025 Mitchell Krog - github.com/mitchellkrogza
+Copyright (c) 2018-2025 Nissar Chababy - github.com/funilrys
+Copyright (c) 2018-2025 Phishing.Database Contributors
+Licenza: MIT. Usato per l'elenco locale di siti malevoli (feed firmato "blocklist", tools/blocklist): del dato resta solo
+l'hash troncato del nome di host, vedi tools/blocklist/SOURCES.md e README.md.

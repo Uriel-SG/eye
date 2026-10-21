@@ -14,8 +14,9 @@ android {
         applicationId = "com.urielsec.eye"
         minSdk = 26
         targetSdk = 36
-        versionCode = 9
-        versionName = "1.4.0"
+        versionCode = 12
+        versionName = "1.6.1"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Simboli nativi (librerie ML Kit) nell'AAB: Play Console li usa per leggere crash/ANR.
         ndk { debugSymbolLevel = "SYMBOL_TABLE" }
     }
@@ -93,8 +94,12 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
     implementation(libs.mlkit.text)
+    implementation(libs.mlkit.genai.prompt)
+    implementation(libs.play.app.update.ktx)
     implementation(libs.onnxruntime.android)
     ksp(libs.androidx.room.compiler)
     testImplementation(libs.junit4)
     testImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:runner:1.6.2")
 }

@@ -22,6 +22,8 @@ internal data class ParsedUrl(
     val isIp: Boolean,
 ) {
     val isPunycode: Boolean get() = host.split('.').any { it.startsWith("xn--") }
+    /** Collegamenti brevi di condivisione Google (maps.app.goo.gl, photos.app.goo.gl, goo.gl/maps/...): portano solo a Maps/Foto, quindi non sono «abbreviatori» sospetti. */
+    val isGoogleShareShortLink: Boolean get() = host == "maps.app.goo.gl" || host == "photos.app.goo.gl" || (host == "goo.gl" && (path == "/maps" || path.startsWith("/maps/")))
 
     /** Etichette a sinistra dell'eTLD+1. */
     val subdomains: List<String>

@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /** Verifica opzionale: la cartella dati del sito (EYE_SITE_DATA) e' accettata dall'app con le chiavi di produzione. */
@@ -23,5 +24,13 @@ class ProductionFeedCheckTest {
         val feed = CampaignFeedVerifier().verify(campBytes, 0).getOrThrow()
         assertEquals(index.campaigns.version, feed.version)
         assertTrue(feed.campaigns.size in 6..10, "campagne: ${feed.campaigns.size}")
+        index.blocklist?.let { e ->
+            val bytes = File(d, e.url).readBytes()
+            assertTrue(e.matches(bytes), "sha256 elenco siti malevoli")
+            val bl = BlocklistVerifier().verify(bytes, 0).getOrThrow()
+            assertEquals(e.version, bl.version)
+            assertTrue(bl.size > 1000, "voci: ${bl.size}")
+            assertFalse(bl.isKnownMalicious("google.com", "google.com"))
+        }
     }
 }

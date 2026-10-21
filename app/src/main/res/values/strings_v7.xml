@@ -13,7 +13,7 @@
     <string name="exc_saved">Eccezione salvata</string>
     <string name="exc_save_failed">Non è stato possibile salvare l’eccezione.</string>
     <string name="exc_settings_title">Eccezioni</string>
-    <string name="exc_settings_sub">Messaggi che hai segnato come affidabili o sospetti: %1$d</string>
+    <string name="exc_settings_sub">Messaggi segnati come affidabili o sospetti: %1$d</string>
     <string name="exc_empty">Non hai ancora impostato eccezioni. Puoi crearne dalla schermata di un verdetto.</string>
     <string name="exc_kind_trusted">Affidabile</string>
     <string name="exc_kind_suspicious">Sospetto</string>

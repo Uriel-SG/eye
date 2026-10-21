@@ -36,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -72,7 +73,8 @@ fun AiSettingsSection(vm: AppViewModel, s: Settings) {
     val valid = baseOk && modelOk
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        SectionTitle(stringResource(R.string.ai_section_title))
+        NanoSettingsRow(vm)
+        Text(stringResource(R.string.ai_section_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
         Text(stringResource(R.string.ai_section_intro), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
         Text(stringResource(R.string.ai_provider_label), style = MaterialTheme.typography.titleMedium)
@@ -199,3 +201,21 @@ fun AiSettingsSection(vm: AppViewModel, s: Settings) {
     }
 }
 
+
+/** Riga informativa di sola lettura sullo stato di Gemini Nano (nessun interruttore: e' automatico). */
+@Composable
+private fun NanoSettingsRow(vm: AppViewModel) {
+    val status by vm.nanoStatus.collectAsState()
+    val downloading by vm.nanoDownloading.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(Unit) { vm.refreshNano() }
+    val st = status ?: return
+    val res = when {
+        st == app.eye.engine.llm.LlmStatus.AVAILABLE -> R.string.nano_info_active
+        downloading || st == app.eye.engine.llm.LlmStatus.DOWNLOADING || st == app.eye.engine.llm.LlmStatus.DOWNLOADABLE -> R.string.nano_info_downloading
+        else -> R.string.nano_info_unavailable
+    }
+    Text(
+        stringResource(res), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        fontStyle = if (st == app.eye.engine.llm.LlmStatus.AVAILABLE) androidx.compose.ui.text.font.FontStyle.Normal else androidx.compose.ui.text.font.FontStyle.Italic,
+    )
+}

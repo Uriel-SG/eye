@@ -43,7 +43,7 @@ object ReportPdf {
         MessageDigest.getInstance("SHA-256").digest(text.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
 
     /** Il testo analizzato: oscurato (Redactor) salvo scelta esplicita di includerlo in chiaro. */
-    fun shownText(text: String, plain: Boolean): String = if (plain) text else Redactor.redact(text)
+    fun shownText(text: String, plain: Boolean): String = if (plain) ShareTexts.safeOutgoing(text) else Redactor.redact(text)
 
     fun fileName(createdAt: Long): String =
         "eye-report-" + SimpleDateFormat("yyyyMMdd-HHmm", Locale.ROOT).format(Date(createdAt)) + ".pdf"

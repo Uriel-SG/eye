@@ -23,6 +23,8 @@ class PrefsFeedState(context: Context) : FeedState {
     override fun setSeenCampaignIds(ids: Set<String>) { p.edit().putStringSet("seen_ids", ids).apply() }
     override fun notifiedCampaignIds(): Set<String> = p.getStringSet("notified_ids", null)?.toSet().orEmpty()
     override fun setNotifiedCampaignIds(ids: Set<String>) { p.edit().putStringSet("notified_ids", ids).apply() }
+    override fun lastFeedUpdate() = p.getLong("feeds_updated", 0L)
+    override fun setLastFeedUpdate(t: Long) { p.edit().putLong("feeds_updated", t).apply() }
     override fun clear() { p.edit().clear().apply() }
 }
 

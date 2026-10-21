@@ -8,6 +8,7 @@ Tutto in `app.eye.engine`, modulo JVM puro: **nessuna rete nel motore**. L'app s
 | `version.json` | indice non firmato: `{"rules":{"version":N,"sha256":"..","url":"rules.eye.json"},"campaigns":{"version":M,"sha256":"..","url":"campaigns.eye.json"}}` | max `FeedIndex.MAX_BYTES` = 4 KB |
 | `rules.eye.json` | envelope Ed25519 `format 1`, dominio `EYE-RULES-v1\n` | max 2 MB (decompresso 10 MB) |
 | `campaigns.eye.json` | envelope Ed25519 `format 2`, dominio `EYE-CAMPAIGNS-v1\n` | max 256 KB (decompresso 1 MB) |
+| `blocklist.eye.json` | envelope Ed25519 `format 3`, dominio `EYE-BLOCKLIST-v1` + a capo; voce `"blocklist"` di `version.json` (opzionale: le app senza la ignorano). Elenco di hash a 48 bit di host malevoli noti, controllato sul telefono (`BlocklistVerifier`, regola BLK-01) | max 8 MB (decompresso 8 MB); formato e fonti in `tools/blocklist/` |
 
 `version.json` e' solo un indice: la sicurezza sta nella firma, nell'anti-rollback e nei limiti. `sha256` e' dell'envelope (byte esatti) e serve a integrita'/cache; non sostituisce la firma. Gli URL sono **nomi file relativi** alla stessa cartella di `version.json` (il parser rifiuta URL assoluti, `/`, `..`): l'app compone `base + entry.url` con base fissa nel codice, mai presa dal server.
 

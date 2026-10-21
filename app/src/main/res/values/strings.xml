@@ -164,26 +164,26 @@
     <!-- Impostazioni -->
     <string name="settings_title">Impostazioni</string>
     <string name="settings_family">Modalità Famiglia</string>
-    <string name="settings_family_sub">Schermate più semplici e testo grande. Il verdetto si può mandare a un familiare con Condividi.</string>
+    <string name="settings_family_sub">Schermate semplificate e testo grande. Verdetto condivisibile con un familiare tramite Condividi.</string>
     <string name="family_confirm_title">Attivare la Modalità Famiglia?</string>
     <string name="family_confirm_body">L\'app diventa più semplice, con testo grande. Puoi disattivarla in Impostazioni.</string>
     <string name="settings_text_size">Dimensione testo</string>
-    <string name="settings_text_size_sub">Si imposta nelle impostazioni di sistema.</string>
+    <string name="settings_text_size_sub">Impostabile nelle impostazioni di sistema.</string>
     <string name="settings_language">Lingua</string>
     <string name="settings_language_value">Italiano</string>
     <string name="settings_rules">Aggiornamento regole</string>
-    <string name="settings_rules_sub">Le regole sono incluse nell’app e si aggiornano da sole quando c’è rete.</string>
+    <string name="settings_rules_sub">Regole incluse nell’app, con aggiornamento automatico quando è disponibile la rete.</string>
     <string name="settings_privacy">Privacy</string>
-    <string name="settings_privacy_not_doing">Cosa non facciamo: nessun accesso a SMS, rubrica o chiamate; nessun account; nessun invio dei tuoi messaggi a noi. Le notifiche vengono lette solo se attivi la Protezione automatica, e restano sul telefono.</string>
-    <string name="settings_privacy_policy">I controlli avvengono sul tuo telefono. La cronologia (se attiva) salva solo su questo telefono, in forma cifrata, il testo analizzato e il verdetto: per 7, 30 giorni o sempre (a tua scelta), e comunque finché non le togli per le analisi che segni con «Salva». Per le immagini salva solo il testo letto. Non finisce nei backup. La Protezione automatica (se la attivi) legge le notifiche delle app che scegli, le controlla sul telefono e non le invia: se ti avvisa, il messaggio resta cifrato sul telefono finché non apri o scarti l\'avviso. Eye scarica regole e campagne aggiornate da un sito pubblico, senza inviare dati tuoi. Il secondo parere AI (facoltativo) invia il testo al servizio che scegli, con la tua chiave, solo quando tocchi il pulsante; il parere ricevuto (già con i dati oscurati) resta cifrato nella cronologia insieme all\'analisi. Le eccezioni che imposti (impronta del messaggio senza numeri, date e link, app, mittente) restano cifrate sul telefono, fuori dai backup, finché non le elimini.</string>
-    <string name="settings_save_history">Salva la cronologia</string>
-    <string name="settings_save_history_sub">Salva su questo telefono, cifrati, il testo controllato e il verdetto. Le analisi che segni con «Salva» restano sempre. Se la disattivi, i controlli non vengono salvati.</string>
-    <string name="settings_clear_history">Cancella cronologia ora</string>
-    <string name="settings_clear_data">Cancella dati</string>
+    <string name="settings_privacy_not_doing">Eye non accede a SMS, rubrica o chiamate e non richiede alcun account. I messaggi non vengono inviati agli sviluppatori. Le notifiche vengono lette solo con la Protezione automatica attiva e restano sul telefono.</string>
+    <string name="settings_privacy_policy">I controlli avvengono sul telefono. La cronologia, se attiva, salva solo su questo telefono, in forma cifrata, il testo analizzato e il verdetto, per 7 giorni, 30 giorni o sempre, a scelta; le analisi segnate con «Salva» restano finché non vengono eliminate. Per le immagini viene salvato solo il testo letto. I dati non finiscono nei backup. La Protezione automatica, se attiva, legge le notifiche delle app selezionate e le controlla sul telefono senza inviarle; in caso di avviso, il messaggio resta cifrato fino all\'apertura o allo scarto dell\'avviso. Eye scarica da un sito pubblico regole, campagne ed elenco di siti malevoli, senza inviare dati personali. Per i link accorciati, la destinazione viene richiesta al servizio di accorciamento che li ha creati. Il controllo dell\'età dei siti, se attivato, invia al registro dei domini solo il nome del sito. Il secondo parere AI, facoltativo, invia il testo al servizio scelto, con la chiave personale, solo al tocco sul pulsante; il parere ricevuto resta cifrato in cronologia insieme all\'analisi. Le eccezioni impostate (impronta del messaggio senza numeri, date e link, app, mittente) restano cifrate sul telefono, fuori dai backup, fino all\'eliminazione.</string>
+    <string name="settings_save_history">Salvataggio della cronologia</string>
+    <string name="settings_save_history_sub">Testo controllato e verdetto salvati su questo telefono in forma cifrata. Le analisi segnate con «Salva» restano sempre. Se disattivato, i controlli non vengono salvati.</string>
+    <string name="settings_clear_history">Cancella la cronologia</string>
+    <string name="settings_clear_data">Cancella i dati</string>
     <string name="settings_clear_data_confirm">Verranno cancellati la cronologia e le impostazioni, compresa l\'introduzione. Non si può annullare.</string>
     <string name="settings_about">Informazioni</string>
-    <string name="settings_about_method">Eye usa regole spiegabili, che girano sul tuo telefono, per cercare segnali tipici delle truffe.</string>
-    <string name="settings_disclaimer_long">Eye analizza il contenuto con regole spiegabili e può sbagliare: può non riconoscere una truffa o segnalare per errore un messaggio legittimo. Il verdetto non sostituisce il tuo giudizio né il parere di banche, enti o forze dell\'ordine. Nel dubbio, contatta direttamente l\'ente al numero o al sito ufficiale.</string>
+    <string name="settings_about_method">Eye legge il messaggio condiviso, incollato, fotografato o ricevuto come notifica (se la Protezione automatica è attiva) e cerca i segnali tipici delle truffe: richieste di denaro o di codici, urgenza, link verso siti falsi o creati da poco, siti presenti nell\'elenco pubblico di siti malevoli, link accorciati di cui viene verificata la destinazione. Eye indica il livello di rischio, i motivi e cosa fare. L\'analisi avviene sul telefono, salvo le verifiche descritte nella sezione Privacy. Il risultato non è una garanzia.</string>
+    <string name="settings_disclaimer_long">Eye può sbagliare: può non riconoscere una truffa o segnalare per errore un messaggio legittimo. Il verdetto non sostituisce il giudizio personale né il parere di banche, enti o forze dell\'ordine. Nel dubbio, contattare direttamente l\'ente al numero o al sito ufficiale.</string>
     <string name="settings_version">Versione %1$s</string>
     <string name="state_no_text">Non ho trovato testo nell\'immagine.</string>
     <string name="state_ocr_unavailable">Non riesco a leggere il testo di questa immagine. Puoi incollare il testo a mano.</string>
@@ -201,5 +201,5 @@
     <string name="action_paste_check">Incolla e controlla</string>
     <string name="clipboard_empty_notice">Non ho trovato testo negli appunti. Copia un messaggio e riprova.</string>
     <string name="howto_title">Come usare Eye con WhatsApp</string>
-    <string name="howto_body">Da WhatsApp: tieni premuto il messaggio → Copia, poi usa \"Incolla e controlla\" o il riquadro rapido. Puoi anche selezionare il testo e scegliere «Verifica con Eye» dal menu. Per le immagini: screenshot → Condividi → Eye.</string>
+    <string name="howto_body">Da WhatsApp: tenere premuto il messaggio, scegliere Copia, poi usare «Incolla e controlla» o il riquadro rapido. In alternativa, selezionare il testo e scegliere «Verifica con Eye» dal menu. Per le immagini: screenshot, Condividi, Eye.</string>
 </resources>

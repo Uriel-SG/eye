@@ -41,6 +41,12 @@ object ShareTexts {
     private val leadingPhone = Regex("""^\s*(\+?\d[\d ]{6,18}\d)\s*[:\-]""")
     private val emailIn = Regex("""[^\s<>@"']+@([A-Za-z0-9.\-]+\.[A-Za-z]{2,})""")
 
+    /** Testo in uscita con i link disinnescati (non cliccabili); se ce n'è stato almeno uno aggiunge una riga di avviso. */
+    fun safeOutgoing(text: String): String {
+        val r = app.eye.engine.LinkDefang.apply(text)
+        return if (r.count > 0) r.text.trimEnd() + "\n" + app.eye.engine.LinkDefang.NOTE else text
+    }
+
     fun kindOf(text: String, source: Source?, hasSingleUrl: Boolean): ContentKind = when {
         source == Source.QR || text.contains("[QR]") -> ContentKind.QR
         source == Source.OCR -> ContentKind.SCREENSHOT

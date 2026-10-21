@@ -73,7 +73,13 @@ fun HomeScreen(
     onQr: () -> Unit,
     onImage: (android.net.Uri) -> Unit,
     ongoing: List<app.eye.android.core.ScamCard> = Catalog.ongoing(3),
+    update: app.eye.android.core.update.UpdateCardState = app.eye.android.core.update.UpdateCardState.Hidden,
+    onUpdateStart: (androidx.activity.result.ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>) -> Boolean = { false },
+    onUpdateLater: () -> Unit = {},
+    onUpdateRestart: () -> Unit = {},
 ) {
+    // il risultato (anche l'annullamento) non richiede nulla: lo stato torna da Play
+    val updateLauncher = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartIntentSenderForResult()) { }
     val picker = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia(),
     ) { it?.let(onImage) }
@@ -105,7 +111,8 @@ fun HomeScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onSettings, modifier = Modifier.size(48.dp)) {
+                    // In modalità Famiglia le Impostazioni si raggiungono solo dalla barra in basso (un solo ingranaggio).
+                    if (!family) IconButton(onClick = onSettings, modifier = Modifier.size(48.dp)) {
                         Icon(Icons.Rounded.Settings, contentDescription = stringResource(R.string.cd_settings))
                     }
                 },
@@ -118,6 +125,7 @@ fun HomeScreen(
             Modifier.verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
+            UpdateCard(update, onUpdate = { onUpdateStart(updateLauncher) }, onLater = onUpdateLater, onRestart = onUpdateRestart)
             if (family) {
                 FamilyHomeButton(Icons.Rounded.ContentPaste, stringResource(R.string.action_paste_check), pasteCheck)
                 FamilyHomeButton(Icons.Rounded.ContentPaste, stringResource(R.string.home_paste_title), onPaste)

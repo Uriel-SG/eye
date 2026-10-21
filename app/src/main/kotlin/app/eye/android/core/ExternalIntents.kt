@@ -24,10 +24,27 @@ object ExternalIntents {
         } catch (_: ActivityNotFoundException) { false }
     }
 
+    /**
+     * Apre [url] (https) nel browser predefinito con un intent esplicito verso il browser (selettore CATEGORY_APP_BROWSER):
+     * mai una WebView dentro Eye. Ripiega su ACTION_VIEW + BROWSABLE se il sistema non risolve il selettore.
+     */
+    fun openInBrowser(context: Context, url: String): Boolean {
+        val uri = Uri.parse(url)
+        if (uri.scheme?.lowercase() != "https") return false
+        val viaBrowser = Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_BROWSER)
+            .setData(uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        return try { context.startActivity(viaBrowser); true } catch (_: ActivityNotFoundException) {
+            try {
+                context.startActivity(Intent(Intent.ACTION_VIEW, uri).addCategory(Intent.CATEGORY_BROWSABLE).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                true
+            } catch (_: ActivityNotFoundException) { false }
+        }
+    }
+
     fun shareText(context: Context, text: String, subject: String? = null) {
         val send = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
-            putExtra(Intent.EXTRA_TEXT, text)
+            putExtra(Intent.EXTRA_TEXT, ShareTexts.safeOutgoing(text))
             subject?.let { putExtra(Intent.EXTRA_SUBJECT, it) }
         }
         context.startActivity(Intent.createChooser(send, context.getString(R.string.share_chooser)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
@@ -49,13 +66,13 @@ object ExternalIntents {
      * Gmail perde oggetto e corpo). Senza app per SENDTO ripiega su ACTION_SEND text/plain con chooser.
      */
     fun composeEmail(context: Context, to: String, subject: String, body: String) {
-        val mail = Intent(Intent.ACTION_SENDTO, Uri.parse(ShareTexts.mailtoUri(to, subject, body))).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val mail = Intent(Intent.ACTION_SENDTO, Uri.parse(ShareTexts.mailtoUri(to, subject, ShareTexts.safeOutgoing(body)))).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         try { context.startActivity(mail) } catch (_: ActivityNotFoundException) {
             val send = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
                 putExtra(Intent.EXTRA_EMAIL, arrayOf(to))
                 putExtra(Intent.EXTRA_SUBJECT, subject)
-                putExtra(Intent.EXTRA_TEXT, body)
+                putExtra(Intent.EXTRA_TEXT, ShareTexts.safeOutgoing(body))
             }
             context.startActivity(Intent.createChooser(send, context.getString(R.string.share_chooser)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }

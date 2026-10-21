@@ -40,6 +40,10 @@ data class HistoryEntity(
     @ColumnInfo(defaultValue = "''") val aiOpinion: String = "",
     /** Eccezione dell'utente collegata a questa analisi: 0 = nessuna, 1 = affidabile (USR-01), 2 = sospetta (USR-02). */
     @ColumnInfo(defaultValue = "0") val exceptionKind: Int = 0,
+    /** [NanoOpinionJson] del parere di Gemini Nano, cifrato su disco; vuoto = nessun parere salvato. */
+    @ColumnInfo(defaultValue = "''") val nanoOpinion: String = "",
+    /** [DomainAgeJson] dell'eta' dei domini (controllo RDAP), cifrato su disco; vuoto = non controllata. */
+    @ColumnInfo(defaultValue = "''") val domainAge: String = "",
 )
 
 @Dao
@@ -64,6 +68,20 @@ interface HistoryDao {
 
     @Query("UPDATE history SET aiOpinion = :value WHERE id = :id")
     suspend fun setAiOpinion(id: Long, value: String)
+
+    @Query("UPDATE history SET nanoOpinion = :value WHERE id = :id")
+    suspend fun setNanoOpinion(id: Long, value: String)
+
+    @Query("UPDATE history SET domainAge = :value WHERE id = :id")
+    suspend fun setDomainAge(id: Long, value: String)
+
+    /** Solo per ALZARE il livello (PROBABILE_TRUFFA > SOSPETTO > NESSUN_SEGNALE): mai abbassa. */
+    @Query(
+        "UPDATE history SET level = :level WHERE id = :id AND " +
+            "(CASE :level WHEN 'PROBABILE_TRUFFA' THEN 0 WHEN 'SOSPETTO' THEN 1 ELSE 2 END) < " +
+            "(CASE level WHEN 'PROBABILE_TRUFFA' THEN 0 WHEN 'SOSPETTO' THEN 1 ELSE 2 END)",
+    )
+    suspend fun setLevel(id: Long, level: String)
 
     @Query("UPDATE history SET exceptionKind = :kind WHERE id = :id")
     suspend fun setExceptionKind(id: Long, kind: Int)
@@ -96,7 +114,21 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
     }
 }
 
-@Database(entities = [HistoryEntity::class], version = 5, exportSchema = false)
+/** v5 -> v6: aggiunge il parere di Gemini Nano salvato (cifrato). Non distruttiva: le righe esistenti restano, senza parere. */
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE history ADD COLUMN nanoOpinion TEXT NOT NULL DEFAULT ''")
+    }
+}
+
+/** v6 -> v7: aggiunge l'eta' dei domini salvata (cifrata). Non distruttiva: le righe esistenti restano, senza eta'. */
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE history ADD COLUMN domainAge TEXT NOT NULL DEFAULT ''")
+    }
+}
+
+@Database(entities = [HistoryEntity::class], version = 7, exportSchema = false)
 abstract class EyeDb : RoomDatabase() {
     abstract fun history(): HistoryDao
 }
@@ -129,7 +161,9 @@ class HistoryRepository(
         val json = if (e.verdictJson.isEmpty()) "" else crypto.decrypt(e.verdictJson) ?: return null
         // un parere illeggibile non nasconde l'analisi: si perde solo il parere
         val ai = if (e.aiOpinion.isEmpty()) "" else crypto.decrypt(e.aiOpinion).orEmpty()
-        return e.copy(fullText = text, verdictJson = json, aiOpinion = ai)
+        val nano = if (e.nanoOpinion.isEmpty()) "" else crypto.decrypt(e.nanoOpinion).orEmpty()
+        val age = if (e.domainAge.isEmpty()) "" else crypto.decrypt(e.domainAge).orEmpty()
+        return e.copy(fullText = text, verdictJson = json, aiOpinion = ai, nanoOpinion = nano, domainAge = age)
     }
 
     /** Cancellazione fisica dei record più vecchi oltre la conservazione scelta (GDPR-07) e di quelli illeggibili. */
@@ -157,6 +191,15 @@ class HistoryRepository(
 
     /** Salva (cifrato) il parere AI nella voce [id]; [json] vuoto lo rimuove. */
     suspend fun setAiOpinion(id: Long, json: String) = dao.setAiOpinion(id, if (json.isEmpty()) "" else crypto.encrypt(json))
+
+    /** Salva (cifrato) il parere di Gemini Nano nella voce [id]; [json] vuoto lo rimuove. */
+    suspend fun setNanoOpinion(id: Long, json: String) = dao.setNanoOpinion(id, if (json.isEmpty()) "" else crypto.encrypt(json))
+
+    /** Salva (cifrata) l'eta' dei domini nella voce [id]; [json] vuoto la rimuove. */
+    suspend fun setDomainAge(id: Long, json: String) = dao.setDomainAge(id, if (json.isEmpty()) "" else crypto.encrypt(json))
+
+    /** Livello mostrato in elenco: solo rialzi (parere di Gemini Nano, eta' del dominio), mai un abbassamento. */
+    suspend fun setLevel(id: Long, level: String) = dao.setLevel(id, level)
 
     suspend fun setExceptionKind(id: Long, kind: Int) = dao.setExceptionKind(id, kind)
 

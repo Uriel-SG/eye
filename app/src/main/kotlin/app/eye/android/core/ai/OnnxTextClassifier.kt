@@ -72,11 +72,32 @@ class OnnxTextClassifier(context: Context) : TextClassifier {
         val tokenizer = appContext.assets.open("ml/tokenizer.json").use { MiniLmTokenizer(it.readBytes().toString(Charsets.UTF_8)) }
         val model = modelFile()
         val env = OrtEnvironment.getEnvironment()
-        val opts = OrtSession.SessionOptions().apply {
-            setIntraOpNumThreads(2)
-            setInterOpNumThreads(1)
+        // Autotest all'avvio: i kernel int8 di ONNX Runtime dipendono dalla CPU (x86/arm64, dotprod/i8mm...). Se su QUESTO
+        // telefono il modello non riproduce i risultati attesi sul PC si riprova senza ottimizzazioni di grafo; se ancora
+        // sbaglia, il modello resta spento (solo regole) invece di alzare avvisi a caso.
+        for (level in listOf(OrtSession.SessionOptions.OptLevel.ALL_OPT, OrtSession.SessionOptions.OptLevel.NO_OPT)) {
+            val opts = OrtSession.SessionOptions().apply {
+                setIntraOpNumThreads(2)
+                setInterOpNumThreads(1)
+                setOptimizationLevel(level)
+            }
+            val session = env.createSession(model.absolutePath, opts)
+            val candidate = Loaded(env, session, tokenizer)
+            if (selfCheck(candidate, level.name)) return candidate
+            session.close()
         }
-        return Loaded(env, env.createSession(model.absolutePath, opts), tokenizer)
+        error("autotest del modello fallito")
+    }
+
+    private fun selfCheck(m: Loaded, label: String): Boolean = try {
+        val benign = SELF_CHECK_BENIGN.map { infer(m, m.tokenizer.encode(it)) }
+        val scam = SELF_CHECK_SCAM.map { infer(m, m.tokenizer.encode(it)) }
+        val ok = benign.all { it < 0.2f } && scam.all { it > 0.8f }
+        Log.i(TAG, "autotest $label: ${if (ok) "ok" else "FALLITO"} legittimi=${benign.joinToString { "%.3f".format(it) }} truffe=${scam.joinToString { "%.3f".format(it) }}")
+        ok
+    } catch (e: Throwable) {
+        Log.w(TAG, "autotest $label: errore ${e.javaClass.simpleName}")
+        false
     }
 
     /** ONNX Runtime legge da un percorso (mappatura in memoria): l'asset non compresso si copia una volta nella cache. */
@@ -92,7 +113,14 @@ class OnnxTextClassifier(context: Context) : TextClassifier {
         return f
     }
 
-    private companion object {
-        const val TAG = "EyeAI"
+    companion object {
+        private const val TAG = "EyeAI"
+
+        /** Testi con probabilita' note dal PC (JVM): legittimi ~0.002-0.005, truffe ~0.998. Soglie larghe: cattura il modello «rotto», non le sfumature. */
+        val SELF_CHECK_BENIGN = listOf("Mario\nok", "Mario\nCi vediamo dopo alle 8", "Giulia\nHai visto la partita ieri sera?")
+        val SELF_CHECK_SCAM = listOf(
+            "Gentile clienti, e' stato effettuato un accesso anomalo al suo conto, inserire i dati al seguente link https://intesa-clienti-xq7k.com/login",
+            "Royal Mail: Your parcel could not be delivered due to an unpaid shipping fee of 1.99 GBP. Please settle this here: https://rm-redelivery-uk-x7.com",
+        )
     }
 }

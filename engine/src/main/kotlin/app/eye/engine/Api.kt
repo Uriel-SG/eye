@@ -17,6 +17,11 @@ data class Input(
     val declaredSender: String? = null,
     /** Package dell'app che ha generato la notifica; null per condivisioni, incolla e OCR. */
     val origin: String? = null,
+    /**
+     * Link accorciato (come in [ShortLinks.candidates]) -> destinazione risolta dal servizio di accorciamento.
+     * Assente = non risolto. La destinazione si analizza al posto del link accorciato.
+     */
+    val resolvedLinks: Map<String, String> = emptyMap(),
 )
 
 /** Mai «Sicuro»: l'assenza di segnali non è una garanzia. */

@@ -16,13 +16,16 @@ import java.util.concurrent.TimeUnit
 
 private val Context.container get() = (applicationContext as EyeApp).container
 
-/** Aggiornamento regole per tutti (per tutti): ogni 24 h con rete. Nessun dato inviato. */
+/** Aggiornamento di regole, campagne e elenco siti malevoli per tutti: ogni 24 h con rete. Nessun dato inviato. */
 class RulesUpdateWorker(ctx: Context, p: WorkerParameters) : CoroutineWorker(ctx, p) {
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val c = applicationContext.container
-        val r = c.feedUpdater.updateRules()
-        if (r is FeedResult.Updated) c.reloadRules()
+        val all = c.feedUpdater.updateAll(FeedUpdater.FREE_MIN_INTERVAL_MS) // regole, campagne, siti malevoli
+        if (all.rules is FeedResult.Updated) c.reloadRules()
+        if (all.blocklist is FeedResult.Updated) c.reloadBlocklist()
+        if (all.campaigns is FeedResult.Updated) c.reloadCampaigns()
         // solo la rete assente si riprova (backoff esponenziale di WorkManager); verifiche fallite: si aspetta il prossimo ciclo
+        val r = all.summary
         if (r is FeedResult.Failed && r.why == FeedFailure.NETWORK) Result.retry() else Result.success()
     }
 }

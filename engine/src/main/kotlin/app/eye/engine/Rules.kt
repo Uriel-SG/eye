@@ -102,6 +102,8 @@ data class AiConfig(
             "BAN-12",
             "CRD-02",
             "MBX-01",
+            // sito nell'elenco pubblico di truffe/malware
+            "BLK-01",
         )
     }
 }

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="info_rules_title">Regole</string>
+    <string name="info_rules_value">Versione %1$d, ultimo aggiornamento: %2$s</string>
+    <string name="info_rules_never">Versione %1$d (incluse nell’app), nessun aggiornamento ancora</string>
+    <string name="info_blocklist_title">Lista siti malevoli</string>
+    <string name="info_blocklist_value">%1$s voci, aggiornata il %2$s. Controllo sul telefono, anche senza rete.</string>
+    <string name="info_blocklist_stale">%1$s voci, aggiornata il %2$s. Elenco non recente: Eye lo utilizza comunque e lo aggiorna automaticamente quando è disponibile la rete.</string>
+    <string name="info_blocklist_none">Non ancora scaricata: il download è automatico quando è disponibile la rete, oppure con «Aggiorna» nel Catalogo.</string>
+    <string name="lic_blocklist">Elenco siti malevoli: Phishing.Database (Mitchell Krog, Nissar Chababy e collaboratori)</string>
+    <string name="lic_blocklist_terms">Licenza MIT: i nomi dei siti sono nell’elenco firmato di Eye, controllato sul telefono</string>
+</resources>

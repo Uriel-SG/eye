@@ -1,6 +1,7 @@
 package app.eye.android.core.notif
 
-import app.eye.engine.Level
+import app.eye.engine.AlertPolicy
+import app.eye.engine.Verdict
 
 /** App di messaggistica proposte per la Protezione automatica (mostrate solo se installate). */
 data class MonitoredApp(val pkg: String, val label: String)
@@ -150,7 +151,8 @@ class NotificationGate(
     }
 
     companion object {
-        fun shouldAlert(level: Level) = level != Level.NESSUN_SEGNALE
+        /** Politica avvisi in background (vedi AlertPolicy): PROBABILE sempre, SOSPETTO solo con un segnale forte. */
+        fun shouldAlert(v: Verdict) = AlertPolicy.shouldAlert(v)
     }
 }
 

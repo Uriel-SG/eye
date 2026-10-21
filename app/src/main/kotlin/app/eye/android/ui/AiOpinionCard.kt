@@ -81,7 +81,13 @@ fun aiErrorText(f: AiOutcome.Failure): String = when (f.error) {
  * nella voce di cronologia [historyId], se c'è, e si rivede senza rifare la richiesta.
  */
 @Composable
-fun AiSecondOpinion(vm: AppViewModel, text: String, rulesLevel: Level, historyId: Long? = null) {
+fun AiSecondOpinion(vm: AppViewModel, text: String, rulesLevel: Level, historyId: Long? = null, verdict: app.eye.engine.Verdict? = null) {
+    NanoSecondOpinion(vm, text, verdict, historyId) // gratuito e locale: se disponibile e' il parere predefinito
+    AiKeyOpinion(vm, text, rulesLevel, historyId)
+}
+
+@Composable
+private fun AiKeyOpinion(vm: AppViewModel, text: String, rulesLevel: Level, historyId: Long?) {
     val settings by vm.settings.collectAsState()
     val session by vm.ai.collectAsState()
     val history by vm.history.collectAsState()

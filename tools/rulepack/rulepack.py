@@ -6,14 +6,19 @@
   rulepack.py sign-campaigns --key <priv.pem> --key-id eye-2026-a --version 3 --campaigns campaigns.json --out campaigns.eye.json
   rulepack.py build-site-data --key <priv.pem> --key-id eye-2026-a --site-data <Eye-WebSite/data>
       [--rules engine/src/main/resources/rules/rules.json] [--campaigns tools/campaigns/campaigns.json]
-      [--rules-version N] [--campaigns-version M]
+      [--rules-version N] [--campaigns-version M] [--blocklist-hashes tools/blocklist/out/hashes.bin] [--blocklist-version K]
+  rulepack.py sign-blocklist --key <priv.pem> --key-id eye-2026-a --version 3 --hashes hashes.bin --out blocklist.eye.json
+      (hashes.bin: output di tools/blocklist/build_blocklist.py; feed format 3, dominio EYE-BLOCKLIST-v1)
 """
-import argparse, base64, datetime, gzip, hashlib, json, os, re, sys, unicodedata, urllib.parse
+import argparse, base64, datetime, gzip, hashlib, json, os, re, struct, sys, unicodedata, urllib.parse
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 DOMAIN = b"EYE-RULES-v1\n"  # deve coincidere con RulePackVerifier.DOMAIN
 CAMPAIGNS_DOMAIN = b"EYE-CAMPAIGNS-v1\n"  # deve coincidere con CampaignFeedVerifier.DOMAIN (format 2)
+BLOCKLIST_DOMAIN = b"EYE-BLOCKLIST-v1\n"  # deve coincidere con BlocklistVerifier.DOMAIN (format 3)
+BLOCKLIST_MAGIC = b"EBL1"
+BLOCKLIST_HASH_BYTES = 6
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 
@@ -46,8 +51,8 @@ CATEGORIES = {"smishing", "phishing", "whatsapp", "malware", "investimenti", "ac
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{2,63}$")
 DATE_RE = re.compile(r"^20\d\d-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$")
 HOST_RE = re.compile(r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$")
-MAX_PLAIN = {1: 10 * 1024 * 1024, 2: 1024 * 1024}  # decompresso, come i verifier
-MAX_ENVELOPE = {1: 2 * 1024 * 1024, 2: 256 * 1024}
+MAX_PLAIN = {1: 10 * 1024 * 1024, 2: 1024 * 1024, 3: 8 * 1024 * 1024}  # decompresso, come i verifier
+MAX_ENVELOPE = {1: 2 * 1024 * 1024, 2: 256 * 1024, 3: 8 * 1024 * 1024}
 
 
 def official_https(url):
@@ -132,19 +137,53 @@ def validate_rules(doc):
     return e
 
 
+def encode_blocklist_body(hashes_bin):
+    """hashes.bin (hash da 6 byte, ordinati, unici) -> corpo compatto: primo hash, poi differenze u32 BE (escape 0xFFFFFFFF + hash)."""
+    n = BLOCKLIST_HASH_BYTES
+    if len(hashes_bin) % n:
+        sys.exit("hashes.bin: lunghezza non multipla di %d" % n)
+    vals = [int.from_bytes(hashes_bin[i:i + n], "big") for i in range(0, len(hashes_bin), n)]
+    if any(b <= a for a, b in zip(vals, vals[1:])):
+        sys.exit("hashes.bin: hash non strettamente crescenti")
+    out = bytearray(hashes_bin[:n])
+    for a, b in zip(vals, vals[1:]):
+        gap = b - a
+        if gap < 0xFFFFFFFF:
+            out += struct.pack(">I", gap)
+        else:
+            out += b"\xff\xff\xff\xff" + b.to_bytes(n, "big")
+    return len(vals), bytes(out)
+
+
+def make_blocklist_plain(version, key_id, hashes_bin, issued, expires):
+    count, body = encode_blocklist_body(hashes_bin)
+    if count == 0:
+        sys.exit("RIFIUTO di firmare: elenco vuoto")
+    header = json.dumps({"version": version, "keyId": key_id, "issuedAt": issued, "expiresAt": expires,
+                         "count": count, "hashBytes": BLOCKLIST_HASH_BYTES}, separators=(",", ":")).encode("utf-8")
+    return BLOCKLIST_MAGIC + struct.pack(">I", len(header)) + header + body
+
+
 def make_envelope(keyfile, key_id, version, doc, domain, fmt, ttl_days=45):
-    """Envelope firmato (THREAT_MODEL §5). Il payload ripete version e keyId e porta issuedAt/expiresAt (firmati)."""
-    errors = (validate_rules if fmt == 1 else validate_campaigns)(doc)
-    if errors:
-        sys.exit("RIFIUTO di firmare, contenuto non valido:\n  " + "\n  ".join(errors[:30]))
+    """Envelope firmato (THREAT_MODEL §5). Il payload ripete version e keyId e porta issuedAt/expiresAt (firmati).
+    fmt 3 (elenco siti malevoli): doc e' il contenuto di hashes.bin (bytes), il payload e' binario (vedi BlocklistVerifier)."""
+    if fmt != 3:
+        errors = (validate_rules if fmt == 1 else validate_campaigns)(doc)
+        if errors:
+            sys.exit("RIFIUTO di firmare, contenuto non valido:\n  " + "\n  ".join(errors[:30]))
     k = serialization.load_pem_private_key(open(keyfile, "rb").read(), password=None)
-    doc = dict(doc)
-    doc["version"] = version
-    doc["keyId"] = key_id
     now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
-    doc["issuedAt"] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
-    doc["expiresAt"] = (now + datetime.timedelta(days=ttl_days)).strftime("%Y-%m-%dT%H:%M:%SZ")
-    plain = json.dumps(doc, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    issued = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+    expires = (now + datetime.timedelta(days=ttl_days)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    if fmt == 3:
+        plain = make_blocklist_plain(version, key_id, doc, issued, expires)
+    else:
+        doc = dict(doc)
+        doc["version"] = version
+        doc["keyId"] = key_id
+        doc["issuedAt"] = issued
+        doc["expiresAt"] = expires
+        plain = json.dumps(doc, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     payload = gzip.compress(plain, mtime=0)
     msg = domain + key_id.encode() + b"\n" + str(version).encode() + b"\n" + payload
     env = {
@@ -179,6 +218,16 @@ def sign_campaigns(a):
     print("scritto", a.out, "versione", a.version)
 
 
+def read_bytes(path):
+    with open(path, "rb") as f:
+        return f.read()
+
+
+def sign_blocklist(a):
+    write_bytes(a.out, make_envelope(a.key, a.key_id, a.version, read_bytes(a.hashes), BLOCKLIST_DOMAIN, 3, ttl_days=30))
+    print("scritto", a.out, "versione", a.version)
+
+
 def build_site_data(a):
     """Firma regole e campagne e scrive version.json + i due envelope nella cartella dati del sito."""
     os.makedirs(a.site_data, exist_ok=True)
@@ -196,15 +245,20 @@ def build_site_data(a):
         "rules.eye.json": (make_envelope(a.key, a.key_id, rv, rules, DOMAIN, 1), rv),
         "campaigns.eye.json": (make_envelope(a.key, a.key_id, cv, load_json(a.campaigns), CAMPAIGNS_DOMAIN, 2), cv),
     }
+    bl_path = a.blocklist_hashes or os.path.join(REPO, "tools", "blocklist", "out", "hashes.bin")
+    if os.path.exists(bl_path):
+        bv = a.blocklist_version or int(old.get("blocklist", {}).get("version", 0)) + 1
+        files["blocklist.eye.json"] = (make_envelope(a.key, a.key_id, bv, read_bytes(bl_path), BLOCKLIST_DOMAIN, 3, ttl_days=30), bv)
     index = {}
     for name, (data, ver) in files.items():
         write_bytes(os.path.join(a.site_data, name), data)
-        index["rules" if name.startswith("rules") else "campaigns"] = {
-            "version": ver, "sha256": hashlib.sha256(data).hexdigest(), "url": name}
+        index[name.split(".")[0]] = {"version": ver, "sha256": hashlib.sha256(data).hexdigest(), "url": name}
+    if "blocklist" not in index and "blocklist" in old:
+        index["blocklist"] = old["blocklist"]  # nessun nuovo elenco: resta quello pubblicato
     write_bytes(vpath, (json.dumps(index, separators=(",", ":")) + "\n").encode("utf-8"))
     headers = "/*\n  Content-Type: application/json; charset=utf-8\n  Cache-Control: public, max-age=300\n  X-Content-Type-Options: nosniff\n"
     write_bytes(os.path.join(a.site_data, "_headers"), headers.encode("utf-8"))
-    print("scritto in", a.site_data, "- regole v%d, campagne v%d" % (rv, cv))
+    print("scritto in", a.site_data, "- regole v%d, campagne v%d" % (rv, cv), ("- siti malevoli v%d" % index["blocklist"]["version"]) if "blocklist" in index else "")
 
 
 p = argparse.ArgumentParser()
@@ -228,6 +282,13 @@ c.add_argument("--version", type=int, required=True)
 c.add_argument("--campaigns", required=True)
 c.add_argument("--out", required=True)
 c.set_defaults(f=sign_campaigns)
+bl = s.add_parser("sign-blocklist")
+bl.add_argument("--key", required=True)
+bl.add_argument("--key-id", required=True)
+bl.add_argument("--version", type=int, required=True)
+bl.add_argument("--hashes", required=True)
+bl.add_argument("--out", required=True)
+bl.set_defaults(f=sign_blocklist)
 b = s.add_parser("build-site-data")
 b.add_argument("--key", required=True, help="chiave privata di produzione (fuori dal repo)")
 b.add_argument("--key-id", required=True)
@@ -236,6 +297,8 @@ b.add_argument("--rules", default=os.path.join(REPO, "engine", "src", "main", "r
 b.add_argument("--campaigns", default=os.path.join(REPO, "tools", "campaigns", "campaigns.json"))
 b.add_argument("--rules-version", type=int)
 b.add_argument("--campaigns-version", type=int)
+b.add_argument("--blocklist-hashes", help="hashes.bin di tools/blocklist (default: tools/blocklist/out/hashes.bin se esiste)")
+b.add_argument("--blocklist-version", type=int)
 b.set_defaults(f=build_site_data)
 a = p.parse_args()
 a.f(a)

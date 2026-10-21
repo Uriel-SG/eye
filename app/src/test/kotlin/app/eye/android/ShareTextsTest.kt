@@ -104,4 +104,13 @@ class ShareTextsTest {
         assertTrue(b.lines().take(4).all { it.isEmpty() || it == ShareTexts.COMMENT_LABEL })
         assertTrue(b.endsWith(sms))
     }
+
+    @Test fun safeOutgoingDefangsAndAddsNoteOnlyWhenNeeded() {
+        val out = ShareTexts.safeOutgoing(sms)
+        assertTrue(out.contains("hxxps://brt-consegna[.]com/x"))
+        assertTrue(out.endsWith("(link resi non cliccabili per sicurezza)"))
+        assertEquals(out, ShareTexts.safeOutgoing(out))
+        val plain = "Ciao, ci vediamo alle 18.30"
+        assertEquals(plain, ShareTexts.safeOutgoing(plain))
+    }
 }

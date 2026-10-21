@@ -74,8 +74,10 @@ class EyeNotificationListener : NotificationListenerService() {
         val text = g.accept(n, active) ?: return
         if (!g.allowAnalysis()) return // tetto aggregato al minuto
         // Analisi in linea sul worker seriale: nessun parallelismo, anche se la precedente fosse lenta.
-        val verdict = app.container.checker.analyze(Input(text, Source.SHARE, declaredSender = n.title?.toString()?.take(120), origin = n.pkg))
-        if (!NotificationGate.shouldAlert(verdict.level) || !g.allowAlert(n.pkg)) return
+        val verdict = app.container.checker.analyze(Input(text, Source.SHARE, declaredSender = n.title?.toString()?.take(120), origin = n.pkg,
+            // link accorciati: si chiede la destinazione al servizio PRIMA dell'analisi (max 4 s, sul worker seriale)
+            resolvedLinks = app.container.shortLinks.expandBlocking(text)))
+        if (!NotificationGate.shouldAlert(verdict) || !g.allowAlert(n.pkg)) return
         val label = MonitoredApps.presets(BuildConfig.DEBUG).firstOrNull { it.pkg == n.pkg }?.label ?: n.pkg
         val id = alertId(n.pkg, n.title)
         // cifrato su disco finché l'avviso non è aperto o scartato; senza cifratura non si avvisa (mai testo in chiaro)

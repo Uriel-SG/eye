@@ -95,6 +95,8 @@ class HistoryAndNavTest {
         repeat(5) { st = TabNav.apply(TabNav.apply(st, Route.CATALOG), Route.HOME); assertEquals(listOf(Route.HOME), st) }
     }
 
+    @Test fun domainAgeCheckIsOffByDefault() { assertFalse(Settings().domainAgeCheck) }
+
     // --- impostazioni AI
     @Test fun aiConfiguredRequiresKeyAndValidCompatibleSetup() {
         assertFalse(Settings().aiConfigured)

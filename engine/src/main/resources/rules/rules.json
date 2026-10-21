@@ -1,5 +1,5 @@
 {
- "version": 8,
+ "version": 11,
  "thresholds": {
   "probable": 55,
   "suspect": 25
@@ -39,7 +39,8 @@
    "INC-01",
    "BAN-12",
    "CRD-02",
-   "MBX-01"
+   "MBX-01",
+   "BLK-01"
   ]
  },
  "lists": {
@@ -1308,13 +1309,25 @@
    "bloomberg.com",
    "canva.com",
    "cloudflare.com",
+   "coursera.org",
+   "deliveroo.it",
    "discord.com",
    "dropbox.com",
+   "duolingo.com",
+   "easyjet.com",
+   "etsy.com",
+   "eventbrite.com",
+   "eventbrite.it",
+   "expedia.it",
    "figma.com",
    "github.com",
    "gitlab.com",
+   "glovo.com",
    "imdb.com",
+   "justeat.it",
+   "komoot.com",
    "kotlinlang.org",
+   "lastminute.com",
    "linkedin.com",
    "medium.com",
    "mozilla.org",
@@ -1327,17 +1340,22 @@
    "redd.it",
    "reddit.com",
    "reuters.com",
+   "skyscanner.it",
    "slack.com",
    "spotify.com",
    "stackexchange.com",
    "stackoverflow.com",
+   "strava.com",
    "stripe.com",
    "techcrunch.com",
    "theguardian.com",
    "theverge.com",
+   "tiktok.com",
    "tripadvisor.com",
+   "trivago.it",
    "twitch.tv",
    "twitter.com",
+   "udemy.com",
    "vercel.com",
    "wikimedia.org",
    "wikipedia.org",
@@ -2203,6 +2221,24 @@
    "detector": "shortener"
   },
   {
+   "id": "URL-11",
+   "category": "link",
+   "weight": 0,
+   "explanation": "Il link accorciato {domain} porta a {dest}.",
+   "example": "bit.ly/3xYz",
+   "kind": "detector",
+   "detector": "shortener_resolved"
+  },
+  {
+   "id": "URL-12",
+   "category": "link",
+   "weight": 10,
+   "explanation": "Il link accorciato {domain} porta a {dest}, un sito che Eye non conosce.",
+   "example": "bit.ly/3xYz",
+   "kind": "detector",
+   "detector": "shortener_resolved_unknown"
+  },
+  {
    "id": "URL-05",
    "category": "link",
    "weight": 35,
@@ -2246,6 +2282,15 @@
    "example": "accedi:sito-falso.top/login",
    "kind": "detector",
    "detector": "unresolved_link"
+  },
+  {
+   "id": "BLK-01",
+   "category": "link",
+   "weight": 60,
+   "explanation": "Il sito {domain} è nell'elenco pubblico dei siti di truffa o malware.",
+   "example": "https://sito-segnalato.example/login",
+   "kind": "detector",
+   "detector": "known_malicious_domain"
   },
   {
    "id": "MIS-01",

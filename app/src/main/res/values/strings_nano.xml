@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nano_card_title">Secondo parere sul telefono (Gemini Nano)</string>
+    <string name="nano_loading">Gemini Nano sta leggendo il messaggio…</string>
+    <string name="nano_unavailable">Parere sul telefono non disponibile in questo momento.</string>
+    <string name="nano_retry">Riprova</string>
+    <string name="nano_verdict_truffa">Gemini Nano: probabile truffa</string>
+    <string name="nano_verdict_sospetto">Gemini Nano: messaggio sospetto</string>
+    <string name="nano_verdict_legittimo">Gemini Nano: sembra un messaggio normale</string>
+    <string name="nano_advice">Cosa fare: %1$s</string>
+    <string name="nano_raised">Gemini Nano sul telefono ritiene che il messaggio sia probabilmente una truffa. Con il suo parere il livello sale a: %1$s.</string>
+    <string name="nano_no_lowering">Il livello di Eye non cambia: il parere sul telefono non lo abbassa mai.</string>
+    <string name="nano_privacy">Elaborato solo su questo telefono: il testo non viene inviato a nessuno. Non è una garanzia.</string>
+    <string name="nano_info_active">Gemini Nano sul telefono: attivo</string>
+    <string name="nano_info_downloading">Gemini Nano sul telefono: in download</string>
+    <string name="nano_info_unavailable">Gemini Nano sul telefono: non disponibile</string>
+    <string name="nano_different_title">Gemini Nano ha un\'opinione diversa</string>
+    <string name="nano_protect">Eye ha trovato segnali concreti di rischio: nel dubbio segui i consigli di Eye e verifica con l\'ente tramite i suoi canali ufficiali.</string>
+    <string name="nano_protect_strong">Eye ha trovato segnali concreti di rischio: probabile truffa. Non fidarti di questo parere: segui i consigli di Eye e verifica con l\'ente solo tramite i suoi canali ufficiali.</string>
+</resources>

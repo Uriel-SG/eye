@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_sec_features">Funzionalità</string>
+    <string name="settings_sec_history">Cronologia</string>
+    <string name="settings_sec_ai">AI</string>
+</resources>

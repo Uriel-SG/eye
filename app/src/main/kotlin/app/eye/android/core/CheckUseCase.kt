@@ -18,11 +18,13 @@ class CheckUseCase(
     private val history: HistoryRepository,
     private val saveHistory: suspend () -> Boolean,
     private val clock: () -> Long = System::currentTimeMillis,
+    /** Destinazioni dei link accorciati del testo (vuoto se spento o non risolti); eseguita prima dell'analisi. */
+    private val expand: suspend (String) -> Map<String, String> = { emptyMap() },
 ) {
     suspend fun run(text: String, source: Source, truncated: Boolean = false, origin: String? = null, sender: String? = null): CheckOutcome {
         if (text.isBlank()) return CheckOutcome.Empty
         if (text.length > MAX_CHARS) return CheckOutcome.TooLong // SEC-05
-        val verdict = analyzer.analyze(Input(text, source, sender, origin))
+        val verdict = analyzer.analyze(Input(text, source, sender, origin, resolvedLinks = expand(text)))
         val id = if (saveHistory()) {
             history.save(verdict.level.name, Redactor.preview(text), verdict.reasonTexts(), text, VerdictJson.encode(verdict), exceptionKind = exceptionKindOf(verdict))
         } else null

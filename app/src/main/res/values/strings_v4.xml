@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Cronologia: conservazione e ricerca -->
-    <string name="retention_title">Conserva la cronologia</string>
-    <string name="retention_sub">Le analisi che segni con «Salva» restano sempre.</string>
+    <string name="retention_title">Conservazione della cronologia</string>
+    <string name="retention_sub">Le analisi segnate con «Salva» restano sempre.</string>
     <string name="retention_7">7 giorni</string>
     <string name="retention_30">30 giorni</string>
     <string name="retention_forever">Sempre</string>

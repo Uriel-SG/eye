@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -207,16 +208,31 @@ fun SettingsScreen(vm: AppViewModel, onBack: (() -> Unit)?, onAutoInfo: () -> Un
     val ctx = androidx.compose.ui.platform.LocalContext.current
 
     ScreenScaffold(stringResource(R.string.settings_title), onBack = onBack) {
+        // a) Funzionalità
+        SectionTitle(stringResource(R.string.settings_sec_features))
         AutoProtectSection(vm, s, onAutoInfo)
-        run {
-            HorizontalDivider()
-            val askNotif = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { vm.setAlertCampaigns(true) }
-            SwitchRow(stringResource(R.string.campaign_alerts_title), stringResource(R.string.campaign_alerts_sub), s.alertCampaigns) { on ->
-                if (!on) vm.setAlertCampaigns(false)
-                else if (android.os.Build.VERSION.SDK_INT >= 33 && ctx.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) askNotif.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-                else vm.setAlertCampaigns(true)
+        HorizontalDivider()
+        val askNotif = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { vm.setAlertCampaigns(true) }
+        SwitchRow(stringResource(R.string.campaign_alerts_title), stringResource(R.string.campaign_alerts_sub), s.alertCampaigns) { on ->
+            if (!on) vm.setAlertCampaigns(false)
+            else if (android.os.Build.VERSION.SDK_INT >= 33 && ctx.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) askNotif.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            else vm.setAlertCampaigns(true)
+        }
+        HorizontalDivider()
+        val rulesStale by vm.rulesStaleDays.collectAsState()
+        InfoRow(stringResource(R.string.settings_rules), rulesStale?.let { stringResource(R.string.rules_stale, it.toInt()) } ?: stringResource(R.string.settings_rules_sub))
+        HorizontalDivider()
+        SwitchRow(stringResource(R.string.age_setting_title), stringResource(R.string.age_setting_sub), s.domainAgeCheck) { vm.setDomainAgeCheck(it) }
+        HorizontalDivider()
+        val excCount by vm.exceptions.collectAsState()
+        TextButton(onClick = onExceptions, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+            Column(Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.exc_settings_title), style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.exc_settings_sub, excCount.size), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+
+        // b) Aspetto
         HorizontalDivider()
         AppearanceSection(s.themeMode) { vm.setThemeMode(it) }
         HorizontalDivider()
@@ -227,14 +243,26 @@ fun SettingsScreen(vm: AppViewModel, onBack: (() -> Unit)?, onAutoInfo: () -> Un
         InfoRow(stringResource(R.string.settings_text_size), stringResource(R.string.settings_text_size_sub))
         HorizontalDivider()
         InfoRow(stringResource(R.string.settings_language), stringResource(R.string.settings_language_value))
-        HorizontalDivider()
-        val rulesStale by vm.rulesStaleDays.collectAsState()
-        InfoRow(stringResource(R.string.settings_rules), rulesStale?.let { stringResource(R.string.rules_stale, it.toInt()) } ?: stringResource(R.string.settings_rules_sub))
-        HorizontalDivider()
 
+        // c) Cronologia
+        HorizontalDivider()
+        SectionTitle(stringResource(R.string.settings_sec_history))
+        SwitchRow(stringResource(R.string.settings_save_history), stringResource(R.string.settings_save_history_sub), s.saveHistory) { vm.setSaveHistory(it) }
+        RetentionSection(s.retention) { vm.setRetention(it) }
+        OutlinedButton(onClick = { clearHistory = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text(stringResource(R.string.settings_clear_history)) }
+
+        // d) AI
+        HorizontalDivider()
+        SectionTitle(stringResource(R.string.settings_sec_ai))
+        AiSettingsSection(vm, s)
+
+        // e) WhatsApp
+        HorizontalDivider()
         SectionTitle(stringResource(R.string.howto_title))
         Text(stringResource(R.string.howto_body), style = MaterialTheme.typography.bodyLarge)
 
+        // f) Privacy
+        HorizontalDivider()
         SectionTitle(stringResource(R.string.settings_privacy))
         Row(verticalAlignment = Alignment.Top) {
             Icon(Icons.Rounded.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
@@ -246,27 +274,11 @@ fun SettingsScreen(vm: AppViewModel, onBack: (() -> Unit)?, onAutoInfo: () -> Un
         }
         TextButton(onClick = { privacyLink = true }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.settings_privacy_link)) }
         HorizontalDivider()
-        SwitchRow(stringResource(R.string.settings_save_history), stringResource(R.string.settings_save_history_sub), s.saveHistory) { vm.setSaveHistory(it) }
-        RetentionSection(s.retention) { vm.setRetention(it) }
-        HorizontalDivider()
-        OutlinedButton(onClick = { clearHistory = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text(stringResource(R.string.settings_clear_history)) }
         OutlinedButton(onClick = { clearData = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
             Text(stringResource(R.string.settings_clear_data), color = MaterialTheme.colorScheme.error)
         }
 
-        HorizontalDivider()
-        AiSettingsSection(vm, s)
-
-        HorizontalDivider()
-        val excCount by vm.exceptions.collectAsState()
-        TextButton(onClick = onExceptions, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
-            Column(Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.exc_settings_title), style = MaterialTheme.typography.titleMedium)
-                Text(stringResource(R.string.exc_settings_sub, excCount.size), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-
-        // Stacco netto prima di «Informazioni»
+        // g) Informazioni
         Spacer(Modifier.height(16.dp))
         HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.outline)
         Text(
@@ -279,6 +291,23 @@ fun SettingsScreen(vm: AppViewModel, onBack: (() -> Unit)?, onAutoInfo: () -> Un
         Text(stringResource(R.string.settings_trademarks), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, fontStyle = italic)
         Text(stringResource(R.string.settings_disclaimer_long), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, fontStyle = italic)
         Text(stringResource(R.string.settings_version, BuildConfig.VERSION_NAME), style = MaterialTheme.typography.bodyMedium, fontStyle = italic)
+        val feedInfo by vm.feedInfo.collectAsState()
+        androidx.compose.runtime.LaunchedEffect(Unit) { vm.refreshFeedInfo() }
+        val dateFmt = remember { java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM, java.util.Locale.ITALY) }
+        InfoRow(
+            stringResource(R.string.info_rules_title),
+            if (feedInfo.lastUpdate > 0) stringResource(R.string.info_rules_value, feedInfo.rulesVersion.toInt(), dateFmt.format(java.util.Date(feedInfo.lastUpdate)))
+            else stringResource(R.string.info_rules_never, feedInfo.rulesVersion.toInt()),
+        )
+        val bl = feedInfo.blocklist
+        InfoRow(
+            stringResource(R.string.info_blocklist_title),
+            if (bl == null) stringResource(R.string.info_blocklist_none) else {
+                val n = java.text.NumberFormat.getIntegerInstance(java.util.Locale.ITALY).format(bl.entries)
+                val day = bl.issuedAt?.let { runCatching { dateFmt.format(java.util.Date(java.time.Instant.parse(it).toEpochMilli())) }.getOrNull() } ?: "?"
+                stringResource(if (bl.stale) R.string.info_blocklist_stale else R.string.info_blocklist_value, n, day)
+            },
+        )
         Text(stringResource(R.string.settings_license), style = MaterialTheme.typography.bodyMedium)
         TextButton(onClick = onLicenses, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.licenses_title)) }
 
@@ -400,7 +429,7 @@ fun OnboardingScreen(onDone: () -> Unit) {
     val page = pager.currentPage
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
     ShieldBackdrop()
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
+    Column(Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             TextButton(onClick = onDone, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.action_skip)) }
         }

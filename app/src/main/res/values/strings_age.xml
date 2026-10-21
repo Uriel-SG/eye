@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="age_card_title">Età del sito</string>
+    <string name="age_loading">Controllo età del sito…</string>
+    <string name="age_unavailable">età non disponibile</string>
+    <string name="age_line">%1$s: registrato da %2$s.</string>
+    <string name="age_line_unknown">%1$s: %2$s.</string>
+    <string name="age_privacy">Data di registrazione richiesta al registro dei domini, con il solo nome del sito e mai il messaggio. Disattivabile in Impostazioni.</string>
+    <string name="age_setting_title">Controllo dell\'età dei siti</string>
+    <string name="age_setting_sub">Verifica della data di registrazione dei siti presenti nel messaggio. Al registro ufficiale dei domini viene inviato solo il nome del sito, mai il messaggio.</string>
+    <string name="vt_button">Apri su VirusTotal</string>
+    <string name="vt_dialog_title">Aprire VirusTotal?</string>
+    <string name="vt_dialog_body">VirusTotal è un servizio gratuito che controlla i siti con decine di antivirus. Verrà aperto nel browser per un’analisi più approfondita del sito presente nel messaggio. VirusTotal riceverà solo il nome del sito; il link del messaggio non viene aperto.</string>
+    <string name="vt_dialog_never">Non mostrare più</string>
+</resources>

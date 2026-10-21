@@ -98,6 +98,8 @@ class EyeExtras(
     val green: Color = Color(0xFF0B6E2B),
     /** Verde per elementi grafici (pupilla dell'occhio, contrasto >= 3:1). */
     val pupil: Color = Color(0xFF00A84F),
+    /** Arancione per il TESTO del pulsante «falso positivo» (contrasto AA sullo sfondo del tema). */
+    val orange: Color = Color(0xFFA84300),
 ) {
     fun of(level: Level): VerdictColors = verdict.getValue(level)
 }
@@ -157,7 +159,8 @@ fun EyeTheme(familyMode: Boolean = false, dark: Boolean = isSystemInDarkTheme(),
         else -> Color(0xFF0B6E2B)
     }
     val pupil = if (dark) Color(0xFF00E676) else Color(0xFF00A84F)
-    CompositionLocalProvider(LocalExtras provides EyeExtras(vc, familyMode, green, pupil)) {
+    val orange = if (dark) Color(0xFFFFB27A) else Color(0xFFA84300)
+    CompositionLocalProvider(LocalExtras provides EyeExtras(vc, familyMode, green, pupil, orange)) {
         MaterialTheme(colorScheme = scheme, typography = typography(familyMode), shapes = EyeShapes, content = content)
     }
 }

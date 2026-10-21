@@ -12,6 +12,8 @@ class RuleEngine(
     /** Classificatore di testo opzionale (modello AI sul telefono): segnale aggiuntivo, mai l'unico. */
     private val classifier: TextClassifier? = null,
     private val classifierTimeoutMillis: Long = 3000,
+    /** Elenco locale di siti malevoli noti (BLK-01). Di default vuoto. */
+    private val reputation: DomainReputation = DomainReputation.NONE,
 ) : Analyzer {
 
     private class Compiled(val def: RuleDef, val patterns: List<Pattern>, val unless: Pattern?)
@@ -33,6 +35,8 @@ class RuleEngine(
         }
     }
 
+    private val shortenerSet: Set<String> = rules.lists.shorteners.toHashSet()
+
     val rulesVersion: Long get() = rules.version
     val ruleCount: Int get() = rules.rules.size
 
@@ -43,19 +47,24 @@ class RuleEngine(
 
         val ibanHits = Extractors.ibansWithRanges(raw)
         val scan = Extractors.scan(Text.stripInvisible(raw))
-        val urls = scan.urls
+        // link accorciati gia' risolti: la destinazione prende il posto dello shortener in TUTTE le regole sui link
+        val expansions = ArrayList<Pair<ParsedUrl, ParsedUrl>>()
+        val urls = scan.urls.map { u ->
+            val dest = if (ShortLinks.isShortened(u, shortenerSet)) expand(input.resolvedLinks[u.raw]) else null
+            if (dest == null) u else { expansions.add(u to dest); dest }
+        }
         val phones = Extractors.phones(raw, ibanHits.map { it.second })
         val amounts = Extractors.amounts(raw)
         val extracted = Extracted(
-            urls = urls.map { it.raw },
-            domains = urls.map { it.registrable }.distinct(),
+            urls = scan.urls.map { it.raw },
+            domains = (scan.urls + urls).map { it.registrable }.distinct(),
             phones = phones,
             ibans = ibanHits.map { it.first },
             amounts = amounts,
         )
 
         val text = Text.normalizeForRules(raw)
-        val ctx = Ctx(raw, text, sender, urls, phones, ibanHits.map { it.first }, amounts, rules.lists, scan.anomalies)
+        val ctx = Ctx(raw, text, sender, urls, phones, ibanHits.map { it.first }, amounts, rules.lists, scan.anomalies, reputation, expansions)
         val budgeted = BudgetedChars(text, deadline)
         ctx.scanText = budgeted
 
@@ -112,22 +121,24 @@ class RuleEngine(
         // Link tutti verso siti ufficiali o molto diffusi (es. un amico che condivide reddit/youtube): il modello non alza il verdetto.
         val linksAllKnown = urls.isNotEmpty() && scan.anomalies == 0 &&
             urls.all { ctx.isKnown(it.registrable) && it.registrable !in GROUP_INVITE_DOMAINS && it.registrable !in rules.lists.shorteners }
-        return if (incomplete) base else combineWithClassifier(base, fired.map { it.def.id }, raw, linksAllKnown)
+        return if (incomplete) base else combineWithClassifier(base, fired.map { it.def.id }, raw, linksAllKnown, mayRaise = input.origin == null)
     }
 
     /**
      * Combinazione regole + classificatore. Alza NESSUN_SEGNALE a SOSPETTO (AI-01) se p >= soglia alta;
      * abbassa SOSPETTO a NESSUN_SEGNALE (AI-02) solo se p <= soglia bassa e nessun segnale «grave» (ai.hardRuleIds).
+     * Notifiche in background (origin != null): AI-01 non alza MAI (il modello e' fuori distribuzione sui testi delle
+     * notifiche: segnaposto, promo, email danno p alta anche se legittimi); resta per incolla/condividi/OCR in primo piano.
      * Mai PROBABILE_TRUFFA toccato. Classificatore assente, lento o in errore: verdetto delle regole invariato.
      */
-    private fun combineWithClassifier(v: Verdict, firedIds: List<String>, text: String, linksAllKnown: Boolean = false): Verdict {
+    private fun combineWithClassifier(v: Verdict, firedIds: List<String>, text: String, linksAllKnown: Boolean = false, mayRaise: Boolean = true): Verdict {
         val c = classifier ?: return v
         if (v.level == Level.PROBABILE_TRUFFA) return v
         val ai = rules.ai
         val lowering = v.level == Level.SOSPETTO
         if (lowering && firedIds.any { it in ai.hardRuleIds }) return v // grave: non si declassa, niente inferenza
         val p = classify(c, text) ?: return v
-        if (!lowering && p >= ai.raiseThreshold && !linksAllKnown) {
+        if (!lowering && mayRaise && p >= ai.raiseThreshold && !linksAllKnown) {
             val reasons = listOf(Reason(AI_RAISE_ID, AI_RAISE_TEXT, rules.thresholds.suspect)) + v.reasons
             return v.copy(
                 level = Level.SOSPETTO, score = maxOf(v.score, rules.thresholds.suspect), reasons = reasons,
@@ -167,6 +178,12 @@ class RuleEngine(
         return false
     }
 
+    /** Destinazione risolta valida: URL http(s) il cui host NON e' a sua volta uno shortener. */
+    private fun expand(dest: String?): ParsedUrl? {
+        val p = dest?.takeIf { it.length <= 2048 }?.let { Extractors.parse(Text.stripInvisible(it).trim()) } ?: return null
+        return p.takeIf { (it.scheme == "http" || it.scheme == "https") && it.registrable !in shortenerSet }
+    }
+
     private fun fill(t: String, params: Map<String, String>): String {
         var s = t
         for ((k, v) in params) s = s.replace("{$k}", v)
@@ -187,7 +204,7 @@ class RuleEngine(
 
     companion object {
         /** Domini «ufficiali» usati dai truffatori per portarti in gruppi/chat: non bastano per fidarsi del link. */
-        private val GROUP_INVITE_DOMAINS = setOf("t.me", "telegram.me", "telegram.org", "whatsapp.com", "wa.me", "discord.gg", "discord.com", "signal.group", "signal.me")
+        internal val GROUP_INVITE_DOMAINS = setOf("t.me", "telegram.me", "telegram.org", "whatsapp.com", "wa.me", "discord.gg", "discord.com", "signal.group", "signal.me")
         const val AI_RAISE_ID = "AI-01"
         const val AI_LOWER_ID = "AI-02"
         const val AI_RAISE_TEXT = "Il testo somiglia molto a messaggi truffa noti (analisi del modello AI sul telefono)."

@@ -136,6 +136,10 @@ fun AppNav(vm: AppViewModel) {
                     onQr = startQr,
                     onImage = { vm.ocr(ctx, it) },
                     ongoing = Catalog.ongoing(3, vm.catalog.collectAsState().value),
+                    update = vm.updateCard.collectAsState().value,
+                    onUpdateStart = vm::startUpdate,
+                    onUpdateLater = vm::updateLater,
+                    onUpdateRestart = vm::restartForUpdate,
                 )
             }
             composable(Route.PASTE) { PasteScreen(vm) { nav.popBackStack() } }

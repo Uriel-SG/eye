@@ -1,11 +1,13 @@
 package app.eye.android.core.feed
 
+import app.eye.engine.BlocklistVerifier
 import app.eye.engine.CampaignFeedVerifier
 import app.eye.engine.FeedEntry
 import app.eye.engine.FeedIndex
 import app.eye.engine.RulePackStore
 import app.eye.engine.RulePackVerifier
 import app.eye.engine.install
+import app.eye.engine.installBlocklist
 import app.eye.engine.installCampaigns
 import java.io.IOException
 
@@ -20,6 +22,9 @@ interface FeedState {
     fun setSeenCampaignIds(ids: Set<String>)
     fun notifiedCampaignIds(): Set<String>
     fun setNotifiedCampaignIds(ids: Set<String>)
+    /** Ultimo controllo di regole/campagne/siti malevoli andato a buon fine (ms), 0 = mai. */
+    fun lastFeedUpdate(): Long = 0L
+    fun setLastFeedUpdate(t: Long) {}
     fun clear()
 }
 
@@ -46,6 +51,8 @@ class FeedUpdater(
     private val rulesVerifier: RulePackVerifier = RulePackVerifier(),
     private val campaignVerifier: CampaignFeedVerifier = CampaignFeedVerifier(),
     private val clock: () -> Long = System::currentTimeMillis,
+    private val blocklistStore: RulePackStore? = null,
+    private val blocklistVerifier: BlocklistVerifier = BlocklistVerifier(),
 ) {
     private val base = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
 
@@ -109,7 +116,42 @@ class FeedUpdater(
         return FeedResult.Updated(feed.version)
     }
 
+    /** Elenco locale di siti malevoli (feed firmato separato). Il file e' grande: limite proprio, firma verificata prima del salvataggio. */
+    fun updateBlocklist(): FeedResult {
+        val store = blocklistStore ?: return FeedResult.UpToDate
+        val idx = when (val i = fetchIndex(BLOCKLIST)) {
+            Idx.Same -> return FeedResult.UpToDate
+            is Idx.Bad -> return FeedResult.Failed(i.why)
+            is Idx.New -> i
+        }
+        val entry = idx.index.blocklist
+        if (entry == null || entry.version <= store.installedVersion()) {
+            state.setEtag(BLOCKLIST, idx.etag)
+            return FeedResult.UpToDate
+        }
+        val bytes = download(entry, BlocklistVerifier.MAX_ENVELOPE) ?: return FeedResult.Failed(FeedFailure.BAD_DOWNLOAD)
+        val list = store.installBlocklist(blocklistVerifier, bytes).getOrNull() ?: return FeedResult.Failed(FeedFailure.REJECTED)
+        state.setEtag(BLOCKLIST, idx.etag)
+        return FeedResult.Updated(list.version)
+    }
+
+    class All(val rules: FeedResult, val campaigns: FeedResult, val blocklist: FeedResult) {
+        private val all get() = listOf(rules, campaigns, blocklist)
+        /** Updated se qualcosa e' cambiato; altrimenti Failed (rete in testa) se qualcosa e' fallito; altrimenti UpToDate. */
+        val summary: FeedResult get() = all.firstOrNull { it is FeedResult.Updated }
+            ?: all.filterIsInstance<FeedResult.Failed>().let { f -> f.firstOrNull { it.why == FeedFailure.NETWORK } ?: f.firstOrNull() }
+            ?: FeedResult.UpToDate
+    }
+
+    /** Aggiornamento manuale («Aggiorna»): regole, campagne e siti malevoli. [minIntervalMs] vale solo per le campagne. */
+    fun updateAll(minIntervalMs: Long = 0): All {
+        val r = All(updateRules(), updateCampaigns(minIntervalMs), updateBlocklist())
+        if (r.summary !is FeedResult.Failed) state.setLastFeedUpdate(clock())
+        return r
+    }
+
     companion object {
+        const val BLOCKLIST = "blocklist"
         const val RULES = "rules"
         const val CAMPAIGNS = "campaigns"
         const val FREE_MIN_INTERVAL_MS = 60 * 60 * 1000L
