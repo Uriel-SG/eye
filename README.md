@@ -5,11 +5,11 @@
 <h1 align="center">Eye</h1>
 
 <p align="center"><b>L'app anti-truffa gratuita e open source che controlla SMS, link, QR code e screenshot sul tuo telefono.</b><br>
-<a href="https://eye-security.netlify.app">Sito</a> · <a href="#compilare">Compilare</a> · <a href="#contribuire">Contribuire</a> · <a href="LICENSE">Apache 2.0</a></p>
+<a href="https://eye.urielsec.com">Sito</a> · <a href="#compilare">Compilare</a> · <a href="#contribuire">Contribuire</a> · <a href="LICENSE">Apache 2.0</a></p>
 
 Eye è un'app Android gratuita e open source che aiuta a riconoscere truffe e tentativi di phishing (SMS, messaggi, email, link, QR code, schermate) **senza inviare i tuoi contenuti a nessuno**: l'analisi avviene sul telefono.
 
-Sito: https://eye-security.netlify.app
+Sito: https://eye.urielsec.com
 
 ## Funzioni
 - Controllo manuale di testo incollato/condiviso, immagini (OCR sul dispositivo) e QR code, con verdetto e motivazioni comprensibili.
@@ -58,4 +58,4 @@ Codice sotto licenza Apache-2.0 (vedi `LICENSE` e `NOTICE`). Il nome e il logo �
 ---
 
 ## English (short)
-Eye is a free, open-source Android anti-scam app. It checks messages, links, QR codes and screenshots **on-device**: no account, no analytics, no SMS/accessibility permissions. Rules and the campaign catalog are updated through signed feeds. Build with `./gradlew :engine:test :app:assembleDebug` (JDK 17+, Android SDK). `:engine` is pure Kotlin with JVM tests. Contributions are welcome (tests required, synthetic data only; see `CONTRIBUTING.md`). Production signing keys are not in the repo: forks must generate their own keys and change `FEED_BASE_URL`. Licensed under Apache-2.0; the "Eye" name and logo are not covered by the license. Website: https://eye-security.netlify.app
+Eye is a free, open-source Android anti-scam app. It checks messages, links, QR codes and screenshots **on-device**: no account, no analytics, no SMS/accessibility permissions. Rules and the campaign catalog are updated through signed feeds. Build with `./gradlew :engine:test :app:assembleDebug` (JDK 17+, Android SDK). `:engine` is pure Kotlin with JVM tests. Contributions are welcome (tests required, synthetic data only; see `CONTRIBUTING.md`). Production signing keys are not in the repo: forks must generate their own keys and change `FEED_BASE_URL`. Licensed under Apache-2.0; the "Eye" name and logo are not covered by the license. Website: https://eye.urielsec.com
