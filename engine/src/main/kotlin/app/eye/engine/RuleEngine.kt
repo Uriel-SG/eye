@@ -36,6 +36,7 @@ class RuleEngine(
     }
 
     private val shortenerSet: Set<String> = rules.lists.shorteners.toHashSet()
+    private val bareShortener: Regex? = ShortLinks.bareRegex(shortenerSet)
 
     val rulesVersion: Long get() = rules.version
     val ruleCount: Int get() = rules.rules.size
@@ -46,13 +47,18 @@ class RuleEngine(
         val sender = input.declaredSender?.take(120)
 
         val ibanHits = Extractors.ibansWithRanges(raw)
-        val scan = Extractors.scan(Text.stripInvisible(raw))
+        val scan = Extractors.scan(ShortLinks.stripBare(Text.stripInvisible(raw), bareShortener))
         // link accorciati gia' risolti: la destinazione prende il posto dello shortener in TUTTE le regole sui link
         val expansions = ArrayList<Pair<ParsedUrl, ParsedUrl>>()
         val urls = scan.urls.map { u ->
             val dest = if (ShortLinks.isShortened(u, shortenerSet)) expand(input.resolvedLinks[u.raw]) else null
             if (dest == null) u else { expansions.add(u to dest); dest }
         }
+        // notifiche: un dominio «nudo» (niente schema, www, percorso) senza link reale verso di esso e' un nome citato, non un link
+        val weakBare = if (input.origin == null) emptySet() else urls.filter { u ->
+            !u.hasScheme && !u.raw.startsWith("www.", ignoreCase = true) && (u.path.isEmpty() || u.path == "/") &&
+                urls.none { o -> o !== u && o.hasScheme && o.host == u.host }
+        }.map { it.raw }.toSet()
         val phones = Extractors.phones(raw, ibanHits.map { it.second })
         val amounts = Extractors.amounts(raw)
         val extracted = Extracted(
@@ -64,11 +70,11 @@ class RuleEngine(
         )
 
         val text = Text.normalizeForRules(raw)
-        val ctx = Ctx(raw, text, sender, urls, phones, ibanHits.map { it.first }, amounts, rules.lists, scan.anomalies, reputation, expansions)
+        val ctx = Ctx(raw, text, sender, urls, phones, ibanHits.map { it.first }, amounts, rules.lists, scan.anomalies, reputation, expansions, weakBare)
         val budgeted = BudgetedChars(text, deadline)
         ctx.scanText = budgeted
 
-        class Fired(val def: RuleDef, val reasonText: String, val category: String)
+        class Fired(val def: RuleDef, val reasonText: String, val category: String, val domain: String? = null)
         val fired = ArrayList<Fired>()
 
         var incomplete = false // budget scaduto: fail-safe (mai NESSUN_SEGNALE, mai sconti)
@@ -82,7 +88,7 @@ class RuleEngine(
                     incomplete = true
                     null
                 } ?: continue
-                fired.add(Fired(def, fill(def.explanation, hit.params), hit.category ?: def.category))
+                fired.add(Fired(def, fill(def.explanation, hit.params), hit.category ?: def.category, hit.params["domain"]))
             } else {
                 val matched = try {
                     matches(c, text, budgeted)
@@ -92,6 +98,11 @@ class RuleEngine(
                 }
                 if (matched) fired.add(Fired(def, def.explanation, def.category))
             }
+        }
+
+        // mittente e testo che contestano lo STESSO dominio sono un solo indizio: non si sommano
+        fired.firstOrNull { it.def.id == "MIS-01" }?.let { m1 ->
+            fired.removeAll { it.def.id == "MIS-02" && it.domain == m1.domain }
         }
 
         if (incomplete) {
@@ -104,10 +115,21 @@ class RuleEngine(
         }
         val rawScore = fired.sumOf { it.def.weight }.coerceIn(0, 100)
         val score = if (incomplete) maxOf(rawScore, rules.thresholds.suspect) else rawScore
-        val level = when {
+        var level = when {
             score >= rules.thresholds.probable -> Level.PROBABILE_TRUFFA
             score >= rules.thresholds.suspect -> Level.SOSPETTO
             else -> Level.NESSUN_SEGNALE
+        }
+        // vettori d'azione: senza nulla da fare (o con sola pressione commerciale) il livello non supera SOSPETTO
+        val firedIds = fired.map { it.def.id }
+        val vectors = ActionVectors.detect(ctx, firedIds.toSet())
+        var scoreOut = score
+        if (level == Level.PROBABILE_TRUFFA && !incomplete &&
+            (vectors.all { it == ActionVector.LINK_BARE } ||
+                fired.filter { it.def.weight > 0 }.all { ActionVectors.isContextOnly(it.def.id) || (it.def.id == "BAN-02" && ActionVector.CREDENTIALS !in vectors) })
+        ) {
+            level = Level.SOSPETTO
+            scoreOut = rules.thresholds.probable - 1
         }
         val reasons = fired.sortedByDescending { it.def.weight }
             .map { Reason(it.def.id, it.reasonText, it.def.weight) }
@@ -117,11 +139,13 @@ class RuleEngine(
             .maxByOrNull { (_, v) -> v.sumOf { it.def.weight } }?.key
             .takeIf { level != Level.NESSUN_SEGNALE }
 
-        val base = Verdict(level, score, reasons, actionsFor(level, category), extracted, category, rules.version)
+        val base = Verdict(level, scoreOut, reasons, actionsFor(level, category), extracted, category, rules.version, vectors)
         // Link tutti verso siti ufficiali o molto diffusi (es. un amico che condivide reddit/youtube): il modello non alza il verdetto.
         val linksAllKnown = urls.isNotEmpty() && scan.anomalies == 0 &&
             urls.all { ctx.isKnown(it.registrable) && it.registrable !in GROUP_INVITE_DOMAINS && it.registrable !in rules.lists.shorteners }
-        return if (incomplete) base else combineWithClassifier(base, fired.map { it.def.id }, raw, linksAllKnown, mayRaise = input.origin == null)
+        val finalV = if (incomplete) base else combineWithClassifier(base, firedIds, raw, linksAllKnown, mayRaise = input.origin == null)
+        return finalV.copy(alertTier = AlertPolicy.tierFor(finalV.level, firedIds, vectors,
+            trustedRequest = input.origin != null && AlertPolicy.isTrustedRequest(sender, ibanHits.isNotEmpty(), raw.lowercase(), firedIds)))
     }
 
     /**

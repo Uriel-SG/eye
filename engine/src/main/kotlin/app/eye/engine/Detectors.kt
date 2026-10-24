@@ -17,6 +17,8 @@ internal class Ctx(
     val reputation: DomainReputation = DomainReputation.NONE,
     /** Link accorciati risolti: (shortener, destinazione). La destinazione e' gia' in [urls] al posto dello shortener. */
     val expansions: List<Pair<ParsedUrl, ParsedUrl>> = emptyList(),
+    /** Notifiche: URL (forma [ParsedUrl.raw]) che sono solo un dominio nudo nel testo, non un link reale. Vedi [ActionVector.LINK_BARE]. */
+    val weakBare: Set<String> = emptySet(),
 ) {
     /** Testo con budget di tempo per i rilevatori che usano regex (lancia BudgetExceeded). */
     var scanText: CharSequence = text
@@ -170,43 +172,67 @@ internal object Detectors {
         return false
     }
 
+    private fun lookalikeBrand(c: Ctx, u: ParsedUrl): Brand? {
+        if (c.isOfficial(u.registrable) || u.isIp || u.registrable in c.shorteners) return null
+        val sk = Text.skeleton(u.mainLabelUnicode)
+        for ((b, toks) in c.brandTokens) {
+            if (c.isOfficialFor(u.registrable, b)) continue
+            if (toks.any { labelMatches(sk, it) }) return b
+        }
+        return null
+    }
+
     private fun lookalike(c: Ctx): Hit? {
         for (u in suspectUrls(c)) {
-            if (u.isIp || u.registrable in c.shorteners) continue
-            val sk = Text.skeleton(u.mainLabelUnicode)
-            for ((b, toks) in c.brandTokens) {
-                if (c.isOfficialFor(u.registrable, b)) continue
-                if (toks.any { labelMatches(sk, it) }) {
-                    return Hit(mapOf("domain" to u.registrable, "brand" to b.name), b.category)
-                }
-            }
+            val b = lookalikeBrand(c, u) ?: continue
+            return Hit(mapOf("domain" to u.registrable, "brand" to b.name), b.category)
+        }
+        return null
+    }
+
+    private fun deceptiveBrand(c: Ctx, u: ParsedUrl): Brand? {
+        if (c.isOfficial(u.registrable) || u.isIp) return null
+        val subs = u.subdomains.map { Text.skeleton(Text.toUnicode(it)) }
+        val path = u.path.lowercase()
+        for ((b, toks) in c.brandTokens) {
+            if (c.isOfficialFor(u.registrable, b)) continue
+            val inSub = subs.isNotEmpty() && toks.any { t -> t.length >= 3 && subs.any { it == t || (t.length >= 5 && it.contains(t)) } }
+            val inPath = b.official.any { path.contains(it) }
+            if (inSub || inPath) return b
         }
         return null
     }
 
     private fun deceptiveSubdomain(c: Ctx): Hit? {
         for (u in suspectUrls(c)) {
-            if (u.isIp) continue
-            val subs = u.subdomains.map { Text.skeleton(Text.toUnicode(it)) }
-            val path = u.path.lowercase()
-            for ((b, toks) in c.brandTokens) {
-                if (c.isOfficialFor(u.registrable, b)) continue
-                val inSub = subs.isNotEmpty() && toks.any { t -> t.length >= 3 && subs.any { it == t || (t.length >= 5 && it.contains(t)) } }
-                val inPath = b.official.any { path.contains(it) }
-                if (inSub || inPath) return Hit(mapOf("domain" to u.registrable, "brand" to b.name), b.category)
-            }
+            val b = deceptiveBrand(c, u) ?: continue
+            return Hit(mapOf("domain" to u.registrable, "brand" to b.name), b.category)
         }
         return null
     }
 
-    private fun riskyTld(c: Ctx): Hit? {
-        for (u in suspectUrls(c)) {
-            if (u.isIp) continue
-            val tld = PublicSuffix.suffixOf(u.registrable).substringAfterLast('.')
-            if (tld in c.riskyTlds) return Hit(mapOf("domain" to u.registrable))
-        }
-        return null
+    private fun hasRiskyTld(c: Ctx, u: ParsedUrl) =
+        !u.isIp && PublicSuffix.suffixOf(u.registrable).substringAfterLast('.') in c.riskyTlds
+
+    private fun hasSuspiciousWords(c: Ctx, u: ParsedUrl): Boolean {
+        if (u.isIp || u.registrable in c.shorteners) return false
+        val label = u.mainLabelUnicode
+        val found = c.lists.suspiciousDomainWords.count { label.contains(it) }
+        val hyphens = label.count { it == '-' }
+        return found >= 2 || (found >= 1 && hyphens >= 1) || (hyphens >= 2 && PublicSuffix.suffixOf(u.registrable).substringAfterLast('.') in c.riskyTlds)
     }
+
+    /**
+     * Indizi tecnici di sito ingannevole sul dominio stesso (lookalike, sottodominio ingannevole, TLD a rischio, parole
+     * sospette, punycode/omografo, IP, abbreviatore, elenco siti malevoli): un dominio cosi' non e' mai «debole».
+     */
+    fun technicallySuspicious(c: Ctx, u: ParsedUrl, riskyTldCounts: Boolean = true): Boolean =
+        u.isIp || u.isPunycode || u.hasUserInfo || Text.hasNonAsciiLetters(u.hostUnicode) || u.registrable in c.shorteners ||
+            c.reputation.isKnownMalicious(u.host, u.registrable) ||
+            lookalikeBrand(c, u) != null || deceptiveBrand(c, u) != null || (riskyTldCounts && hasRiskyTld(c, u)) || hasSuspiciousWords(c, u)
+
+    private fun riskyTld(c: Ctx): Hit? =
+        suspectUrls(c).firstOrNull { hasRiskyTld(c, it) }?.let { Hit(mapOf("domain" to it.registrable)) }
 
     private fun shortener(c: Ctx): Hit? =
         c.urls.firstOrNull { it.registrable in c.shorteners && !it.isGoogleShareShortLink }?.let { Hit(mapOf("domain" to it.registrable)) }
@@ -221,17 +247,8 @@ internal object Detectors {
     private fun userInfo(c: Ctx): Hit? =
         c.urls.firstOrNull { it.hasUserInfo }?.let { Hit(mapOf("domain" to it.registrable)) }
 
-    private fun suspiciousWords(c: Ctx): Hit? {
-        val words = c.lists.suspiciousDomainWords
-        for (u in suspectUrls(c)) {
-            if (u.isIp || u.registrable in c.shorteners) continue
-            val label = u.mainLabelUnicode
-            val found = words.count { label.contains(it) }
-            val hyphens = label.count { it == '-' }
-            if (found >= 2 || (found >= 1 && hyphens >= 1) || (hyphens >= 2 && PublicSuffix.suffixOf(u.registrable).substringAfterLast('.') in c.riskyTlds)) return Hit(mapOf("domain" to u.registrable))
-        }
-        return null
-    }
+    private fun suspiciousWords(c: Ctx): Hit? =
+        suspectUrls(c).firstOrNull { hasSuspiciousWords(c, it) }?.let { Hit(mapOf("domain" to it.registrable)) }
 
     private fun apkLink(c: Ctx): Hit? =
         c.urls.firstOrNull { it.path.substringBefore('?').substringBefore('#').lowercase().endsWith(".apk") }
@@ -340,7 +357,7 @@ internal object Detectors {
         if (c.urls.isEmpty() || c.anomalies > 0) return null
         val cited = c.brandsIn(c.text)
         if (cited.isNotEmpty() && c.urls.none { u -> cited.any { c.isOfficialFor(u.registrable, it) } }) return null
-        if (c.urls.all { c.isOfficial(it.registrable) && it.registrable !in c.shorteners && !it.hasUserInfo && !it.isPunycode })
+        if (c.urls.all { c.isOfficial(it.registrable) && it.registrable !in c.shorteners && !it.hasUserInfo && !it.isPunycode && it.registrable !in RuleEngine.GROUP_INVITE_DOMAINS })
             return Hit(mapOf("domain" to c.urls.first().registrable))
         return null
     }

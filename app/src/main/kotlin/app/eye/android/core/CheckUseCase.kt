@@ -4,6 +4,9 @@ import app.eye.android.data.HistoryRepository
 import app.eye.android.data.VerdictJson
 import app.eye.engine.Analyzer
 import app.eye.engine.Input
+import app.eye.engine.Reason
+import app.eye.engine.provenance.ProvenanceMessages
+import app.eye.engine.provenance.ProvenanceReport
 import app.eye.engine.Source
 
 sealed interface CheckOutcome {
@@ -21,14 +24,17 @@ class CheckUseCase(
     /** Destinazioni dei link accorciati del testo (vuoto se spento o non risolti); eseguita prima dell'analisi. */
     private val expand: suspend (String) -> Map<String, String> = { emptyMap() },
 ) {
-    suspend fun run(text: String, source: Source, truncated: Boolean = false, origin: String? = null, sender: String? = null): CheckOutcome {
+    suspend fun run(text: String, source: Source, truncated: Boolean = false, origin: String? = null, sender: String? = null, provenance: ProvenanceReport? = null): CheckOutcome {
         if (text.isBlank()) return CheckOutcome.Empty
         if (text.length > MAX_CHARS) return CheckOutcome.TooLong // SEC-05
-        val verdict = analyzer.analyze(Input(text, source, sender, origin, resolvedLinks = expand(text)))
+        val analyzed = analyzer.analyze(Input(text, source, sender, origin, resolvedLinks = expand(text)))
+        // Segno AI dichiarato nei metadati: motivo solo informativo (peso 0), non cambia livello ne' punteggio.
+        val verdict = provenance?.let { ProvenanceMessages.reasonText(it) }
+            ?.let { analyzed.copy(reasons = analyzed.reasons + Reason(ProvenanceMessages.REASON_ID, it, 0)) } ?: analyzed
         val id = if (saveHistory()) {
             history.save(verdict.level.name, Redactor.preview(text), verdict.reasonTexts(), text, VerdictJson.encode(verdict), exceptionKind = exceptionKindOf(verdict))
         } else null
-        return CheckOutcome.Done(CheckResult(verdict, text, clock(), truncated, id, source, origin, sender))
+        return CheckOutcome.Done(CheckResult(verdict, text, clock(), truncated, id, source, origin, sender, provenance))
     }
 
     companion object {

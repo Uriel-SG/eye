@@ -100,21 +100,33 @@ class OnnxTextClassifier(context: Context) : TextClassifier {
         false
     }
 
-    /** ONNX Runtime legge da un percorso (mappatura in memoria): l'asset non compresso si copia una volta nella cache. */
+    /**
+     * ONNX Runtime legge da un percorso (mappatura in memoria): l'asset non compresso si copia nella cache una volta per
+     * installazione/aggiornamento. La chiave NON puo' essere la sola dimensione (due versioni del modello possono avere
+     * lo stesso numero di byte): include l'istante dell'ultimo aggiornamento dell'app. I file vecchi vengono cancellati.
+     */
     private fun modelFile(): File {
         val dir = File(appContext.cacheDir, "ml").apply { mkdirs() }
         val size = appContext.assets.openFd("ml/model.int8.onnx").use { it.length }
-        val f = File(dir, "model.int8.$size.onnx")
-        if (f.exists() && f.length() == size) return f
+        val stamp = runCatching { appContext.packageManager.getPackageInfo(appContext.packageName, 0).lastUpdateTime }.getOrDefault(0L)
+        val f = File(dir, modelCacheName(size, stamp))
+        if (f.exists() && f.length() == size) {
+            dir.listFiles()?.forEach { if (it != f) it.delete() }
+            return f
+        }
         dir.listFiles()?.forEach { it.delete() }
         val tmp = File(dir, "model.tmp")
         appContext.assets.open("ml/model.int8.onnx").use { i -> tmp.outputStream().use { o -> i.copyTo(o, 1 shl 16) } }
         check(tmp.length() == size && tmp.renameTo(f)) { "copia modello fallita" }
+        Log.i(TAG, "modello copiato in cache: ${f.name}")
         return f
     }
 
     companion object {
         private const val TAG = "EyeAI"
+
+        /** Nome del file in cache: dipende dalla dimensione E dall'ultimo aggiornamento dell'app (mai dalla sola dimensione). */
+        internal fun modelCacheName(size: Long, appUpdateStamp: Long) = "model.int8.$size.$appUpdateStamp.onnx"
 
         /** Testi con probabilita' note dal PC (JVM): legittimi ~0.002-0.005, truffe ~0.998. Soglie larghe: cattura il modello «rotto», non le sfumature. */
         val SELF_CHECK_BENIGN = listOf("Mario\nok", "Mario\nCi vediamo dopo alle 8", "Giulia\nHai visto la partita ieri sera?")

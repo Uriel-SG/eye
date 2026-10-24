@@ -43,6 +43,28 @@ data class Extracted(
     val amounts: List<String> = emptyList(),
 )
 
+/**
+ * Livello di avviso in background, calcolato dal motore (vedi [AlertPolicy.tierFor]). Il livello mostrato ([Level]) non cambia.
+ * NONE = nessun segnale; QUIET = verdetto visibile solo se l'utente apre il messaggio, nessuna notifica;
+ * ALERT = notifica di avviso (c'e' almeno un'azione da compiere sospetta).
+ */
+enum class AlertTier { NONE, QUIET, ALERT }
+
+/** Azioni che il messaggio chiede di compiere (o a cui induce): senza almeno una, non c'e' nulla da cui proteggere. */
+enum class ActionVector {
+    /** Link verso un dominio non ufficiale ne' molto diffuso (sconosciuto, lookalike, TLD a rischio, IP, punycode, shortener non risolto, invito a gruppi). */
+    LINK,
+    /** Solo link verso domini ufficiali o molto diffusi: vettore debole, da solo non genera avvisi. */
+    LINK_OFFICIAL,
+    /** Dominio «nudo» scritto nel testo di una notifica (senza schema, www, percorso, e senza link reali verso di esso): di solito e' il nome di un negozio o di un sito citato. Debole. */
+    LINK_BARE,
+    PHONE, EMAIL, PAYMENT, CREDENTIALS,
+    /** Rispondere o spostarsi su un altro canale/numero. */
+    REPLY,
+    /** Installare app o programmi fuori dagli store. */
+    INSTALL,
+}
+
 data class Verdict(
     val level: Level,
     val score: Int,
@@ -53,4 +75,8 @@ data class Verdict(
     /** Categoria prevalente (es. "pacco", "banca"), se individuata; collega al catalogo. */
     val category: String?,
     val rulesVersion: Long,
+    /** Interno: vettori d'azione trovati nel messaggio. */
+    val vectors: Set<ActionVector> = emptySet(),
+    /** Interno: usato da [AlertPolicy.shouldAlert]. Non salvato in cronologia (l'avviso si decide all'analisi). */
+    val alertTier: AlertTier = AlertTier.NONE,
 )

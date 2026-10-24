@@ -101,8 +101,9 @@ class AiCombineTest {
         val scores = MlTestSupport.csvScores()
         val rows = MlTestSupport.valRows()
         val byText = rows.associate { it.text to scores.getValue(it.id).toFloat() }
-        val eng = engine { byText[it] }
-        val plain = engine(null)
+        // Configurazione di produzione (AI-02 spento): nessuna truffa deve scendere con il modello attuale.
+        val eng = RuleEngine(bundled, classifier = { byText[it] })
+        val plain = RuleEngine(bundled)
         var lowered = 0; var raised = 0; var scamLowered = 0; var scamRaised = 0
         for (r in rows) {
             val a = v(plain, r.text); val b = v(eng, r.text)

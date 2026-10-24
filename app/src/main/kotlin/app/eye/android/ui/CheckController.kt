@@ -4,6 +4,7 @@ import app.eye.android.core.CheckOutcome
 import app.eye.android.core.CheckResult
 import app.eye.android.core.CheckUseCase
 import app.eye.engine.Source
+import app.eye.engine.provenance.ProvenanceReport
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,13 +43,13 @@ class CheckController(
     }
 
     /** [alreadyTruncated]: il chiamante ha gia' tagliato il testo (es. campo di input). */
-    fun check(text: String, source: Source = Source.PASTE, alreadyTruncated: Boolean = false, origin: String? = null, sender: String? = null) {
+    fun check(text: String, source: Source = Source.PASTE, alreadyTruncated: Boolean = false, origin: String? = null, sender: String? = null, provenance: ProvenanceReport? = null) {
         val truncated = alreadyTruncated || text.length > CheckUseCase.MAX_CHARS
         val t = text.take(CheckUseCase.MAX_CHARS)
         _state.value = CheckState.Running
         scope.launch {
             _state.value = try {
-                when (val o = withContext(dispatcher) { useCase.run(t, source, truncated, origin, sender) }) {
+                when (val o = withContext(dispatcher) { useCase.run(t, source, truncated, origin, sender, provenance) }) {
                     is CheckOutcome.Done -> CheckState.Done(o.result)
                     CheckOutcome.TooLong -> CheckState.TooLong
                     CheckOutcome.Empty -> CheckState.Error

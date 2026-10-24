@@ -220,6 +220,21 @@ fun VerdictScreen(result0: CheckResult, vm: AppViewModel, onClose: () -> Unit, f
             }
         }
 
+        // Provenienza dell'immagine (solo controlli da immagine): letta in locale, mai un giudizio di autenticita'
+        result.provenance?.let { prov ->
+            EyeCard {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SectionTitle(stringResource(R.string.prov_title))
+                    Text(app.eye.engine.provenance.ProvenanceMessages.body(prov), style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.prov_local_note), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    TextButton(
+                        onClick = { ExternalIntents.openInBrowser(ctx, app.eye.engine.provenance.ImageProvenance.SYNTHID_URL) },
+                        modifier = Modifier.heightIn(min = 48.dp),
+                    ) { Text(stringResource(R.string.prov_more)) }
+                }
+            }
+        }
+
         // Cosa fare ora
         val steps = v.todoSteps(ctx)
         EyeCard {

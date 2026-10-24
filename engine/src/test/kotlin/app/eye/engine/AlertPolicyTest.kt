@@ -6,14 +6,24 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class AlertPolicyTest {
-    private fun v(level: Level, vararg ids: String) =
-        Verdict(level, 0, ids.map { Reason(it, "", 0) }, emptyList(), Extracted(), null, 1)
+    private fun v(level: Level, vararg ids: String, vectors: Set<ActionVector> = setOf(ActionVector.LINK)) =
+        Verdict(level, 0, ids.map { Reason(it, "", 0) }, emptyList(), Extracted(), null, 1, vectors, AlertPolicy.tierFor(level, ids.toList(), vectors))
 
     private val rules = RuleEngine.loadBundled()
     private val ids = rules.rules.map { it.id }.toSet()
 
     @Test fun probableAlwaysAlerts() {
         assertTrue(AlertPolicy.shouldAlert(v(Level.PROBABILE_TRUFFA, "URG-05", "COM-01")))
+    }
+
+    @Test fun suspectNeedsAStrongSignalAndAFullActionVector() {
+        for (weak in listOf(emptySet(), setOf(ActionVector.LINK_OFFICIAL), setOf(ActionVector.LINK_BARE)))
+            assertFalse(AlertPolicy.shouldAlert(v(Level.SOSPETTO, "URL-01", vectors = weak)), weak.toString())
+        for (strong in ActionVector.entries.filter { it != ActionVector.LINK_OFFICIAL && it != ActionVector.LINK_BARE })
+            assertTrue(AlertPolicy.shouldAlert(v(Level.SOSPETTO, "BAN-01", vectors = setOf(strong))), strong.toString())
+        assertFalse(AlertPolicy.shouldAlert(v(Level.PROBABILE_TRUFFA, "BAN-01", vectors = emptySet())))
+        assertEquals(AlertTier.QUIET, AlertPolicy.tierFor(Level.SOSPETTO, listOf("URG-05"), setOf(ActionVector.LINK)))
+        assertEquals(AlertTier.ALERT, AlertPolicy.tierFor(Level.SOSPETTO, listOf("INC-01"), emptySet()))
     }
 
     @Test fun noSignalNeverAlerts() {

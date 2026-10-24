@@ -51,6 +51,7 @@ class NotificationGateCorpusTest {
         val legit = load("notif_legit"); val hold = load("notif_legit_holdout"); val scam = load("notif_scam")
         val report = StringBuilder()
         var legitAlerts = 0
+        val lowRecall = ArrayList<String>()
         for ((label, e) in listOf("MiniLM p=0.99" to worstModel, "senza modello" to noModel)) {
             val l = run(e, legit); val h = run(e, hold); val s = run(e, scam)
             val recall = s.alerts.size * 100.0 / s.n
@@ -61,11 +62,12 @@ class NotificationGateCorpusTest {
                 if (System.getenv("EYE_GATE_HOLD") != null) h.alerts.forEach { report.append("  FPH $it\n") }
             }
             legitAlerts += l.alerts.size + h.alerts.size
-            assertTrue(recall >= MIN_RECALL, "[$label] recall avvisi %.1f%% < %.0f%%".format(recall, MIN_RECALL))
+            if (recall < MIN_RECALL) lowRecall.add("[$label] recall avvisi %.1f%% < %.0f%%".format(recall, MIN_RECALL))
         }
         println(report)
+        assertTrue(lowRecall.isEmpty(), lowRecall.joinToString())
         assertEquals(0, legitAlerts, "notifiche legittime con avviso:\n$report")
     }
 
-    companion object { const val MIN_RECALL = 80.0 }
+    companion object { const val MIN_RECALL = 85.0 }
 }

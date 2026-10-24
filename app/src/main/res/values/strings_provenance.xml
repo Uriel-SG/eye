@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="prov_title">Provenienza dell\'immagine</string>
+    <string name="prov_local_note">Letta sul telefono dai dati contenuti nel file: nulla viene inviato.</string>
+    <string name="prov_more">Approfondisci (SynthID Detector di Google)</string>
+</resources>

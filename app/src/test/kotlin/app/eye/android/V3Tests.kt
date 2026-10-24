@@ -80,7 +80,8 @@ class V3Tests {
     }
 
     private fun verdict(level: Level, vararg ids: String) =
-        Verdict(level, 0, ids.map { Reason(it, "", 0) }, emptyList(), Extracted(), null, 1)
+        Verdict(level, 0, ids.map { Reason(it, "", 0) }, emptyList(), Extracted(), null, 1,
+            setOf(app.eye.engine.ActionVector.LINK), app.eye.engine.AlertPolicy.tierFor(level, ids.toList(), setOf(app.eye.engine.ActionVector.LINK)))
 
     @Test fun alertPolicyProbableAlwaysSuspectOnlyWithStrongSignal() {
         assertTrue(NotificationGate.shouldAlert(verdict(Level.PROBABILE_TRUFFA, "URG-05")))

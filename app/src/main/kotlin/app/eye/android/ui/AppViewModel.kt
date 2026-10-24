@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import app.eye.android.R
+import app.eye.android.core.ImageProvenanceReader
 import app.eye.android.core.OcrException
 import app.eye.android.core.OcrReader
 import app.eye.android.core.QrContent
@@ -32,6 +33,7 @@ import app.eye.android.data.SavedAiOpinion
 import app.eye.android.data.KeyVault
 import app.eye.android.data.Settings
 import app.eye.engine.Source
+import app.eye.engine.provenance.ProvenanceReport
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -54,7 +56,8 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
 
     fun onShared(text: String?, origin: String? = null, sender: String? = null) = controller.onShared(text, origin, sender)
     fun reset() = controller.reset()
-    fun check(text: String, source: Source = Source.PASTE, alreadyTruncated: Boolean = false) = controller.check(text, source, alreadyTruncated)
+    fun check(text: String, source: Source = Source.PASTE, alreadyTruncated: Boolean = false, provenance: ProvenanceReport? = null) =
+        controller.check(text, source, alreadyTruncated, provenance = provenance)
 
     private val _qr = MutableStateFlow<QrContent?>(null)
     val qr: StateFlow<QrContent?> = _qr
@@ -66,8 +69,12 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
         controller.set(CheckState.Reading)
         val app = context.applicationContext
         viewModelScope.launch {
+            var prov: ProvenanceReport? = null
             val scan = try {
-                withContext(Dispatchers.Default) { OcrReader.scanImage(app, uri) }
+                withContext(Dispatchers.Default) {
+                    prov = ImageProvenanceReader.read(app, uri) // solo metadati, sul telefono
+                    OcrReader.scanImage(app, uri)
+                }
             } catch (e: OcrException) {
                 controller.set(if (e.error == ScanError.Unavailable) CheckState.OcrUnavailable else CheckState.Error)
                 return@launch
@@ -80,9 +87,9 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
                 // Solo QR: mostra il contenuto (Source.QR all'analisi), mai aperto.
                 qr != null && scan.text.isBlank() -> { controller.reset(); onQr(qr) }
                 // Testo e QR: analisi del testo combinato, con la presenza del QR indicata.
-                qr != null -> check(scan.text + "\n\n[QR] " + qr, Source.OCR)
+                qr != null -> check(scan.text + "\n\n[QR] " + qr, Source.OCR, provenance = prov)
                 scan.text.isBlank() -> controller.set(CheckState.NoText)
-                else -> check(scan.text, Source.OCR)
+                else -> check(scan.text, Source.OCR, provenance = prov)
             }
         }
     }

@@ -31,6 +31,17 @@ class ShortLinkTransportTest {
                 "/rel" -> { h.add("Location", "/next/page"); ex.sendResponseHeaders(302, -1) }
                 "/head405" -> if (ex.requestMethod == "HEAD") ex.sendResponseHeaders(405, -1) else { h.add("Location", "https://dest.example.org/"); ex.sendResponseHeaders(307, -1) }
                 "/page200" -> ex.sendResponseHeaders(200, -1)
+                "/head403" -> if (ex.requestMethod == "HEAD") ex.sendResponseHeaders(403, -1) else { h.add("Location", "https://dest.example.org/403"); ex.sendResponseHeaders(302, -1) }
+                "/interstitial" -> {
+                    h.add("Content-Type", "text/html")
+                    val b = "<html><head><meta http-equiv=\"refresh\" content=\"0;url=https://dest.example.org/meta\"></head></html>".toByteArray()
+                    if (ex.requestMethod == "HEAD") ex.sendResponseHeaders(200, -1) else { ex.sendResponseHeaders(200, b.size.toLong()); ex.responseBody.write(b) }
+                }
+                "/hugepage" -> {
+                    h.add("Content-Type", "text/html")
+                    val b = ByteArray(200_000) { 'a'.code.toByte() }
+                    if (ex.requestMethod == "HEAD") ex.sendResponseHeaders(200, -1) else { ex.sendResponseHeaders(200, b.size.toLong()); try { ex.responseBody.write(b) } catch (_: java.io.IOException) {} }
+                }
                 "/slow" -> { Thread.sleep(1500); ex.sendResponseHeaders(301, -1) }
                 else -> ex.sendResponseHeaders(404, -1)
             }
@@ -72,5 +83,39 @@ class ShortLinkTransportTest {
         assertEquals(mapOf("https://bit.ly/r301" to "http://127.0.0.1:$port/never"), r)
         assertTrue(seen.none { it.endsWith("/never") })
         assertTrue(seen.contains("HEAD /r301") && seen.contains("HEAD /page200"))
+    }
+
+    @Test fun head403FallsBackToGet() {
+        assertEquals("https://dest.example.org/403", (transport.probe(url("/head403"), 2000) as ShortLinkProbe.Redirect).location)
+        assertEquals(listOf("HEAD /head403", "GET /head403"), seen)
+    }
+
+    @Test fun intermediatePageMetaRefreshIsReadFromTheShortenerOnly() {
+        val r = transport.probe(url("/interstitial"), 2000) as ShortLinkProbe.Redirect
+        assertEquals("https://dest.example.org/meta", r.location)
+        assertEquals(listOf("HEAD /interstitial", "GET /interstitial"), seen)
+    }
+
+    @Test fun pageWithoutHintsIsOtherAndBodyIsCapped() {
+        assertTrue(transport.probe(url("/hugepage"), 3000) is ShortLinkProbe.Other)
+    }
+
+    @Test fun backgroundNetworkDecision() {
+        val enabled = android.net.ConnectivityManager.RESTRICT_BACKGROUND_STATUS_ENABLED
+        val disabled = android.net.ConnectivityManager.RESTRICT_BACKGROUND_STATUS_DISABLED
+        assertTrue(app.eye.android.core.links.BackgroundNetwork.usable(true, disabled, true))
+        assertTrue(app.eye.android.core.links.BackgroundNetwork.usable(true, enabled, false)) // risparmio dati ma rete non a consumo
+        assertFalse(app.eye.android.core.links.BackgroundNetwork.usable(true, enabled, true))
+        assertFalse(app.eye.android.core.links.BackgroundNetwork.usable(false, disabled, false))
+    }
+
+    @Test fun serviceSkipsTheNetworkInBackgroundWhenDenied() {
+        var calls = 0
+        val resolver = ShortLinkResolver({ _, _ -> calls++; ShortLinkProbe.Redirect("https://x.example.org/") }, { setOf("bit.ly") })
+        val denied = app.eye.android.core.links.ShortLinkService(resolver) { false }
+        assertTrue(denied.expandBlocking("https://bit.ly/abc", background = true).isEmpty())
+        assertEquals(0, calls)
+        assertEquals(1, denied.expandBlocking("https://bit.ly/abc", background = false).size) // primo piano: si prova sempre
+        assertEquals(1, calls)
     }
 }

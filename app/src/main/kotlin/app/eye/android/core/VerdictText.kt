@@ -23,6 +23,8 @@ data class CheckResult(
     /** App di origine e mittente (solo avvisi della Protezione automatica). */
     val origin: String? = null,
     val sender: String? = null,
+    /** Provenienza dichiarata dell'immagine controllata (solo controlli da immagine, solo in sessione). */
+    val provenance: app.eye.engine.provenance.ProvenanceReport? = null,
 )
 
 fun Level.titleRes(): Int = when (this) {

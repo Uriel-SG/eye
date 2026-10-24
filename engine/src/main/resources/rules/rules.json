@@ -1,5 +1,5 @@
 {
- "version": 11,
+ "version": 13,
  "thresholds": {
   "probable": 55,
   "suspect": 25
@@ -1824,7 +1824,8 @@
    "example": "Ciao mamma, ho perso il telefono, questo è il mio nuovo numero",
    "kind": "regex",
    "patterns": [
-    "\\b(?:ciao|ehi|hey|salve),? (?:mamma|papà|papa|mamy|nonno|nonna|zio|zia|ma|pa)\\b.{0,100}\\b(?:nuovo numero|numero nuovo|cambiato numero|ho perso|si (?:è|e'|e) rotto|rotto il telefono|telefono rotto|telefono nuovo|nuovo telefono|cellulare nuovo|nuovo cellulare|salva questo numero)"
+    "(?<![a-zàèéìòù])(?:ciao|ehi|hey|salve|hi|hello),? (?<![a-zàèéìòù])(?:mamma|mami|mamy|pap[àa]|babbo|nonn[oa]|zi[oa]|mum|mom|mummy|dad|ma|pa|grandma|grandpa)(?![a-zàèéìòù]).{0,100}?(?:nuovo numero|numero nuovo|cambiato numero|salva questo numero|new number)",
+    "(?<![a-zàèéìòù])(?:ciao|ehi|hey|salve|hi|hello),? (?<![a-zàèéìòù])(?:mamma|mami|mamy|pap[àa]|babbo|nonn[oa]|zi[oa]|mum|mom|mummy|dad|ma|pa|grandma|grandpa)(?![a-zàèéìòù])(?=[ ,.!:]{1,3}(?:sono|it'?s me|this is)).{0,100}?(?:ho perso|si (?:è|e'|e) rotto|rotto il telefono|telefono rotto|telefono nuovo|nuovo telefono|cellulare nuovo|nuovo cellulare|broke my phone|new phone)"
    ],
    "keywords": [],
    "unless": null
@@ -1840,6 +1841,22 @@
     "\\b(?:questo (?:è|e'|e) il mio nuovo numero|ho cambiato numero|ho un nuovo numero|nuovo numero di telefono|scrivimi (?:su|al) (?:whatsapp|nuovo))\\b",
     "\\b(?:mi servono?|ho bisogno di|puoi (?:farmi|fare)|riesci a (?:fare|farmi)|potresti (?:fare|farmi))\\b.{0,40}\\b(?:bonifico|pagamento|soldi|denaro|prestito|ricarica)\\b.{0,60}\\b(?:urgent\\w{1,3}|subito|adesso|oggi|ti spiego|poi ti|dopo ti|emergenza)",
     "\\b(?:pagare|saldare)\\b.{0,15}\\b(?:fattura|bolletta|fornitore)\\b.{0,25}\\b(?:per me|al posto mio|adesso|subito|oggi)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "FAM-03",
+   "category": "familiare",
+   "weight": 40,
+   "explanation": "Chi scrive si presenta come un familiare («mamma, sono io»), dice di avere un numero o un telefono nuovo e ti chiede soldi, un pagamento o di spostarti su WhatsApp: è la truffa del finto figlio.",
+   "example": "Ciao mamma sono io, ho il telefono nuovo. Puoi pagare una fattura per me?",
+   "kind": "regex",
+   "patterns": [
+    "(?<![a-zàèéìòù])(?:mamma|mami|mamy|pap[àa]|babbo|nonn[oa]|zi[oa]|mum|mom|mummy|dad|grandma|grandpa)(?![a-zàèéìòù])(?=.{0,200}?(?:nuovo numero|numero nuovo|cambiato (?:il )?(?:mio )?numero|questo (?:è|e'|e) il mio numero|salva (?:questo|il mio|il nuovo)|vecchio numero|new (?:phone )?number|old number|changed my number))(?=.{0,300}?(?:soldi|euro|€|bonifico|ricarica|prestito|bolletta|fattura|iban|pagare|pagarla|pagami|mandami|favore|whatsapp|scrivimi|pay|money|bill|send me|transfer))",
+    "(?<![a-zàèéìòù])(?:mamma|mami|mamy|pap[àa]|babbo|nonn[oa]|zi[oa]|mum|mom|mummy|dad|grandma|grandpa)(?![a-zàèéìòù])(?=[ ,.!:]{1,3}(?:sono|it'?s|this is))(?=.{0,200}?(?:(?:perso|rotto|rubato|smarrito|caduto) (?:il |la |lo )?(?:mio )?(?:telefono|cellulare|portafoglio)|(?:telefono|cellulare) (?:rotto|nuovo|caduto|in acqua)|(?:nuovo|nuova) (?:telefono|cellulare)|(?:broke|lost|dropped) my phone|phone (?:fell|broke)|new phone))(?=.{0,300}?(?:soldi|euro|€|bonifico|ricarica|prestito|bolletta|fattura|iban|pagare|pagarla|pagarlo|pagami|mandami|mandi|inviami|favore|pay|money|bill|send me|transfer))",
+    "(?<![a-zàèéìòù])(?:mamma|mami|mamy|pap[àa]|babbo|nonn[oa]|zi[oa]|mum|mom|mummy|dad|grandma|grandpa)(?![a-zàèéìòù])(?=[ ,.!:]{1,3}(?:sono|it'?s|this is))(?=.{0,300}?(?:soldi|euro|€|bonifico|ricarica|prestito|bolletta|fattura|iban|pagare|pagarla|pagarlo|pagami|mandami|mandi|inviami|favore|pay|money|bill|send me|transfer))(?=.{0,300}?(?:incidente|ospedale|arrestat[oa]|carro attrezzi|polizia|non dirlo|non dire|non chiamarmi|non telefonarmi|non posso parlare|accident|hospital))",
+    "^(?:\\+?\\d[\\d ]{8,15}|numero sconosciuto|sconosciuto|numero privato|unknown)[ ,].{0,40}?(?<![a-zàèéìòù])(?:mamma|mami|mamy|pap[àa]|babbo|nonn[oa]|zi[oa]|mum|mom|mummy|dad|grandma|grandpa)(?![a-zàèéìòù])(?=[ ,.!:]{1,3}(?:sono|it'?s|this is))(?=.{0,300}?(?:soldi|euro|€|bonifico|ricarica|prestito|bolletta|fattura|iban|pagare|pagarla|pagarlo|pagami|mandami|mandi|inviami|favore|pay|money|bill|send me|transfer))"
    ],
    "keywords": [],
    "unless": null
@@ -2658,12 +2675,14 @@
    "id": "PAC-05",
    "category": "pacco",
    "weight": 30,
-   "explanation": "Dice che la consegna non è riuscita e ti chiede di «riprogrammarla» o di confermare dove: è uno dei pretesti più usati dai finti corrieri.",
+   "explanation": "Dice che la consegna non è riuscita e ti chiede di «riprogrammarla», di rispondere con indirizzo e dati o di scrivere su un canale non ufficiale: è uno dei pretesti più usati dai finti corrieri.",
    "example": "Abbiamo tentato di consegnare la tua spedizione. Riprogramma la consegna",
    "kind": "regex",
    "patterns": [
     "\\b(?:tentato|tentativo) di consegn\\w{0,10}\\b.{0,160}\\b(?:riprogramm|ripianific|reprogramm|conferma l'indirizzo|aggiorna l'indirizzo|scegli (?:una|la) (?:nuova )?data)\\w{0,10}",
-    "\\b(?:riprogramm|ripianific)\\w{0,10} (?:la |il )?(?:tua |sua )?(?:consegna|spedizione|pacco)"
+    "\\b(?:riprogramm|ripianific)\\w{0,10} (?:la |il )?(?:tua |sua )?(?:consegna|spedizione|pacco)",
+    "^(?=.{0,300}?(?:problem\\w{1,3}|inconvenient\\w{1,2}|impossibil\\w{1,3}|mancat\\w{1,2}|fallit\\w{1,2}|non riuscit\\w{1,2}|non consegnabil\\w{1,2}|non (?:e'|è|puo'|può) (?:essere )?(?:consegnat|recapitat)\\w{1,2}|giacenza|sospes\\w{1,2}|riprogramm\\w{1,8})).{0,300}?\\b(?:consegn\\w{1,6}|spedizion\\w{1,2}|pacc\\w{1,3})\\b.{0,100}?\\b(?:rispond\\w{1,5}|scriv\\w{1,5}|invi\\w{1,5}|mand\\w{1,5}|comunic\\w{1,5}|fornisc\\w{1,4}) .{0,60}?\\b(?:indirizzo|data di nascita|dati personali|documento|codice fiscale|carta|nome e cognome)\\b",
+    "^(?=.{0,300}?(?:consegn\\w{1,6}|spedizion\\w{1,2}|pacc\\w{1,3})).{0,300}?\\b(?:riprogramm\\w{1,8}|ripianific\\w{1,8}|conferm\\w{1,5} (?:l'|il )?indirizzo|pagar\\w{1,3} (?:le )?spese)\\b.{0,80}?\\b(?:whatsapp|telegram|sms|chiam\\w{1,5} il|scriv\\w{1,5} (?:a|al|su))\\b"
    ],
    "keywords": [],
    "unless": null
@@ -2706,6 +2725,117 @@
    "patterns": [
     "\\b(?:casella|mailbox|spazio di archiviazione|quota)\\b.{0,40}\\b(?:piena|pieno|al 9\\d ?%|esaurit\\w|superat\\w|in scadenza|disattivat\\w)",
     "\\b(?:non perdere|perderai|perdere) (?:i |i tuoi |i suoi )?(?:messaggi|email|mail)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "CALL-01",
+   "category": "banca",
+   "weight": 35,
+   "explanation": "Un addebito, un ordine o un allarme di sicurezza con l'invito a chiamare subito un numero scritto nel messaggio: è il trucco del falso operatore (call center truffa).",
+   "example": "Rilevato addebito di 1.390 euro. Se non lo riconosci chiama subito il 02 1234 5678",
+   "kind": "regex",
+   "patterns": [
+    "^(?=.{0,400}?(?:addebit|ordine|acquist|abbonament|rinnov|transazion|operazion|bonifico|pagament|attivit[àa]|accesso|attacco|violazion|conto|carta|account|pacco|spedizion|multa|sanzion|virus|sospes|bloccat|anomal|non autorizzat|non riconosc|non sei stato tu|frode|rimborso|charge|order|subscription|unauthori)).{0,400}?\\b(?:chiam\\w{1,6}|contatt\\w{1,6}|telefon\\w{1,6}|richiam\\w{1,6}|call)\\W{1,3}(?:\\w{1,15} ){0,3}?(?:subito|immediatamente|urgentemente)\\b.{0,50}?(?:\\+|00)?\\d[\\d ./-]{6,14}\\d",
+    "^(?=.{0,400}?(?:addebit|ordine|acquist|abbonament|rinnov|transazion|operazion|bonifico|pagament|attivit[àa]|accesso|attacco|violazion|conto|carta|account|pacco|spedizion|multa|sanzion|virus|sospes|bloccat|anomal|non autorizzat|non riconosc|non sei stato tu|frode|rimborso|charge|order|subscription|unauthori)).{0,400}?\\bper (?:annullar\\w{1,4}|ottenere (?:il )?(?:rimborso|storno)|la tua sicurezza|bloccar\\w{1,4}|sbloccar\\w{1,4}|disconoscer\\w{1,4}|contestar\\w{1,4})\\b.{0,60}?\\b(?:chiam\\w{1,6}|contatt\\w{1,6}|telefon\\w{1,6}|richiam\\w{1,6}|call)\\b.{0,40}?(?:\\+|00)?\\d[\\d ./-]{6,14}\\d",
+    "^(?=.{0,400}?(?:addebit|ordine|acquist|abbonament|rinnov|transazion|operazion|bonifico|pagament|attivit[àa]|accesso|attacco|violazion|conto|carta|account|pacco|spedizion|multa|sanzion|virus|sospes|bloccat|anomal|non autorizzat|non riconosc|non sei stato tu|frode|rimborso|charge|order|subscription|unauthori)).{0,400}?\\b(?:chiam\\w{1,6}|contatt\\w{1,6}|telefon\\w{1,6}|richiam\\w{1,6}|call)\\b.{0,50}?(?:\\+|00)?\\d[\\d ./-]{6,14}\\d.{0,40}?(?:\\boperatore|\\btecnico|\\bspecialista|\\bconsulente|per (?:bloccar|sbloccar|annullar|evitar)\\w{1,4}|(?:comunica|fornisci|detta)\\w{0,3} (?:il )?(?:codice|pin|otp))"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "MAI-01",
+   "category": "generico",
+   "weight": 30,
+   "explanation": "Ti chiede di scrivere dati, documenti o IBAN a un indirizzo email personale (gmail, outlook...) invece che a quello ufficiale dell'azienda o dell'ente.",
+   "example": "Scriva a rimborsi-esempio-eye@outlook.com con IBAN e documento",
+   "kind": "regex",
+   "patterns": [
+    "^(?=.{0,400}?(?:rimbors|eccesso|vincit|premio|eredit|lotteria|consegn|pacc|spedizion|conto|carta|account|sanzion|multa|addebit|ordine|abbonament|fattura|bolletta|tribut|iban|codice fiscale|identit|credit|blocc|sospes|guadagn|stipendio|da casa|prize|winner|refund|inherit|payment|invoice|parcel|delivery)).{0,400}?\\b(?:scriv\\w{1,5}|invi\\w{1,5}|mand\\w{1,5}|inoltr\\w{1,5}|contatt\\w{1,6}|rispond\\w{1,5}|write|send|email|mail|e-mail|pec)\\b[^@\\n]{0,45}?[\\w.%+-]{1,40}@(?:gmail|outlook|hotmail|yahoo|live|libero|icloud|proton|protonmail|aol|gmx|mail|email|tiscali|virgilio|yandex|zoho)\\.[a-z.]{2,8}"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "ROM-01",
+   "category": "anticipo",
+   "weight": 35,
+   "explanation": "Un presunto partner conosciuto online (militare, ingegnere in piattaforma, bloccato all'estero) ti chiede soldi, ricariche o gift card: è la truffa sentimentale.",
+   "example": "Amore mio, sono bloccato in aeroporto, mi servono 800 euro, ti restituisco tutto",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:saw your profile|visto il tuo profilo)\\b.{0,150}\\b(?:connection|something special|lonely|special|speciale|sento|solitudine)\\b",
+    "\\b(?:engineer|ingegnere|soldier|soldato|doctor|general|captain)\\b.{0,40}\\b(?:oil rig|offshore|rig|piattaforma petrolifera|deployed|peacekeeping|missione)\\b.{0,200}\\b(?:lonely|connection|special|feel|solo|sola|speciale|sento)\\b",
+    "(?=.{0,300}\\b(?:amore mio|tesoro mio|my love|darling|sweetheart|dear)\\b)(?=.{0,300}\\b(?:aeroporto|dogana|all'estero|ospedale|bloccat[oa]|stuck|airport|customs|hospital)\\b)(?=.{0,300}(?:gift ?card|ricarica|western union|moneygram|ti restituisc|ti ridar|repay you|pay you back))(?=.{0,300}(?:\\d[\\d.,]{1,8} ?(?:euro|€|eur|usd|\\$)|bonifico|gift ?card)).{0,20}"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "INV-05",
+   "category": "investimenti",
+   "weight": 35,
+   "explanation": "Promette rendimenti garantiti, segnali di trading o raddoppio del capitale, e ti porta su gruppi o piattaforme dove versare denaro: schema tipico delle truffe sugli investimenti.",
+   "example": "Gruppo VIP: segnali con 94% di successo, raddoppia il capitale in 7 giorni",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:rendiment\\w{1,2}|guadagn\\w{1,3}|profitt\\w{1,2}|returns?|gains?|capitale)\\b.{0,40}\\b(?:garantit\\w{1,2}|garantisc\\w{1,2}|protett\\w{1,2} al 100)",
+    "\\b(?:garantit\\w{1,2}|garantisc\\w{1,2}|guarantee\\w{0,2})\\b.{0,25}\\b(?:rendiment\\w{1,2}|guadagn\\w{1,3}|profitt\\w{1,2}|returns?|gains?|\\d{1,3} ?%)",
+    "\\b(?:raddoppia\\w{0,3}|double\\w{0,2})\\b.{0,25}\\b(?:capitale|money|investment|investimento|soldi)\\b",
+    "\\b(?:daily|giornalier\\w{1,2}|vip)\\b.{0,30}\\b(?:signals?|segnali)\\b|\\b(?:signals?|segnali)\\b.{0,40}\\b(?:\\d{2,3} ?% (?:di )?(?:success|successo)|vip|daily|giornalier\\w{1,2})",
+    "\\b(?:deposit|deposita|depositare|versa|versare)\\b.{0,25}\\b\\d{2,6} ?(?:usdt|btc|eth)\\b|\\bminimum deposit\\b",
+    "\\b(?:preleva|prelievo|withdraw|ritira)\\b.{0,25}\\b(?:profitti|guadagni|profits)\\b|\\b(?:il tuo investimento|your investment)\\b.{0,60}\\b(?:ha generato|ha raggiunto|generated|reached)\\b",
+    "\\b(?:trasferi\\w{1,3}|sposta\\w{1,3}|transfer|move)\\b.{0,30}\\b(?:crypto\\w{0,6}|fondi|funds|bitcoin|usdt)\\b.{0,30}\\b(?:wallet|portafoglio)\\b.{0,15}\\b(?:sicuro|safe|secure|indic\\w{1,4})\\b",
+    "\\b(?:far crescere i nostri risparmi|piattaforma di cui ti parlavo)\\b|\\b(?:ho gi[àa] guadagnato|i already made)\\b.{0,80}\\b(?:versa|investi|deposita|deposit)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "SHP-02",
+   "category": "vendite",
+   "weight": 30,
+   "explanation": "Offerta a prezzo irrealistico con pagamento solo anticipato, in cripto o con bonifico, o liquidazione da un sito sconosciuto: è lo schema dei finti negozi che incassano e non spediscono.",
+   "example": "Monopattino a 99 euro, pagamento anticipato con bonifico",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:pagamento|pay(?:ment)?|paga\\w{0,3})\\b.{0,25}\\b(?:solo|only|esclusivamente|anticipat\\w{1,2}|in anticipo)\\b.{0,25}\\b(?:bonifico|bank transfer|crypto\\w{0,6}|bitcoin|usdt|ricarica|postepay|western union)\\b",
+    "\\b(?:pay|paga\\w{0,3}|pagamento)\\b.{0,20}\\b(?:crypto\\w{0,6}|bitcoin|usdt|western union)\\b.{0,30}\\b(?:bank transfer|bonifico|only|solo)\\b",
+    "\\b(?:bonifico|bank transfer|crypto\\w{0,6})\\b.{0,20}\\b(?:only|solo|esclusivamente)\\b",
+    "\\bchiusura (?:magazzino|negozio|attivit\\w{1,2})\\b.{0,100}\\b\\d{1,4}(?:[.,]\\d{1,2})? ?(?:eur|euro|€)"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "AFF-01",
+   "category": "anticipo",
+   "weight": 35,
+   "explanation": "Chi risponde a un annuncio dice di essere all'estero e chiede una caparra o un bonifico prima di mandare le chiavi (o paga con assegno e chiede un rimborso): truffa degli affitti.",
+   "example": "Sono all'estero, ti spedisco le chiavi dopo la caparra di 600 euro",
+   "kind": "regex",
+   "patterns": [
+    "(?=.{0,400}\\b(?:appartament\\w{1,2}|immobile|apartment|affitt\\w{1,3}|annuncio|proprietari\\w{1,2})\\b)(?=.{0,400}\\b(?:all'estero|abroad|fuori italia)\\b).{0,400}\\b(?:caparra|cauzione|deposit|assegno|cheque|invio le chiavi|spedir\\w{1,3} le chiavi|keys)\\b",
+    "\\b(?:invio|mando|spedisco|spedir\\w{1,3}|send)\\b.{0,15}\\b(?:le chiavi|the keys)\\b.{0,40}\\b(?:dopo|after|previo)\\b.{0,20}\\b(?:bonifico|caparra|pagamento|payment|deposit)\\b",
+    "\\b(?:refund|rimborsa\\w{0,3}|restitu\\w{1,5})\\b.{0,25}\\b(?:difference|differenza)\\b.{0,20}\\b(?:agent|agente|corriere|mio)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "LAV-03",
+   "category": "lavoro",
+   "weight": 35,
+   "explanation": "Offerta di lavoro con pagamento in cripto, compensi per recensioni o task, oppure con un pagamento anticipato per divisa, formazione o kit da rimborsare con il primo stipendio.",
+   "example": "Per l'assunzione serve un pagamento anticipato di 180 euro per la divisa",
+   "kind": "regex",
+   "patterns": [
+    "\\b\\d{2,4} ?(?:usd|usdt|dollars|\\$)\\b.{0,20}\\b(?:per day|a day|daily|al giorno)\\b|\\bpayment in (?:usdt|crypto|bitcoin)\\b",
+    "\\b(?:recension\\w{1,2}|review\\w{0,2})\\b.{0,40}\\b\\d{1,4} ?(?:euro|eur|€|usd) (?:a|per|al) (?:task|recensione|review)\\b",
+    "\\b\\d{1,4} ?(?:euro|eur|€) a task\\b",
+    "\\b(?:pagamento anticipato|anticipo|versamento|quota|pagamento)\\b.{0,30}\\b\\d{1,4} ?(?:euro|eur|€)\\b.{0,30}\\b(?:divisa|formazione|kit|corso|materiale|assicurazione)\\b",
+    "\\brimborsabil\\w{1,2}\\b.{0,30}\\b(?:primo stipendio|prima busta paga)\\b"
    ],
    "keywords": [],
    "unless": null

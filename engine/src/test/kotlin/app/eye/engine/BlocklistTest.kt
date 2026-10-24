@@ -204,6 +204,6 @@ class BlocklistTest {
         assertEquals(Level.PROBABILE_TRUFFA, v.level)
         assertTrue(AlertPolicy.shouldAlert(v))
         // anche a livello SOSPETTO sarebbe un segnale forte
-        assertTrue(AlertPolicy.shouldAlert(Verdict(Level.SOSPETTO, 30, listOf(Reason("BLK-01", "", 30)), emptyList(), Extracted(), null, 10)))
+        assertTrue(AlertPolicy.shouldAlert(Verdict(Level.SOSPETTO, 30, listOf(Reason("BLK-01", "", 30)), emptyList(), Extracted(), null, 10, setOf(ActionVector.LINK), AlertTier.ALERT)))
     }
 }

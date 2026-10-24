@@ -87,6 +87,7 @@ class AppContainer(context: Context) {
             app.eye.android.core.links.UrlConnectionShortLinkTransport(FeedConfig.allowCleartext),
             { lists.shorteners.toHashSet() },
         ),
+        app.eye.android.core.links.BackgroundNetwork.check(appContext),
     )
 
     val feedUpdater = FeedUpdater(
