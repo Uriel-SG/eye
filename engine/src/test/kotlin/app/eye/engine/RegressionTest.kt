@@ -46,9 +46,12 @@ class RegressionTest {
         assertNotEquals(Level.NESSUN_SEGNALE, v.level)
     }
 
-    @Test fun ocrFakeShopIsAtLeastSuspicious() {
-        val v = analyze("22:23 A A FINAL NOTICE: [num] LAUNCH PRICING ENDS AT MIDNIGHT BIKEBEE | SUR- RON X! 53 Your $1,[num] Factory Discount Disa")
-        assertNotEquals(Level.NESSUN_SEGNALE, v.level, v.reasons.toString())
+    @Test fun ocrFakeShopAdWithoutAnyActionIsNoSignal() {
+        // 1.8.0: annuncio di un finto negozio senza link, numero ne' richiesta: nulla da fare, quindi nessun segnale (prima SOSPETTO)
+        val ad = "22:23 A A FINAL NOTICE: [num] LAUNCH PRICING ENDS AT MIDNIGHT BIKEBEE | SUR- RON X! 53 Your $1,[num] Factory Discount Disa"
+        assertEquals(Level.NESSUN_SEGNALE, analyze(ad).level)
+        // appena c'e' un'azione (un link) torna a essere un sospetto
+        assertNotEquals(Level.NESSUN_SEGNALE, analyze("$ad bikebee-outlet-xq7k.shop").level)
     }
 
     @Test fun unseenVariantsGeneralize() {

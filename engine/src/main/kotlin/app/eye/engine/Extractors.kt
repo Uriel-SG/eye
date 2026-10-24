@@ -105,7 +105,11 @@ internal object Extractors {
         return null
     }
 
-    fun scan(textIn: String): UrlScan {
+    /**
+     * [ocr]: testo letto da uno screenshot. L'OCR attacca parole e perde spazi («Digitale..finché», «linfezione»):
+     * un frammento «parola.parola» fatto di sole lettere non e' un link; contano solo quelli con cifre/trattini o con schema.
+     */
+    fun scan(textIn: String, ocr: Boolean = false): UrlScan {
         // Normalizza offuscamenti: hxxp / [.] ecc.
         val text = obf.replace(textIn, ".")
         val out = ArrayList<ParsedUrl>()
@@ -131,11 +135,11 @@ internal object Extractors {
             }
         }
         val urls = out.distinctBy { it.raw }
-        return UrlScan(urls, anomalies + unresolvedFragments(text, urls))
+        return UrlScan(urls, anomalies + unresolvedFragments(text, urls, ocr))
     }
 
     /** Conta i frammenti simili a un dominio (TLD plausibile) che non risultano estratti come URL. */
-    private fun unresolvedFragments(text: String, urls: List<ParsedUrl>): Int {
+    private fun unresolvedFragments(text: String, urls: List<ParsedUrl>, ocr: Boolean = false): Int {
         val covered = ArrayList<IntRange>()
         for (u in urls) {
             var from = 0
@@ -155,6 +159,7 @@ internal object Extractors {
             val frag = m.value.lowercase()
             val ascii = Text.toAscii(frag) ?: frag
             if (!PublicSuffix.isKnownTld(ascii.substringAfterLast('.'))) continue
+            if (ocr && frag.all { it.isLetter() || it == '.' }) continue
             if (urls.any { it.host == ascii || it.host.endsWith(".$ascii") || it.hostUnicode == frag }) continue
             n++
         }

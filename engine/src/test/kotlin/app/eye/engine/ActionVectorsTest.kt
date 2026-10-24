@@ -109,4 +109,57 @@ class ActionVectorsTest {
         if (v.level == Level.PROBABILE_TRUFFA) assertTrue(v.vectors.isNotEmpty())
         assertEquals(AlertTier.NONE, e.analyze(Input("Ciao, ci vediamo alle 8?", Source.SHARE, origin = "com.whatsapp")).alertTier)
     }
+
+    // --- 1.8.0: nessuna azione = nessun segnale, citazioni, canale, OCR ---
+
+    @Test fun noActionMeansNoSignalWithInformativeReason() {
+        val v = fg("Accesso anomalo rilevato sul tuo conto. Il team di sicurezza ha bloccato il tentativo di bonifico non autorizzato.")
+        assertEquals(Level.NESSUN_SEGNALE, v.level)
+        assertEquals(AlertTier.NONE, v.alertTier)
+        val r = v.reasons.single()
+        assertEquals("NOA-01", r.ruleId)
+        assertEquals(0, r.weight)
+        assertEquals("Il messaggio parla di sicurezza, accessi o pagamenti, ma non chiede di fare nulla.", r.text)
+    }
+
+    @Test fun technicalSignalKeepsTheLevelEvenWithoutAction() {
+        val v = fg("Accesso anomalo al conto, vedi http://192.168.4.7/verifica")
+        assertNotEquals(Level.NESSUN_SEGNALE, v.level)
+    }
+
+    @Test fun quotedScamPhrasesAreNotRequests() {
+        val v = fg("Se ti arriva un messaggio che dice 'aggiorna i dati' o \"verifica il tuo conto\", ignoralo: è un tentativo di phishing.")
+        assertEquals(Level.NESSUN_SEGNALE, v.level)
+        assertTrue(v.vectors.isEmpty())
+        // fuori dalle virgolette resta una richiesta
+        assertNotEquals(Level.NESSUN_SEGNALE, fg("Gentile cliente, il conto è bloccato: aggiorna i dati su https://poste-verifica.top/login").level)
+    }
+
+    @Test fun announcedCallIsAPhoneVector() {
+        val v = fg("Ti chiamerà un nostro operatore per sbloccare il tuo accesso anomalo: tieni pronto il codice.")
+        assertTrue(ActionVector.PHONE in v.vectors, v.vectors.toString())
+        assertTrue(ActionVector.PHONE in fg("Sarai contattato da un consulente della banca per il blocco della carta.").vectors)
+    }
+
+    @Test fun credentialsRequestNeedsTheReaderAndAChannel() {
+        // racconto in terza persona/passato: nessuna richiesta
+        val story = fg("Dopo l'attacco abbiamo isolato la rete, bonificato i sistemi e ripristinato i dati dai backup.")
+        assertTrue(ActionVector.CREDENTIALS !in story.vectors && ActionVector.PAYMENT !in story.vectors)
+        assertEquals(Level.NESSUN_SEGNALE, story.level)
+        // rivolta al lettore, con un canale
+        assertTrue(ActionVector.CREDENTIALS in fg("Account sospeso: aggiorna i dati cliccando sul pulsante qui sotto entro 24 ore.").vectors)
+    }
+
+    @Test fun ocrTextWithGluedWordsHasNoLinkAnomaly() {
+        val t = "Lunedì mattina tutto procede come sempre in azienda..finché non arriva una chiamata. Abbiamo isolato linfezione."
+        val ocr = e.analyze(Input(t, Source.OCR))
+        assertTrue(ActionVector.LINK !in ocr.vectors)
+        assertEquals(Level.NESSUN_SEGNALE, ocr.level)
+    }
+
+    @Test fun quotedScamWithRealLinkStillAlerts() {
+        val v = bg("Gentile cliente, per sbloccare il conto clicchi su \"Verifica ora\": https://poste-verifica-conto.top/login. In caso contrario l'accesso verrà sospeso entro 24 ore.", origin = sms)
+        assertNotEquals(Level.NESSUN_SEGNALE, v.level)
+        assertTrue(AlertPolicy.shouldAlert(v))
+    }
 }

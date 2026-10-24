@@ -299,6 +299,7 @@ fun SettingsScreen(vm: AppViewModel, onBack: (() -> Unit)?, onAutoInfo: () -> Un
             if (feedInfo.lastUpdate > 0) stringResource(R.string.info_rules_value, feedInfo.rulesVersion.toInt(), dateFmt.format(java.util.Date(feedInfo.lastUpdate)))
             else stringResource(R.string.info_rules_never, feedInfo.rulesVersion.toInt()),
         )
+        if (feedInfo.modelVersion > 0) InfoRow(stringResource(R.string.info_model_title), stringResource(R.string.info_model_value, feedInfo.modelVersion.toInt()))
         val bl = feedInfo.blocklist
         InfoRow(
             stringResource(R.string.info_blocklist_title),
@@ -306,6 +307,15 @@ fun SettingsScreen(vm: AppViewModel, onBack: (() -> Unit)?, onAutoInfo: () -> Un
                 val n = java.text.NumberFormat.getIntegerInstance(java.util.Locale.ITALY).format(bl.entries)
                 val day = bl.issuedAt?.let { runCatching { dateFmt.format(java.util.Date(java.time.Instant.parse(it).toEpochMilli())) }.getOrNull() } ?: "?"
                 stringResource(if (bl.stale) R.string.info_blocklist_stale else R.string.info_blocklist_value, n, day)
+            },
+        )
+        val nm = feedInfo.numbers
+        InfoRow(
+            stringResource(R.string.info_numbers_title),
+            if (nm == null) stringResource(R.string.info_numbers_none) else {
+                val n = java.text.NumberFormat.getIntegerInstance(java.util.Locale.ITALY).format(nm.entries)
+                val day = nm.issuedAt?.let { runCatching { dateFmt.format(java.util.Date(java.time.Instant.parse(it).toEpochMilli())) }.getOrNull() } ?: "?"
+                stringResource(R.string.info_numbers_value, n, day)
             },
         )
         Text(stringResource(R.string.settings_license), style = MaterialTheme.typography.bodyMedium)

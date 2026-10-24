@@ -24,7 +24,7 @@ object AlertPolicy {
         "URL-01", "URL-02", "URL-05", "URL-06", "URL-09", "URL-10", "MIS-01", "MIS-02",
         "BAN-03", "BAN-04", "BAN-10", "BAN-11", "BAN-12", "WAP-01", "DOC-01", "DAT-01", "VEN-01", "RDP-01",
         "PAY-01", "PAY-02", "IBN-01", "PHN-01", "ANT-01", "REC-01", "CRY-01", "CRY-02", "SEX-01", "FAM-01",
-        "SUP-01", "INC-01", "CRD-02", "MBX-01", "BLK-01",
+        "SUP-01", "INC-01", "CRD-02", "MBX-01", "BLK-01", "NUM-01", "NUM-02",
     )
 
     /**

@@ -73,6 +73,17 @@ private class TestKey(val id: String) {
         return envelopeBytes(3, "EYE-BLOCKLIST-v1\n", version, o.toByteArray())
     }
 
+    /** Feed numeri (format 4): contenitore ENL1, hash di `tel:` + E.164. [asSites] = elenco siti (format 3) con gli stessi byte, per i test di confusione tra feed. */
+    fun numbers(version: Long, vararg e164: String, asSites: Boolean = false): ByteArray {
+        val hs = e164.map { HashBlocklist.hashOf("tel:$it") }.distinct().sorted()
+        val header = """{"version":$version,"keyId":"$id","issuedAt":"2026-10-15T00:00:00Z","expiresAt":"2026-11-29T00:00:00Z","count":${hs.size},"hashBytes":6}""".toByteArray()
+        val o = ByteArrayOutputStream()
+        o.write((if (asSites) "EBL1" else "ENL1").toByteArray()); o.write(java.nio.ByteBuffer.allocate(4).putInt(header.size).array()); o.write(header)
+        fun u48(v: Long) = repeat(6) { o.write(((v shr (8 * (5 - it))) and 0xFF).toInt()) }
+        hs.forEachIndexed { i, v -> if (i == 0) u48(v) else o.write(java.nio.ByteBuffer.allocate(4).putInt((v - hs[i - 1]).toInt()).array()) }
+        return if (asSites) envelopeBytes(3, "EYE-BLOCKLIST-v1\n", version, o.toByteArray()) else envelopeBytes(4, "EYE-NUMBERS-v1\n", version, o.toByteArray())
+    }
+
     fun campaigns(version: Long, vararg ids: String, status: String = "in_corso"): ByteArray {
         val items = ids.joinToString(",") {
             """{"id":"$it","title":"Titolo $it","category":"smishing","summary":"Riassunto","signals":["s1"],"actions":["a1"],"example":"es","firstSeen":"2026-10-01","updatedAt":"2026-10-1${ids.indexOf(it)}","source":{"name":"Polizia Postale","url":"https://www.commissariatodips.it/x"},"status":"$status"}"""
@@ -156,6 +167,41 @@ class FeedTests {
         http.files["version.json"] = ("""{"rules":{"version":1,"sha256":"${sha(ByteArray(1))}","url":"rules.eye.json"},"campaigns":{"version":1,"sha256":"${sha(ByteArray(1))}","url":"campaigns.eye.json"},""" +
             """"blocklist":{"version":$v,"sha256":"${sha(bl)}","url":"blocklist.eye.json"}}""").toByteArray()
         http.files["blocklist.eye.json"] = bl
+    }
+
+    private fun Env.publishNumbers(pack: ByteArray, v: Long) {
+        http.files["version.json"] = ("""{"rules":{"version":1,"sha256":"${sha(ByteArray(1))}","url":"rules.eye.json"},"campaigns":{"version":1,"sha256":"${sha(ByteArray(1))}","url":"campaigns.eye.json"},""" +
+            """"numbers":{"version":$v,"sha256":"${sha(pack)}","url":"numbers.eye.json"}}""").toByteArray()
+        http.files["numbers.eye.json"] = pack
+    }
+
+    private fun numbersEnv(): Pair<Env, MemStore> {
+        val http = FakeHttp(); val r = MemStore(); val c = MemStore(); val s = MemState(); val n = MemStore()
+        return Env(http, r, c, s, FeedUpdater(http, base, r, c, s, 1, RulePackVerifier(key.pinned), CampaignFeedVerifier(key.pinned), { 1_000_000 },
+            numbersStore = n, numbersVerifier = app.eye.engine.numberlistVerifier(key.pinned)), MemStore()) to n
+    }
+
+    @Test fun numbersInstallVerifiedAndRefuseForgedRolledBackOrConfusedFeeds() {
+        val (e, store) = numbersEnv()
+        e.publishNumbers(key.numbers(4, "+393331234567", "+390212345678"), 4)
+        assertEquals(FeedResult.Updated(4), e.updater.updateNumbers())
+        assertEquals(4L, store.version)
+        val list = store.loadBlocklist(app.eye.engine.numberlistVerifier(key.pinned))!!
+        assertTrue(list.contains("tel:+393331234567")); assertFalse(list.contains("tel:+393331234568"))
+        // chiave non pinnata
+        e.http.etag = "v2"; e.publishNumbers(TestKey("test-a").numbers(5, "+393331234567"), 5)
+        assertEquals(FeedResult.Failed(FeedFailure.REJECTED), e.updater.updateNumbers())
+        // rollback
+        e.http.etag = "v3"; e.publishNumbers(key.numbers(3, "+393331234567"), 6)
+        assertEquals(FeedResult.Failed(FeedFailure.REJECTED), e.updater.updateNumbers())
+        // un elenco siti (format 3) servito come numeri
+        e.http.etag = "v4"; e.publishNumbers(key.numbers(7, "+393331234567", asSites = true), 7)
+        assertEquals(FeedResult.Failed(FeedFailure.REJECTED), e.updater.updateNumbers())
+        assertEquals(4L, store.version)
+        // indice senza voce numbers (sito vecchio) o senza store: nessun errore
+        e.http.etag = "v5"; e.http.files["version.json"] = index(null, 1, null, 1)
+        assertEquals(FeedResult.UpToDate, e.updater.updateNumbers())
+        assertNull(FeedIndex.parse(index(null, 1, null, 1)).getOrThrow().numbers)
     }
 
     @Test fun blocklistInstallsVerifiedAndUsable() {

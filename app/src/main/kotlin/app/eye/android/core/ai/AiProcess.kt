@@ -13,6 +13,7 @@ import android.os.IBinder
 import android.os.Message
 import android.os.Messenger
 import android.util.Log
+import app.eye.engine.ModelAutotest
 import app.eye.engine.TextClassifier
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
@@ -27,22 +28,43 @@ import java.util.concurrent.atomic.AtomicInteger
 class OnDeviceAiService : Service() {
     private var thread: HandlerThread? = null
     private var messenger: Messenger? = null
-    private var classifier: OnnxTextClassifier? = null
+    @Volatile private var classifier: OnnxTextClassifier? = null
 
     override fun onCreate() {
         super.onCreate()
-        val c = OnnxTextClassifier(this).also { it.warmUp() }
-        classifier = c
+        classifier = OnnxTextClassifier(this).also { it.warmUp() }
         val t = HandlerThread("eye-ai").apply { start() }
         thread = t
         messenger = Messenger(object : Handler(t.looper) {
             override fun handleMessage(msg: Message) {
-                if (msg.what != MSG_SCORE) return
-                val p = try { c.scamProbability(msg.data.getString(KEY_TEXT).orEmpty()) } catch (_: Throwable) { null }
-                val reply = Message.obtain(null, MSG_RESULT, msg.arg1, 0).apply {
-                    data = Bundle().apply { putFloat(KEY_P, p ?: Float.NaN) }
+                when (msg.what) {
+                    MSG_SCORE -> {
+                        val p = try { classifier?.scamProbability(msg.data.getString(KEY_TEXT).orEmpty()) } catch (_: Throwable) { null }
+                        val reply = Message.obtain(null, MSG_RESULT, msg.arg1, 0).apply {
+                            data = Bundle().apply { putFloat(KEY_P, p ?: Float.NaN) }
+                        }
+                        try { msg.replyTo?.send(reply) } catch (_: Exception) { }
+                    }
+                    MSG_CHECK -> { // prova di un modello candidato: apertura + autotest, senza attivarlo
+                        val d = msg.data
+                        val texts = d.getStringArray(KEY_TEXTS) ?: emptyArray()
+                        val limits = d.getFloatArray(KEY_LIMITS) ?: FloatArray(0)
+                        val nb = d.getInt(KEY_NBENIGN, 0)
+                        val ok = texts.size == limits.size && nb in 0..texts.size && try {
+                            val test = ModelAutotest(
+                                (0 until nb).map { texts[it] to limits[it] },
+                                (nb until texts.size).map { texts[it] to limits[it] },
+                            )
+                            OnnxTextClassifier(this@OnDeviceAiService).checkCandidate(java.io.File(d.getString(KEY_PATH).orEmpty()), test)
+                        } catch (_: Throwable) { false }
+                        try { msg.replyTo?.send(Message.obtain(null, MSG_CHECK_RESULT, msg.arg1, if (ok) 1 else 0)) } catch (_: Exception) { }
+                    }
+                    MSG_RELOAD -> { // nuovo modello attivato: l'istanza corrente viene sostituita
+                        val old = classifier
+                        classifier = OnnxTextClassifier(this@OnDeviceAiService).also { it.warmUp() }
+                        old?.close()
+                    }
                 }
-                try { msg.replyTo?.send(reply) } catch (_: Exception) { }
             }
         })
     }
@@ -55,6 +77,66 @@ class OnDeviceAiService : Service() {
         const val MSG_RESULT = 2
         const val KEY_TEXT = "t"
         const val KEY_P = "p"
+        const val MSG_CHECK = 3
+        const val MSG_CHECK_RESULT = 4
+        const val MSG_RELOAD = 5
+        const val KEY_PATH = "path"
+        const val KEY_TEXTS = "texts"
+        const val KEY_LIMITS = "limits"
+        const val KEY_NBENIGN = "nb"
+    }
+}
+
+/**
+ * Client amministrativo del processo ":ai" per gli aggiornamenti del modello: prova un file candidato (autotest) e
+ * chiede di ricaricare il modello attivo. Connessione propria, a vita breve. Crash o timeout del processo = non superato.
+ */
+class RemoteModelAdmin(context: Context, private val timeoutMillis: Long = 240_000) : app.eye.android.core.feed.ModelChecker {
+    private val ctx = context.applicationContext
+
+    private inline fun <T> withService(onFail: T, block: (Messenger, Messenger, CompletableFuture<Int>) -> T): T {
+        val connected = CompletableFuture<Messenger>()
+        val result = CompletableFuture<Int>()
+        val thread = HandlerThread("eye-ai-admin").apply { start() }
+        val reply = Messenger(object : Handler(thread.looper) {
+            override fun handleMessage(msg: Message) { if (msg.what == OnDeviceAiService.MSG_CHECK_RESULT) result.complete(msg.arg2) }
+        })
+        val conn = object : ServiceConnection {
+            override fun onServiceConnected(name: ComponentName?, service: IBinder?) { connected.complete(Messenger(service)) }
+            override fun onServiceDisconnected(name: ComponentName?) { result.complete(0) }
+            override fun onBindingDied(name: ComponentName?) { result.complete(0) }
+            override fun onNullBinding(name: ComponentName?) { result.complete(0) }
+        }
+        var bound = false
+        return try {
+            bound = ctx.bindService(Intent(ctx, OnDeviceAiService::class.java), conn, Context.BIND_AUTO_CREATE)
+            if (!bound) onFail else block(connected.get(30, TimeUnit.SECONDS), reply, result)
+        } catch (_: Throwable) {
+            onFail
+        } finally {
+            if (bound) runCatching { ctx.unbindService(conn) }
+            thread.quitSafely()
+        }
+    }
+
+    override fun check(model: java.io.File, autotest: ModelAutotest): Boolean = withService(false) { m, reply, result ->
+        val all = autotest.benign + autotest.scam
+        val msg = Message.obtain(null, OnDeviceAiService.MSG_CHECK, 1, 0).apply {
+            replyTo = reply
+            data = Bundle().apply {
+                putString(OnDeviceAiService.KEY_PATH, model.absolutePath)
+                putStringArray(OnDeviceAiService.KEY_TEXTS, all.map { it.first }.toTypedArray())
+                putFloatArray(OnDeviceAiService.KEY_LIMITS, all.map { it.second }.toFloatArray())
+                putInt(OnDeviceAiService.KEY_NBENIGN, autotest.benign.size)
+            }
+        }
+        m.send(msg)
+        result.get(timeoutMillis, TimeUnit.MILLISECONDS) == 1
+    }
+
+    /** Chiede al processo ":ai" di ricaricare il modello (best effort). */
+    fun reload() {
+        withService(Unit) { m, _, _ -> m.send(Message.obtain(null, OnDeviceAiService.MSG_RELOAD)); Thread.sleep(300) }
     }
 }
 

@@ -64,7 +64,7 @@ class AiTest {
 
     @Test fun geminiRequest() {
         val spec = AiRequests.build(cfg(AiProvider.GEMINI), "ciao")!!
-        assertEquals("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", spec.url)
+        assertEquals("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent", spec.url)
         assertEquals("sk-SECRET", spec.headers["x-goog-api-key"])
         assertFalse(spec.url.contains("sk-SECRET")) // chiave solo nell'header, mai nell'URL
         assertNull(AiRequests.build(cfg(AiProvider.GEMINI, "a/../b?x=1"), "ciao")) // niente injection nel path

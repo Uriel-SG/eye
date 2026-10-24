@@ -13,8 +13,9 @@ object AiResponses {
     private const val MAX_REASON = 300
     private const val MAX_ADVICE = 500
 
-    fun parse(provider: AiProvider, code: Int, body: String): AiOutcome {
+    fun parse(provider: AiProvider, code: Int, body: String, free: Boolean = false): AiOutcome {
         when {
+            free && code == 402 -> return AiOutcome.Failure(AiError.FREE_LIMIT, code)
             code == 401 || code == 403 -> return AiOutcome.Failure(AiError.AUTH, code)
             code == 429 -> return AiOutcome.Failure(AiError.RATE_LIMIT, code)
             code == 500 || code == 502 || code == 503 || code == 504 || code == 529 -> return AiOutcome.Failure(AiError.OVERLOADED, code)
@@ -94,7 +95,12 @@ object AiResponses {
         val reasons = (m["motivi"] as? List<*>).orEmpty()
             .filterIsInstance<String>().map { clean(it, MAX_REASON) }.filter { it.isNotEmpty() }.take(4)
         val advice = clean(m["consiglio"] as? String ?: "", MAX_ADVICE)
-        return AiOpinion(judgement, reasons, advice)
+        val conf = when (val c = m["confidenza"]) {
+            is Number -> c.toDouble()
+            is String -> c.trim().replace(',', '.').toDoubleOrNull()
+            else -> null
+        }?.takeIf { !it.isNaN() }?.coerceIn(0.0, 1.0) ?: 0.0
+        return AiOpinion(judgement, reasons, advice, conf)
     }
 
     /** Solo testo semplice: via caratteri di controllo e spazi multipli; lunghezza limitata. */
@@ -112,7 +118,6 @@ fun interface HttpTransport {
 
 /** Trasporto reale: HttpURLConnection, connessione 15 s, lettura [HttpSpec.readTimeoutMs], scadenza complessiva 120 s, nessun redirect (la chiave non segue mai un reindirizzamento). */
 object UrlConnectionTransport : HttpTransport {
-    private const val CONNECT_TIMEOUT_MS = 15_000
     private const val MAX_BYTES = 1_000_000
     private const val DEADLINE_MS = AiService.TOTAL_DEADLINE_MS
 
@@ -121,7 +126,7 @@ object UrlConnectionTransport : HttpTransport {
         val conn = URL(spec.url).openConnection() as HttpURLConnection
         try {
             conn.requestMethod = "POST"
-            conn.connectTimeout = CONNECT_TIMEOUT_MS
+            conn.connectTimeout = spec.connectTimeoutMs
             conn.readTimeout = spec.readTimeoutMs
             conn.instanceFollowRedirects = false
             conn.doOutput = true
@@ -158,13 +163,17 @@ class AiService(
     private val transport: HttpTransport = UrlConnectionTransport,
 ) {
     /** Bloccante: chiamare fuori dal thread principale. Mai logga chiave, testo o corpo della risposta. */
-    fun ask(config: AiConfig, text: String): AiOutcome {
+    fun ask(config: AiConfig, text: String, quickMs: Long = 0): AiOutcome {
         val spec = AiRequests.build(config, text) ?: return AiOutcome.Failure(AiError.NOT_CONFIGURED)
+        if (quickMs > 0) { // verifica rapida (es. prima di un avviso): nessun nuovo tentativo, scadenza breve
+            val ms = quickMs.toInt()
+            return once(config.provider, spec.copy(readTimeoutMs = ms, connectTimeoutMs = ms), false)
+        }
         val start = clock()
         var retried = false
         while (true) {
             val left = TOTAL_DEADLINE_MS - (clock() - start)
-            val out = once(config, spec.copy(readTimeoutMs = minOf(READ_TIMEOUT_MS, left).toInt().coerceAtLeast(1_000)))
+            val out = once(config.provider, spec.copy(readTimeoutMs = minOf(READ_TIMEOUT_MS, left).toInt().coerceAtLeast(1_000)), false)
             if (retried || !retryable(out)) return out
             val wait = backoffMs()
             if (TOTAL_DEADLINE_MS - (clock() - start) - wait < MIN_RETRY_BUDGET_MS) return out
@@ -173,7 +182,10 @@ class AiService(
         }
     }
 
-    private fun once(config: AiConfig, spec: HttpSpec): AiOutcome {
+    /** Servizio gratuito Pollinations (senza chiave): una sola richiesta, scadenza 30 s, testo gia' oscurato dal chiamante. */
+    fun askFree(text: String): AiOutcome = once(AiProvider.OPENAI, AiRequests.pollinations(text), true)
+
+    private fun once(provider: AiProvider, spec: HttpSpec, free: Boolean): AiOutcome {
         val res = try {
             transport.post(spec)
         } catch (_: SocketTimeoutException) {
@@ -184,7 +196,7 @@ class AiService(
             // mai propagare il messaggio: potrebbe contenere la chiave (intestazioni) o il testo
             return AiOutcome.Failure(AiError.NETWORK)
         }
-        return AiResponses.parse(config.provider, res.code, res.body)
+        return AiResponses.parse(provider, res.code, res.body, free)
     }
 
     private fun retryable(o: AiOutcome) = o is AiOutcome.Failure &&

@@ -17,7 +17,9 @@ import app.eye.engine.CampaignFeedVerifier
 import app.eye.engine.FileRulePackStore
 import app.eye.engine.RuleEngine
 import app.eye.engine.RulePackVerifier
+import app.eye.engine.NumberlistHolder
 import app.eye.engine.blocklistStore
+import app.eye.engine.numberlistStore
 import app.eye.engine.campaignStore
 import app.eye.engine.loadCampaigns
 import app.eye.engine.isStale
@@ -40,6 +42,9 @@ class AppContainer(context: Context) {
     val blocklistStore = blocklistStore(feedDir)
     /** Elenco locale di siti malevoli noti: si carica alla prima interrogazione (anche dalle notifiche in background), offline. */
     val blocklist = BlocklistHolder(blocklistStore)
+    val numbersStore = numberlistStore(feedDir)
+    /** Elenco locale di numeri usati per truffe: stesso schema dell'elenco siti (feed firmato separato, controllo sul telefono). */
+    val numberlist = NumberlistHolder(numbersStore)
     val feedState = PrefsFeedState(appContext)
     private val bundled = RuleEngine.loadBundled()
 
@@ -61,7 +66,7 @@ class AppContainer(context: Context) {
         _rulesStaleDays.value = if (use.isStale(now)) use.staleDays(now) else null
         lists = use.lists
         _rulesVersion.value = use.version
-        return RuleEngine(use, classifier = classifier, reputation = blocklist)
+        return RuleEngine(use, classifier = classifier, reputation = blocklist, numberReputation = numberlist)
     }
 
     /** Liste del motore in uso (popolari, ufficiali, shortener): escludono questi domini dal controllo dell'eta'. */
@@ -75,6 +80,8 @@ class AppContainer(context: Context) {
     class BlocklistSummary(val entries: Int, val issuedAt: String?, val stale: Boolean)
     fun blocklistSummary(): BlocklistSummary? = blocklist.current()?.let { BlocklistSummary(it.size, it.issuedAt, it.isStale(java.time.Instant.now())) }
     fun reloadBlocklist() = blocklist.reload()
+    fun numberlistSummary(): BlocklistSummary? = numberlist.current()?.let { BlocklistSummary(it.size, it.issuedAt, it.isStale(java.time.Instant.now())) }
+    fun reloadNumberlist() = numberlist.reload()
 
     /** Eccezioni dell'utente (cifrate su disco). */
     val exceptions = app.eye.android.data.ExceptionStore.create(appContext)
@@ -92,8 +99,19 @@ class AppContainer(context: Context) {
 
     val feedUpdater = FeedUpdater(
         UrlConnectionFeedHttp(FeedConfig.allowCleartext), FeedConfig.baseUrl, rulesStore, campaignStore, feedState, bundled.version,
-        blocklistStore = blocklistStore,
+        blocklistStore = blocklistStore, numbersStore = numbersStore,
     )
+
+    /** Modello AI aggiornabile da feed firmato: prova nel processo ":ai" prima di attivare, poi lo fa ricaricare. */
+    private val modelAdmin = app.eye.android.core.ai.RemoteModelAdmin(appContext)
+    val modelUpdater = app.eye.android.core.feed.ModelUpdater(
+        UrlConnectionFeedHttp(FeedConfig.allowCleartext), FeedConfig.baseUrl, app.eye.android.core.feed.ModelPaths.store(appContext),
+        app.eye.android.core.feed.ModelPaths.modelDir(appContext), feedState, modelAdmin,
+        bundledTokenizerSha = { app.eye.android.core.feed.ModelPaths.bundledTokenizerSha(appContext) },
+        onActivated = { modelAdmin.reload() },
+    )
+    /** Versione del modello AI in uso (feed o APK); legge il disco: da thread secondario. */
+    fun modelVersion(): Long = app.eye.android.core.feed.ModelPaths.activeVersion(appContext)
 
     private val _campaigns = MutableStateFlow<List<Campaign>>(emptyList())
     /** Campagne del feed firmato già installato (vuoto se mai scaricato). */

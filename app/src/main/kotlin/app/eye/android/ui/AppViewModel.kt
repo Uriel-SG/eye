@@ -24,6 +24,8 @@ import app.eye.android.core.ai.AiOutcome
 import app.eye.android.core.ai.AiProvider
 import app.eye.android.core.ai.AiService
 import app.eye.android.core.ai.GeminiNanoLlm
+import app.eye.engine.llm.LegitGate
+import kotlinx.coroutines.withTimeoutOrNull
 import app.eye.engine.llm.LlmOpinion
 import app.eye.engine.llm.LlmStatus
 import app.eye.engine.llm.OnDeviceLlm
@@ -33,6 +35,7 @@ import app.eye.android.data.SavedAiOpinion
 import app.eye.android.data.KeyVault
 import app.eye.android.data.Settings
 import app.eye.engine.Source
+import app.eye.engine.image.ImageNatureDetector
 import app.eye.engine.provenance.ProvenanceReport
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,13 +54,14 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val useCase = CheckUseCase(c.checker, c.history, { c.settings.settings.first().saveHistory }, expand = { c.shortLinks.expand(it) })
-    private val controller = CheckController(viewModelScope, useCase, Dispatchers.Default)
+    private val controller = CheckController(viewModelScope, useCase, Dispatchers.Default, refine = { refineWithNano(it) })
     val state: StateFlow<CheckState> = controller.state
 
     fun onShared(text: String?, origin: String? = null, sender: String? = null) = controller.onShared(text, origin, sender)
     fun reset() = controller.reset()
-    fun check(text: String, source: Source = Source.PASTE, alreadyTruncated: Boolean = false, provenance: ProvenanceReport? = null) =
-        controller.check(text, source, alreadyTruncated, provenance = provenance)
+    fun check(text: String, source: Source = Source.PASTE, alreadyTruncated: Boolean = false, provenance: ProvenanceReport? = null,
+        nature: app.eye.engine.image.ImageNature = app.eye.engine.image.ImageNature.OTHER, hasQr: Boolean = false) =
+        controller.check(text, source, alreadyTruncated, provenance = provenance, nature = nature, hasQr = hasQr)
 
     private val _qr = MutableStateFlow<QrContent?>(null)
     val qr: StateFlow<QrContent?> = _qr
@@ -83,13 +87,15 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
                 return@launch
             }
             val qr = scan.qr
+            val nature = ImageNatureDetector.classify(scan.facts)
             when {
                 // Solo QR: mostra il contenuto (Source.QR all'analisi), mai aperto.
                 qr != null && scan.text.isBlank() -> { controller.reset(); onQr(qr) }
                 // Testo e QR: analisi del testo combinato, con la presenza del QR indicata.
-                qr != null -> check(scan.text + "\n\n[QR] " + qr, Source.OCR, provenance = prov)
-                scan.text.isBlank() -> controller.set(CheckState.NoText)
-                else -> check(scan.text, Source.OCR, provenance = prov)
+                qr != null -> check(scan.text + "\n\n[QR] " + qr, Source.OCR, provenance = prov, nature = nature, hasQr = true)
+                // Nessun testo: scheda con la sola provenienza dell'immagine
+                scan.text.isBlank() -> controller.noText(prov)
+                else -> check(scan.text, Source.OCR, provenance = prov, nature = nature)
             }
         }
     }
@@ -112,12 +118,25 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
     /** Invia [text] al provider scelto con la chiave dell'utente; il risultato non tocca il verdetto delle regole. */
     fun askAi(text: String, historyId: Long? = null, consentNow: Boolean = false, unredactedNow: Boolean? = null) {
         val st = settings.value
-        if (!st.aiConfigured || !(st.aiConsent || consentNow)) return
-        val raw = unredactedNow ?: st.aiSendUnredacted
+        val free = !st.aiConfigured // senza chiave: servizio gratuito senza account (solo se Nano non c'e'), testo oscurato
+        if (free) {
+            if (!freeFallbackAvailable() || !(st.aiFreeConsent || consentNow)) return
+        } else if (!(st.aiConsent || consentNow)) return
+        val raw = !free && (unredactedNow ?: st.aiSendUnredacted)
         aiJob?.cancel()
         val sessionKey = aiKey(text)
         _ai.value = AiSession(sessionKey, AiUiState.Loading)
         aiJob = (c.appContext as app.eye.android.EyeApp).appScope.launch {
+            if (free) {
+                val outcome = withContext(Dispatchers.IO) { aiService.askFree(Redactor.redact(text)) }
+                var saved: SavedAiOpinion? = null
+                if (outcome is AiOutcome.Success) {
+                    saved = SavedAiOpinion(outcome.opinion, FREE_PROVIDER_ID, app.eye.android.core.ai.AiRequests.POLLINATIONS_MODEL, System.currentTimeMillis())
+                    if (historyId != null) runCatching { c.history.setAiOpinion(historyId, AiOpinionJson.encode(saved)) }
+                }
+                _ai.value = AiSession(sessionKey, AiUiState.Done(outcome, saved))
+                return@launch
+            }
             var model = st.aiModel
             val outcome = withContext(Dispatchers.IO) {
                 val key = st.aiKeyCipher?.let { KeyVault.decrypt(it) }
@@ -136,6 +155,22 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
             }
             _ai.value = AiSession(sessionKey, AiUiState.Done(outcome, saved))
         }
+    }
+
+    /** Il pulsante «secondo parere» senza chiave esiste solo se Gemini Nano e' noto come NON disponibile (altrimenti basta Nano). */
+    fun freeFallbackAvailable(): Boolean = _nanoStatus.value.let { it != null && it != LlmStatus.AVAILABLE }
+    /** Solo in memoria: l'utente ha appena aperto la pagina della chiave (abilita UNA lettura degli appunti al ritorno). */
+    @Volatile var googleKeyPending = false
+    @Volatile var googleKeyLeft = false
+    fun setAiFreeConsent(v: Boolean) = viewModelScope.launch { c.settings.setAiFreeConsent(v) }
+    fun setAiVerifyBeforeAlert(v: Boolean) = viewModelScope.launch { c.settings.setAiVerifyBeforeAlert(v) }
+
+    /** Chiave Google AI copiata dall'utente (formato AIza + 35 caratteri): salvata cifrata. false se il testo non e' una chiave. */
+    fun saveGoogleKeyFromClipboard(clip: String?, provider: AiProvider, model: String, baseUrl: String): Boolean {
+        val k = clip?.let { AiKeys.clean(it) } ?: return false
+        if (!GOOGLE_KEY.matches(k)) return false
+        saveAi(provider, model, baseUrl, k)
+        return true
     }
 
     // --- Secondo parere sul telefono (Gemini Nano): solo in primo piano, mai dal servizio notifiche ---
@@ -226,6 +261,26 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
     fun setDomainAgeCheck(on: Boolean) = viewModelScope.launch { c.settings.setDomainAgeCheck(on) }
     fun setVtNoticeDismissed() = viewModelScope.launch { c.settings.setVtNoticeDismissed(true) }
 
+    /**
+     * Prima di mostrare un SOSPETTO attende Nano (max 4 s): se lo ritiene legittimo con confidenza alta e non ci sono
+     * segnali gravi il livello mostrato diventa NESSUN_SEGNALE (con motivo e spiegazione). Mai per PROBABILE_TRUFFA.
+     */
+    private suspend fun refineWithNano(r: app.eye.android.core.CheckResult): app.eye.android.core.CheckResult {
+        val v = r.verdict
+        if (v.level != app.eye.engine.Level.SOSPETTO || LegitGate.hasGraveSignals(v) || r.originalText.isBlank()) return r
+        if (runCatching { nano.status() }.getOrNull() != LlmStatus.AVAILABLE) return r
+        val op = withTimeoutOrNull(NANO_WAIT_MS) { withContext(Dispatchers.Default) { nano.opinion(app.eye.engine.Input(r.originalText, Source.PASTE), v) } } ?: return r
+        _nanoSession.value = NanoSession(aiKey(r.originalText), NanoUiState.Done(op)) // la card mostra la spiegazione senza richiamare Nano
+        val nv = LegitGate.applyNano(v, op)
+        r.historyId?.let { id ->
+            runCatching {
+                c.history.setNanoOpinion(id, app.eye.android.data.NanoOpinionJson.encode(op, System.currentTimeMillis()))
+                if (nv !== v) c.history.setLevel(id, nv.level.name)
+            }
+        }
+        return if (nv === v) r else r.copy(verdict = nv)
+    }
+
     fun clearNano() { nanoJob?.cancel(); nanoJob = null; _nanoSession.value = NanoSession(0, NanoUiState.Idle) }
 
     private val _aiKeyError = MutableStateFlow(false)
@@ -284,6 +339,7 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
     // --- Avviso di aggiornamento dell'app (Google Play, flusso flexible): scheda in Home, mai un popup ---
     private val update = app.eye.android.core.update.UpdateController(
         app.eye.android.core.update.PlayUpdateClient(c.appContext), c.settings.updateSnooze, viewModelScope,
+        notifyStore = c.settings.updateNotify,
     )
     val updateCard: StateFlow<app.eye.android.core.update.UpdateCardState> = update.state
     fun startUpdate(launcher: androidx.activity.result.ActivityResultLauncher<androidx.activity.result.IntentSenderRequest>) = update.start(launcher)
@@ -321,14 +377,16 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
     val campaignStaleDays: StateFlow<Long?> = c.campaignStaleDays
 
     /** Impostazioni › Info: versione regole, ultimo aggiornamento e consistenza dell'elenco siti malevoli. */
-    class FeedInfo(val rulesVersion: Long, val lastUpdate: Long, val blocklist: app.eye.android.AppContainer.BlocklistSummary?)
+    class FeedInfo(val rulesVersion: Long, val lastUpdate: Long, val blocklist: app.eye.android.AppContainer.BlocklistSummary?, val numbers: app.eye.android.AppContainer.BlocklistSummary? = null, val modelVersion: Long = 0L)
     private val _feedInfo = MutableStateFlow(FeedInfo(c.rulesVersion.value, c.feedState.lastFeedUpdate(), null))
     val feedInfo: StateFlow<FeedInfo> = _feedInfo
     /** Rilegge le informazioni (carica l'elenco: fuori dal main thread). */
     fun refreshFeedInfo() {
         viewModelScope.launch {
             val bl = withContext(Dispatchers.IO) { runCatching { c.blocklistSummary() }.getOrNull() }
-            _feedInfo.value = FeedInfo(c.rulesVersion.value, c.feedState.lastFeedUpdate(), bl)
+            val nm = withContext(Dispatchers.IO) { runCatching { c.numberlistSummary() }.getOrNull() }
+            val mv = withContext(Dispatchers.IO) { runCatching { c.modelVersion() }.getOrDefault(0L) }
+            _feedInfo.value = FeedInfo(c.rulesVersion.value, c.feedState.lastFeedUpdate(), bl, nm, mv)
         }
     }
     fun setRetention(r: app.eye.android.data.HistoryRetention) = viewModelScope.launch { c.settings.setRetention(r); c.history.purge() }
@@ -368,6 +426,7 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
             _lastCatalogCheck.value = c.feedState.lastCampaignCheck()
             if (all.rules is app.eye.android.core.feed.FeedResult.Updated) c.reloadRules()
             if (all.blocklist is app.eye.android.core.feed.FeedResult.Updated) c.reloadBlocklist()
+            if (all.numbers is app.eye.android.core.feed.FeedResult.Updated) c.reloadNumberlist()
             refreshFeedInfo()
             _catalogUpdate.value = when (r) {
                 is app.eye.android.core.feed.FeedResult.Updated -> { c.reloadCampaigns(); CatalogUpdate.UPDATED }
@@ -457,6 +516,11 @@ sealed interface NanoUiState {
 data class NanoSession(val key: Int, val state: NanoUiState)
 
 fun aiKey(text: String): Int = text.hashCode()
+
+/** Identificativo del servizio gratuito nei pareri salvati (non e' un provider con chiave). */
+const val FREE_PROVIDER_ID = "pollinations"
+private const val NANO_WAIT_MS = 4_000L
+internal val GOOGLE_KEY = Regex("""^AIza[0-9A-Za-z_-]{35}$""")
 
 /** Esito dell'ultimo «Aggiorna» del catalogo. */
 enum class CatalogUpdate { IDLE, LOADING, UPDATED, UP_TO_DATE, OFFLINE, ERROR }

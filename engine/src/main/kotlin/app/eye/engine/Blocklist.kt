@@ -86,7 +86,13 @@ internal data class BlocklistHeader(
  * poi per ogni hash successivo (strettamente crescente) la differenza u32 BE dal precedente; se non entra in
  * 32 bit (0xFFFFFFFF) segue l'hash assoluto a 6 byte.
  */
-class BlocklistVerifier(pinnedKeys: Map<String, String> = PinnedKeys.production) {
+class BlocklistVerifier(
+    pinnedKeys: Map<String, String> = PinnedKeys.production,
+    /** Parametri del contenitore: di default l'elenco siti; l'elenco numeri usa format, dominio e magic propri (vedi [numberlistVerifier]). */
+    private val format: Int = FORMAT,
+    private val domain: String = DOMAIN,
+    private val magic: ByteArray = MAGIC,
+) {
     private val keys: Map<String, ByteArray> = pinnedKeys.mapValues { Base64.getDecoder().decode(it.value) }
         .also { m -> require(m.values.all { it.size == 32 }) { "chiave pubblica non valida" } }
 
@@ -102,9 +108,9 @@ class BlocklistVerifier(pinnedKeys: Map<String, String> = PinnedKeys.production)
 
     private fun doVerify(bytes: ByteArray, installedVersion: Long): HashBlocklist {
         val (env, plain) = SignedEnvelope.open(
-            bytes, installedVersion, keys, format = FORMAT, domain = DOMAIN, maxEnvelope = MAX_ENVELOPE, maxDecompressed = MAX_DECOMPRESSED,
+            bytes, installedVersion, keys, format = format, domain = domain, maxEnvelope = MAX_ENVELOPE, maxDecompressed = MAX_DECOMPRESSED,
         )
-        if (plain.size < 8 || !(0..3).all { plain[it] == MAGIC[it] }) bad("contenitore non riconosciuto")
+        if (plain.size < 8 || !(0..3).all { plain[it] == magic[it] }) bad("contenitore non riconosciuto")
         val buf = ByteBuffer.wrap(plain)
         val hl = buf.getInt(4)
         if (hl !in 2..MAX_HEADER || 8 + hl > plain.size) bad("intestazione non valida")

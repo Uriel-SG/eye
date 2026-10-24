@@ -68,6 +68,7 @@ fun aiErrorText(f: AiOutcome.Failure): String = when (f.error) {
     AiError.TIMEOUT -> stringResource(R.string.ai_err_timeout)
     AiError.AUTH -> stringResource(R.string.ai_err_auth)
     AiError.RATE_LIMIT -> stringResource(R.string.ai_err_rate)
+    AiError.FREE_LIMIT -> stringResource(R.string.ai_err_free_limit)
     AiError.OVERLOADED -> stringResource(R.string.ai_err_overloaded, f.httpCode)
     AiError.HTTP -> stringResource(R.string.ai_err_http, f.httpCode)
     AiError.REFUSED -> stringResource(R.string.ai_err_refused)
@@ -93,7 +94,11 @@ private fun AiKeyOpinion(vm: AppViewModel, text: String, rulesLevel: Level, hist
     val history by vm.history.collectAsState()
     var consent by remember { mutableStateOf(false) }
     DisposableEffect(Unit) { onDispose { vm.leaveAi() } }
-    if (!settings.aiConfigured || text.isBlank()) return
+    androidx.compose.runtime.LaunchedEffect(Unit) { vm.refreshNano() }
+    val nanoStatus by vm.nanoStatus.collectAsState()
+    // senza chiave il pulsante c'e' solo se Gemini Nano non e' disponibile (se lo e', basta Nano)
+    val free = !settings.aiConfigured
+    if (text.isBlank() || (free && (nanoStatus == null || nanoStatus == app.eye.engine.llm.LlmStatus.AVAILABLE))) return
 
     val state = if (session.key == aiKey(text)) session.state else AiUiState.Idle
     val stored = historyId?.let { id -> history.firstOrNull { it.id == id }?.aiOpinion }?.let(AiOpinionJson::decode)
@@ -104,7 +109,7 @@ private fun AiKeyOpinion(vm: AppViewModel, text: String, rulesLevel: Level, hist
     }
     val loading = state == AiUiState.Loading
     val hasCard = loading || shown != null || state is AiUiState.Done
-    val ask = { if (settings.aiConsent) vm.askAi(text, historyId) else consent = true }
+    val ask = { if (if (free) settings.aiFreeConsent else settings.aiConsent) vm.askAi(text, historyId) else consent = true }
 
     if (!hasCard) {
         OutlinedButton(onClick = ask, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
@@ -149,16 +154,22 @@ private fun AiKeyOpinion(vm: AppViewModel, text: String, rulesLevel: Level, hist
     if (consent) {
         AlertDialog(
             onDismissRequest = { consent = false },
-            title = { Text(stringResource(R.string.ai_consent_title)) },
+            title = { Text(stringResource(if (free) R.string.ai_free_consent_title else R.string.ai_consent_title)) },
             text = {
-                Text(stringResource(R.string.ai_consent_body, providerLabel(settings.aiProvider, settings.aiBaseUrl)))
+                Text(if (free) stringResource(R.string.ai_free_consent_body) else stringResource(R.string.ai_consent_body, providerLabel(settings.aiProvider, settings.aiBaseUrl)))
             },
             confirmButton = {
-                TextButton(onClick = {
-                    consent = false
-                    vm.setAiConsent(true)
-                    vm.askAi(text, historyId, consentNow = true)
-                }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.ai_consent_accept)) }
+                Column(horizontalAlignment = Alignment.End) {
+                    if (free) TextButton(onClick = {
+                        consent = false
+                        vm.askAi(text, historyId, consentNow = true)
+                    }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.ai_free_consent_once)) }
+                    TextButton(onClick = {
+                        consent = false
+                        if (free) vm.setAiFreeConsent(true) else vm.setAiConsent(true)
+                        vm.askAi(text, historyId, consentNow = true)
+                    }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(if (free) R.string.ai_free_consent_always else R.string.ai_consent_accept)) }
+                }
             },
             dismissButton = { TextButton(onClick = { consent = false }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.action_cancel)) } },
         )
@@ -187,7 +198,7 @@ private fun OpinionBody(saved: SavedAiOpinion, rulesLevel: Level, again: @Compos
     Text(stringResource(judgement), style = MaterialTheme.typography.titleMedium)
     op.reasons.forEach { Text("• $it", style = MaterialTheme.typography.bodyLarge) }
     if (op.advice.isNotEmpty()) Text(stringResource(R.string.ai_advice, op.advice), style = MaterialTheme.typography.bodyLarge)
-    val providerName = stringResource(AiProvider.fromId(saved.providerId).labelRes())
+    val providerName = stringResource(if (saved.providerId == FREE_PROVIDER_ID) R.string.ai_provider_pollinations else AiProvider.fromId(saved.providerId).labelRes())
     val whenText = java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT).format(java.util.Date(saved.at))
     Text(
         stringResource(R.string.ai_saved_meta, providerName, saved.model.ifEmpty { "?" }, whenText),

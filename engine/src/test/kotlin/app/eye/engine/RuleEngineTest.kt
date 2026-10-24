@@ -98,7 +98,8 @@ class RuleEngineTest {
 
     @Test fun customRulesFromJson() {
         val json = """{"version":7,"thresholds":{"probable":55,"suspect":25},"rules":[{"id":"T-1","category":"test","weight":30,"explanation":"trovato","keywords":["banana"]}]}"""
-        val v = RuleEngine.fromJson(json).analyze(Input("che bella BANANA", Source.PASTE))
+        // 1.8.0: una regola da sola non basta, serve un'azione richiesta (qui un numero da chiamare)
+        val v = RuleEngine.fromJson(json).analyze(Input("che bella BANANA, chiamami al 347 123 4567", Source.PASTE))
         assertEquals(Level.SOSPETTO, v.level)
         assertEquals(7L, v.rulesVersion)
     }

@@ -67,6 +67,35 @@ fun AiSettingsSection(vm: AppViewModel, s: Settings) {
     val revoked = stringResource(R.string.ai_revoke_consent_done)
     DisposableEffect(Unit) { onDispose { vm.clearAiTest(); vm.clearAiKeyError() } }
 
+    // Appunti: letti UNA sola volta, solo al ritorno dalla pagina aperta con il pulsante "Ottieni chiave Google AI".
+    val owner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    var resumed by remember { mutableStateOf(true) }
+    DisposableEffect(owner) {
+        val obs = androidx.lifecycle.LifecycleEventObserver { _, e ->
+            when (e) {
+                androidx.lifecycle.Lifecycle.Event.ON_PAUSE -> { resumed = false; if (vm.googleKeyPending) vm.googleKeyLeft = true }
+                androidx.lifecycle.Lifecycle.Event.ON_RESUME -> resumed = true
+                else -> {}
+            }
+        }
+        owner.lifecycle.addObserver(obs)
+        onDispose { owner.lifecycle.removeObserver(obs) }
+    }
+    val focused = androidx.compose.ui.platform.LocalWindowInfo.current.isWindowFocused
+    val clipDone = stringResource(R.string.ai_key_from_clipboard)
+    androidx.compose.runtime.LaunchedEffect(focused, resumed) {
+        if (focused && resumed && vm.googleKeyPending && vm.googleKeyLeft) {
+            vm.googleKeyPending = false; vm.googleKeyLeft = false
+            val clip = runCatching {
+                (ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager).primaryClip?.getItemAt(0)?.text?.toString()
+            }.getOrNull()
+            if (vm.saveGoogleKeyFromClipboard(clip, AiProvider.GEMINI, model, baseUrl)) {
+                key = ""
+                android.widget.Toast.makeText(ctx, clipDone, android.widget.Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
     val compatible = provider == AiProvider.COMPATIBLE
     val baseOk = !compatible || AiUrls.validBase(baseUrl) != null
     val modelOk = !compatible || model.isNotBlank()
@@ -92,6 +121,13 @@ fun AiSettingsSection(vm: AppViewModel, s: Settings) {
             }
         }
 
+        if (provider == AiProvider.GEMINI) {
+            Text(stringResource(R.string.ai_gemini_howto), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            OutlinedButton(
+                onClick = { vm.googleKeyPending = true; vm.googleKeyLeft = false; openGoogleKeyPage(ctx) },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+            ) { Text(stringResource(R.string.ai_gemini_get_key)) }
+        }
         if (compatible) {
             OutlinedTextField(
                 value = baseUrl, onValueChange = { baseUrl = it.take(300) },
@@ -164,6 +200,16 @@ fun AiSettingsSection(vm: AppViewModel, s: Settings) {
             }
         }
 
+        if (s.aiConfigured) {
+            Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.ai_verify_label), style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.ai_verify_sub), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Spacer(Modifier.width(12.dp))
+                Switch(checked = s.aiVerifyBeforeAlert, onCheckedChange = { vm.setAiVerifyBeforeAlert(it) })
+            }
+        }
         Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(stringResource(R.string.ai_raw_label), style = MaterialTheme.typography.titleMedium)
@@ -218,4 +264,10 @@ private fun NanoSettingsRow(vm: AppViewModel) {
         stringResource(res), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
         fontStyle = if (st == app.eye.engine.llm.LlmStatus.AVAILABLE) androidx.compose.ui.text.font.FontStyle.Normal else androidx.compose.ui.text.font.FontStyle.Italic,
     )
+}
+
+/** Pagina delle chiavi di Google AI Studio nel browser (Custom Tab non e' tra le dipendenze del progetto: ACTION_VIEW). */
+private fun openGoogleKeyPage(ctx: android.content.Context) {
+    val i = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://aistudio.google.com/app/apikey"))
+    runCatching { ctx.startActivity(i) }
 }

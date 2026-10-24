@@ -104,6 +104,8 @@ data class AiConfig(
             "MBX-01",
             // sito nell'elenco pubblico di truffe/malware
             "BLK-01",
+            // numero nell'elenco pubblico di truffe / a sovrapprezzo
+            "NUM-01", "NUM-02",
         )
     }
 }

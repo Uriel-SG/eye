@@ -14,6 +14,8 @@ class RuleEngine(
     private val classifierTimeoutMillis: Long = 3000,
     /** Elenco locale di siti malevoli noti (BLK-01). Di default vuoto. */
     private val reputation: DomainReputation = DomainReputation.NONE,
+    /** Elenco locale di numeri usati per truffe (NUM-01). Di default vuoto. */
+    private val numberReputation: NumberReputation = NumberReputation.NONE,
 ) : Analyzer {
 
     private class Compiled(val def: RuleDef, val patterns: List<Pattern>, val unless: Pattern?)
@@ -47,7 +49,7 @@ class RuleEngine(
         val sender = input.declaredSender?.take(120)
 
         val ibanHits = Extractors.ibansWithRanges(raw)
-        val scan = Extractors.scan(ShortLinks.stripBare(Text.stripInvisible(raw), bareShortener))
+        val scan = Extractors.scan(ShortLinks.stripBare(Text.stripInvisible(raw), bareShortener), ocr = input.source == Source.OCR)
         // link accorciati gia' risolti: la destinazione prende il posto dello shortener in TUTTE le regole sui link
         val expansions = ArrayList<Pair<ParsedUrl, ParsedUrl>>()
         val urls = scan.urls.map { u ->
@@ -70,11 +72,11 @@ class RuleEngine(
         )
 
         val text = Text.normalizeForRules(raw)
-        val ctx = Ctx(raw, text, sender, urls, phones, ibanHits.map { it.first }, amounts, rules.lists, scan.anomalies, reputation, expansions, weakBare)
+        val ctx = Ctx(raw, text, sender, urls, phones, ibanHits.map { it.first }, amounts, rules.lists, scan.anomalies, reputation, expansions, weakBare, numberReputation)
         val budgeted = BudgetedChars(text, deadline)
         ctx.scanText = budgeted
 
-        class Fired(val def: RuleDef, val reasonText: String, val category: String, val domain: String? = null)
+        class Fired(val def: RuleDef, val reasonText: String, val category: String, val domain: String? = null, val compiled: Compiled? = null)
         val fired = ArrayList<Fired>()
 
         var incomplete = false // budget scaduto: fail-safe (mai NESSUN_SEGNALE, mai sconti)
@@ -96,7 +98,7 @@ class RuleEngine(
                     incomplete = true
                     false
                 }
-                if (matched) fired.add(Fired(def, def.explanation, def.category))
+                if (matched) fired.add(Fired(def, def.explanation, def.category, compiled = c))
             }
         }
 
@@ -120,16 +122,41 @@ class RuleEngine(
             score >= rules.thresholds.suspect -> Level.SOSPETTO
             else -> Level.NESSUN_SEGNALE
         }
+        // citazioni: le frasi tra virgolette / dopo «per esempio» non sono richieste. I vettori si calcolano sul testo senza citazioni;
+        // se cosi' non resta nessuna azione, le regole scattate SOLO sulle citazioni (meta-discorso) non contano.
+        val unquoted = Quotes.strip(raw)
+        var vctx = ctx
+        if (unquoted != raw) {
+            val uText = Text.normalizeForRules(unquoted)
+            vctx = Ctx(unquoted, uText, sender, urls, phones, ibanHits.map { it.first }, amounts, rules.lists, scan.anomalies, reputation, expansions, weakBare)
+            val quoteOnly = if (incomplete) emptyList() else fired.filter { f ->
+                f.compiled != null && try { !matches(f.compiled, uText, BudgetedChars(uText, deadline)) } catch (_: BudgetExceeded) { false }
+            }
+            if (quoteOnly.isNotEmpty() && ActionVectors.detect(vctx, fired.filter { it !in quoteOnly }.map { it.def.id }.toSet()).isEmpty()) fired.removeAll(quoteOnly.toSet())
+        }
+        val score0 = if (incomplete) score else fired.sumOf { it.def.weight }.coerceIn(0, 100)
+        level = when {
+            score0 >= rules.thresholds.probable -> Level.PROBABILE_TRUFFA
+            score0 >= rules.thresholds.suspect -> Level.SOSPETTO
+            else -> Level.NESSUN_SEGNALE
+        }
         // vettori d'azione: senza nulla da fare (o con sola pressione commerciale) il livello non supera SOSPETTO
         val firedIds = fired.map { it.def.id }
-        val vectors = ActionVectors.detect(ctx, firedIds.toSet())
-        var scoreOut = score
+        val vectors = ActionVectors.detect(vctx, firedIds.toSet())
+        var scoreOut = score0
         if (level == Level.PROBABILE_TRUFFA && !incomplete &&
             (vectors.all { it == ActionVector.LINK_BARE } ||
                 fired.filter { it.def.weight > 0 }.all { ActionVectors.isContextOnly(it.def.id) || (it.def.id == "BAN-02" && ActionVector.CREDENTIALS !in vectors) })
         ) {
             level = Level.SOSPETTO
             scoreOut = rules.thresholds.probable - 1
+        }
+        // nessuna azione richiesta e nessun segnale tecnico (link, mittente, blocklist): non c'e' nulla da cui proteggere
+        if (level != Level.NESSUN_SEGNALE && !incomplete && vectors.isEmpty() && fired.none { ActionVectors.isTechnical(it.def.id) }) {
+            level = Level.NESSUN_SEGNALE
+            scoreOut = rules.thresholds.suspect - 1
+            fired.removeAll { true }
+            fired.add(Fired(NO_ACTION_RULE, NO_ACTION_RULE.explanation, "generico"))
         }
         val reasons = fired.sortedByDescending { it.def.weight }
             .map { Reason(it.def.id, it.reasonText, it.def.weight) }
@@ -143,7 +170,7 @@ class RuleEngine(
         // Link tutti verso siti ufficiali o molto diffusi (es. un amico che condivide reddit/youtube): il modello non alza il verdetto.
         val linksAllKnown = urls.isNotEmpty() && scan.anomalies == 0 &&
             urls.all { ctx.isKnown(it.registrable) && it.registrable !in GROUP_INVITE_DOMAINS && it.registrable !in rules.lists.shorteners }
-        val finalV = if (incomplete) base else combineWithClassifier(base, firedIds, raw, linksAllKnown, mayRaise = input.origin == null)
+        val finalV = if (incomplete) base else combineWithClassifier(base, firedIds, raw, linksAllKnown, mayRaise = input.origin == null && vectors.isNotEmpty())
         return finalV.copy(alertTier = AlertPolicy.tierFor(finalV.level, firedIds, vectors,
             trustedRequest = input.origin != null && AlertPolicy.isTrustedRequest(sender, ibanHits.isNotEmpty(), raw.lowercase(), firedIds)))
     }
@@ -229,6 +256,11 @@ class RuleEngine(
     companion object {
         /** Domini «ufficiali» usati dai truffatori per portarti in gruppi/chat: non bastano per fidarsi del link. */
         internal val GROUP_INVITE_DOMAINS = setOf("t.me", "telegram.me", "telegram.org", "whatsapp.com", "wa.me", "discord.gg", "discord.com", "signal.group", "signal.me")
+        const val NO_ACTION_ID = "NOA-01"
+        private val NO_ACTION_RULE = RuleDef(
+            id = NO_ACTION_ID, category = "generico", weight = 0, kind = "detector", detector = "none",
+            explanation = "Il messaggio parla di sicurezza, accessi o pagamenti, ma non chiede di fare nulla.",
+        )
         const val AI_RAISE_ID = "AI-01"
         const val AI_LOWER_ID = "AI-02"
         const val AI_RAISE_TEXT = "Il testo somiglia molto a messaggi truffa noti (analisi del modello AI sul telefono)."

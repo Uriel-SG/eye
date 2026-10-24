@@ -18,6 +18,7 @@ class EyeApp : Application() {
         if (app.eye.android.core.ai.isAiProcess(this)) return // processo ":ai": solo il modello, niente app
         container = AppContainer(this)
         app.eye.android.core.feed.FeedScheduler.scheduleRules(this)
+        app.eye.android.core.feed.FeedScheduler.scheduleModel(this)
         // il servizio notifiche è attivo solo se la Protezione automatica è accesa (V3-06)
         appScope.launch {
             container.settings.settings.map { it.autoProtect }.distinctUntilChanged()

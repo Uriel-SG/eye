@@ -13,6 +13,7 @@ import app.eye.android.core.ai.AiUrls
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.dataStore by preferencesDataStore(name = "settings")
@@ -33,7 +34,7 @@ data class Settings(
     val onboardingSeen: Boolean? = null, // null = non ancora caricato
     val familyMode: Boolean = false,
     val saveHistory: Boolean = true,
-    val aiProvider: AiProvider = AiProvider.ANTHROPIC,
+    val aiProvider: AiProvider = AiProvider.GEMINI,
     /** Vuoto = modello predefinito del provider. */
     val aiModel: String = "",
     val aiBaseUrl: String = "",
@@ -54,6 +55,10 @@ data class Settings(
     /** Chiede al servizio di accorciamento dove porta il link (mai il sito finale). */
     /** L'avviso prima di aprire VirusTotal non va piu' mostrato. */
     val vtNoticeDismissed: Boolean = false,
+    /** Verifica con l'AI collegata (chiave dell'utente) prima di inviare un avviso SOSPETTO. Spenta di default. */
+    val aiVerifyBeforeAlert: Boolean = false,
+    /** Consenso permanente all'invio (testo oscurato) al servizio gratuito senza account. */
+    val aiFreeConsent: Boolean = false,
 ) {
     val aiHasKey: Boolean get() = !aiKeyCipher.isNullOrEmpty()
 
@@ -79,6 +84,8 @@ class SettingsStore(private val context: Context) {
     private val retentionKey = stringPreferencesKey("history_retention")
     private val alertKey = booleanPreferencesKey("alert_campaigns")
     private val ageKey = booleanPreferencesKey("domain_age_check_v2") // v2: dalla 1.6.1 disattivato di default (la vecchia chiave, predefinita ON, e' ignorata)
+    private val verifyKey = booleanPreferencesKey("ai_verify_before_alert")
+    private val freeKey = booleanPreferencesKey("ai_free_consent")
     private val vtKey = booleanPreferencesKey("vt_notice_dismissed")
 
     private val updCode = intPreferencesKey("update_snooze_code")
@@ -90,6 +97,18 @@ class SettingsStore(private val context: Context) {
         override suspend fun set(s: UpdateSnooze) = edit { it[updCode] = s.versionCode; it[updUntil] = s.untilMs }
     }
 
+    private val updNotified = intPreferencesKey("update_notified_code")
+    private val updCardSeen = intPreferencesKey("update_card_seen_code")
+
+    /** Ultima versione per cui l'avviso e' gia' comparso (notifica o scheda in Home). */
+    val updateNotify: app.eye.android.core.update.UpdateNotifyStore = object : app.eye.android.core.update.UpdateNotifyStore {
+        override suspend fun state() = context.dataStore.data.first().let {
+            app.eye.android.core.update.UpdateNotifyState(it[updNotified] ?: 0, it[updCardSeen] ?: 0)
+        }
+        override suspend fun setNotified(code: Int) = edit { it[updNotified] = code }
+        override suspend fun setCardSeen(code: Int) = edit { it[updCardSeen] = code }
+    }
+
     val settings: Flow<Settings> = context.dataStore.data.map {
         Settings(
             it[onboarding] ?: false, it[family] ?: false, it[history] ?: true,
@@ -99,6 +118,7 @@ class SettingsStore(private val context: Context) {
             autoProtect = it[autoKey] ?: false, autoDisabledApps = it[autoOff] ?: emptySet(), alertCampaigns = it[alertKey] ?: false,
             retention = HistoryRetention.fromId(it[retentionKey]),
             domainAgeCheck = it[ageKey] ?: false, vtNoticeDismissed = it[vtKey] ?: false,
+            aiVerifyBeforeAlert = it[verifyKey] ?: false, aiFreeConsent = it[freeKey] ?: false,
         )
     }
 
@@ -121,6 +141,8 @@ class SettingsStore(private val context: Context) {
     suspend fun setRetention(r: HistoryRetention) = edit { it[retentionKey] = r.name }
     suspend fun setAlertCampaigns(v: Boolean) = edit { it[alertKey] = v }
     suspend fun setDomainAgeCheck(v: Boolean) = edit { it[ageKey] = v }
+    suspend fun setAiVerifyBeforeAlert(v: Boolean) = edit { it[verifyKey] = v }
+    suspend fun setAiFreeConsent(v: Boolean) = edit { it[freeKey] = v }
     suspend fun setVtNoticeDismissed(v: Boolean) = edit { it[vtKey] = v }
     suspend fun clearAll() = context.dataStore.edit { it.clear() }
 

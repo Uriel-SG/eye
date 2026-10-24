@@ -177,6 +177,7 @@ object ShareTexts {
     fun feedbackBody(
         fullText: String, levelTitle: String, view: UserView, summaryLine: String, score: Int, reasons: List<Reason>,
         domains: List<String>, source: Source?, appVersion: String, rulesVersion: Long, date: String,
+        withReportBlock: Boolean = true,
     ): String = buildString {
         appendLine(COMMENT_LABEL)
         appendLine()
@@ -208,5 +209,50 @@ object ShareTexts {
         appendLine()
         appendLine("Messaggio analizzato:")
         append(fullText)
+        if (withReportBlock) {
+            appendLine()
+            appendLine()
+            appendLine(CONSENT_NOTE)
+            append(reportBlock(fullText, levelTitle, view, reasons.map { it.ruleId }, appVersion, rulesVersion))
+        }
+    }
+
+    const val REPORT_BEGIN = "--- EYE-REPORT v1 ---"
+    const val REPORT_END = "--- END EYE-REPORT ---"
+    const val CONSENT_NOTE = "Il testo qui sotto (già privato di numeri, email, IBAN e nomi) potrà essere usato per migliorare Eye SOLO se lo sviluppatore lo approva dopo averlo letto. Se non vuoi, cancella tutto il blocco EYE-REPORT prima di inviare."
+
+    private val greetingName = Regex("""(?i)\b(ciao|gentile|egregio|spett\.?le|buongiorno|buonasera|salve|caro|cara|sig\.?|signor|signora|dott\.?|dottor)(\s+)((?-i:[A-ZÀ-Ý][\p{L}'’\-]+(?:\s+[A-ZÀ-Ý][\p{L}'’\-]+){0,2}))""")
+
+    /** Testo per il blocco: PII oscurati (telefoni, email, IBAN, CF, numeri lunghi), nomi dopo il saluto, link disinnescati. */
+    fun anonymizeForReport(text: String): String {
+        val r = Redactor.redactKeepLinks(text.take(1200))
+        val named = greetingName.replace(r) { m -> m.groupValues[1] + m.groupValues[2] + "[nome]" }
+        return app.eye.engine.LinkDefang.apply(named).text.trim()
+    }
+
+    private fun jsonStr(s: String): String = buildString {
+        append('"')
+        for (c in s) when {
+            c == '"' -> append("\\\"")
+            c == '\\' -> append("\\\\")
+            c == '\n' -> append("\\n")
+            c < ' ' -> append(' ')
+            else -> append(c)
+        }
+        append('"')
+    }
+
+    fun reportBlock(fullText: String, levelTitle: String, view: UserView, ruleIds: List<String>, appVersion: String, rulesVersion: Long): String {
+        val v = when (view) { UserView.SCAM -> "false_negative"; UserView.LEGIT -> "false_positive"; UserView.OTHER -> "other" }
+        val json = buildString {
+            append("{\"app\":").append(jsonStr(appVersion))
+            append(",\"rules\":").append(rulesVersion)
+            append(",\"level\":").append(jsonStr(levelTitle))
+            append(",\"ruleIds\":[").append(ruleIds.distinct().joinToString(",") { jsonStr(it) }).append("]")
+            append(",\"user\":").append(jsonStr(v))
+            append(",\"text\":").append(jsonStr(anonymizeForReport(fullText)))
+            append("}")
+        }
+        return REPORT_BEGIN + "\n" + json + "\n" + REPORT_END
     }
 }

@@ -16,9 +16,10 @@ class AiCombineTest {
     private fun engineT(timeout: Long, c: TextClassifier) = RuleEngine(rules, classifier = c, classifierTimeoutMillis = timeout)
     private fun v(e: RuleEngine, t: String) = e.analyze(Input(t, Source.PASTE))
 
-    private val neutral = "Ciao, ci vediamo domani alle otto per la cena."
+    // con un vettore d'azione (un numero da chiamare): senza azioni il modello da solo non alza mai il verdetto
+    private val neutral = "Ciao, ci vediamo domani alle otto per la cena. Chiamami al 347 123 4567."
     // segnali solo deboli (urgenza/minaccia di sospensione), nessuna regola «grave»: SOSPETTO con le sole regole
-    private val weak = "Ultimo avviso: la preghiamo di rispondere a questo messaggio subito."
+    private val weak = "Ultimo avviso: la preghiamo di rispondere subito a questo messaggio o di chiamare il 347 123 4567."
     private val hard = "Gentile cliente, comunichi subito il codice OTP ricevuto via SMS per sbloccare la carta."
     private val probable = "Poste: il tuo conto è sospeso, verifica subito su http://poste-verifica.top e comunica il codice OTP e il PIN."
 

@@ -6,4 +6,7 @@
     <string name="update_later">Più tardi</string>
     <string name="update_downloading">Sto scaricando l\'aggiornamento in background. Puoi continuare a usare Eye.</string>
     <string name="update_restart">Riavvia</string>
+    <string name="update_channel">Aggiornamenti dell\'app</string>
+    <string name="update_channel_desc">Avviso discreto quando è disponibile una nuova versione di Eye.</string>
+    <string name="update_notif_body">Aggiornamento disponibile su Google Play.</string>
 </resources>

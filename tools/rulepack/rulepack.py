@@ -9,6 +9,11 @@
       [--rules-version N] [--campaigns-version M] [--blocklist-hashes tools/blocklist/out/hashes.bin] [--blocklist-version K]
   rulepack.py sign-blocklist --key <priv.pem> --key-id eye-2026-a --version 3 --hashes hashes.bin --out blocklist.eye.json
       (hashes.bin: output di tools/blocklist/build_blocklist.py; feed format 3, dominio EYE-BLOCKLIST-v1)
+  rulepack.py sign-numbers --key <priv.pem> --key-id eye-2026-a --version 3 --hashes hashes.bin --out numbers.eye.json
+      (hashes.bin: output di tools/numbers/build_numbers.py; feed format 4, dominio EYE-NUMBERS-v1, magic ENL1; build-site-data lo firma da solo se non e' vuoto)
+  rulepack.py sign-model --key <priv.pem> --key-id eye-2026-a --version 4 --model model.int8.onnx --raise-threshold 0.9 --out-dir out/
+      [--tokenizer app/src/main/assets/ml/tokenizer.json] [--autotest autotest.json] [--site-data <Eye-WebSite/data>]
+      (feed format 5, dominio EYE-MODEL-v1: manifest firmato + file del modello scaricato a parte; vedi tools/rulepack/README.md)
 """
 import argparse, base64, datetime, gzip, hashlib, json, os, re, struct, sys, unicodedata, urllib.parse
 from cryptography.hazmat.primitives import serialization
@@ -17,6 +22,10 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 DOMAIN = b"EYE-RULES-v1\n"  # deve coincidere con RulePackVerifier.DOMAIN
 CAMPAIGNS_DOMAIN = b"EYE-CAMPAIGNS-v1\n"  # deve coincidere con CampaignFeedVerifier.DOMAIN (format 2)
 BLOCKLIST_DOMAIN = b"EYE-BLOCKLIST-v1\n"  # deve coincidere con BlocklistVerifier.DOMAIN (format 3)
+NUMBERS_DOMAIN = b"EYE-NUMBERS-v1\n"  # deve coincidere con NUMBERS_DOMAIN in PhoneNumbers.kt (format 4)
+MODEL_DOMAIN = b"EYE-MODEL-v1\n"  # deve coincidere con ModelFeedVerifier.DOMAIN (format 5)
+BUNDLED_MODEL_VERSION = 3  # modello incluso nell'APK (MiniLM v3): il feed deve superarlo
+NUMBERS_MAGIC = b"ENL1"
 BLOCKLIST_MAGIC = b"EBL1"
 BLOCKLIST_HASH_BYTES = 6
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -51,8 +60,8 @@ CATEGORIES = {"smishing", "phishing", "whatsapp", "malware", "investimenti", "ac
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{2,63}$")
 DATE_RE = re.compile(r"^20\d\d-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$")
 HOST_RE = re.compile(r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$")
-MAX_PLAIN = {1: 10 * 1024 * 1024, 2: 1024 * 1024, 3: 8 * 1024 * 1024}  # decompresso, come i verifier
-MAX_ENVELOPE = {1: 2 * 1024 * 1024, 2: 256 * 1024, 3: 8 * 1024 * 1024}
+MAX_PLAIN = {1: 10 * 1024 * 1024, 2: 1024 * 1024, 3: 8 * 1024 * 1024, 4: 8 * 1024 * 1024, 5: 64 * 1024}  # decompresso, come i verifier
+MAX_ENVELOPE = {1: 2 * 1024 * 1024, 2: 256 * 1024, 3: 8 * 1024 * 1024, 4: 8 * 1024 * 1024, 5: 64 * 1024}
 
 
 def official_https(url):
@@ -101,6 +110,35 @@ def validate_campaigns(doc):
             e.append(w + ": nome fonte")
         elif not official_https(src.get("url")):
             e.append(w + ": URL fonte non ammesso")
+    return e
+
+
+SHA_RE = re.compile(r"^[0-9a-f]{64}$")
+MODEL_FILE_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}\.onnx$")
+# stessi testi e soglie larghe di OnnxTextClassifier (SELF_CHECK_*): legittimi ~0.002-0.005, truffe ~0.998 sul PC
+DEFAULT_AUTOTEST = {
+    "benign": [{"text": "Mario\nok", "pMax": 0.2}, {"text": "Mario\nCi vediamo dopo alle 8", "pMax": 0.2},
+               {"text": "Giulia\nHai visto la partita ieri sera?", "pMax": 0.2}],
+    "scam": [{"text": "Gentile clienti, e' stato effettuato un accesso anomalo al suo conto, inserire i dati al seguente link https://intesa-clienti-xq7k.com/login", "pMin": 0.8},
+             {"text": "Royal Mail: Your parcel could not be delivered due to an unpaid shipping fee of 1.99 GBP. Please settle this here: https://rm-redelivery-uk-x7.com", "pMin": 0.8}],
+}
+
+
+def validate_model(doc):
+    """Stessi controlli di ModelFeedVerifier (il test Kotlin resta il gate finale)."""
+    e = []
+    if not (isinstance(doc.get("modelSha256"), str) and SHA_RE.match(doc["modelSha256"])): e.append("modelSha256")
+    if not (isinstance(doc.get("tokenizerSha256"), str) and SHA_RE.match(doc["tokenizerSha256"])): e.append("tokenizerSha256")
+    if not (isinstance(doc.get("modelSize"), int) and 1 <= doc["modelSize"] <= 120 * 1024 * 1024): e.append("modelSize")
+    if not (isinstance(doc.get("tokenizerSize"), int) and 1 <= doc["tokenizerSize"] <= 16 * 1024 * 1024): e.append("tokenizerSize")
+    if not (isinstance(doc.get("modelUrl"), str) and MODEL_FILE_RE.match(doc["modelUrl"])): e.append("modelUrl")
+    t = doc.get("raiseThreshold")
+    if not (isinstance(t, (int, float)) and 0.5 <= t <= 0.9999): e.append("raiseThreshold fuori 0.5..0.9999")
+    b, sc = doc.get("benign"), doc.get("scam")
+    if not (isinstance(b, list) and len(b) == 3 and all(isinstance(x, dict) and set(x) == {"text", "pMax"} and isinstance(x["text"], str)
+            and 0 < len(x["text"]) <= 1000 and isinstance(x["pMax"], (int, float)) and 0 < x["pMax"] <= 0.5 for x in b)): e.append("benign: 3 testi con pMax in (0,0.5]")
+    if not (isinstance(sc, list) and len(sc) == 2 and all(isinstance(x, dict) and set(x) == {"text", "pMin"} and isinstance(x["text"], str)
+            and 0 < len(x["text"]) <= 1000 and isinstance(x["pMin"], (int, float)) and 0.5 <= x["pMin"] < 1 for x in sc)): e.append("scam: 2 testi con pMin in [0.5,1)")
     return e
 
 
@@ -155,19 +193,23 @@ def encode_blocklist_body(hashes_bin):
     return len(vals), bytes(out)
 
 
-def make_blocklist_plain(version, key_id, hashes_bin, issued, expires):
+def make_blocklist_plain(version, key_id, hashes_bin, issued, expires, magic=None):
     count, body = encode_blocklist_body(hashes_bin)
     if count == 0:
         sys.exit("RIFIUTO di firmare: elenco vuoto")
     header = json.dumps({"version": version, "keyId": key_id, "issuedAt": issued, "expiresAt": expires,
                          "count": count, "hashBytes": BLOCKLIST_HASH_BYTES}, separators=(",", ":")).encode("utf-8")
-    return BLOCKLIST_MAGIC + struct.pack(">I", len(header)) + header + body
+    return (magic or BLOCKLIST_MAGIC) + struct.pack(">I", len(header)) + header + body
 
 
 def make_envelope(keyfile, key_id, version, doc, domain, fmt, ttl_days=45):
     """Envelope firmato (THREAT_MODEL §5). Il payload ripete version e keyId e porta issuedAt/expiresAt (firmati).
     fmt 3 (elenco siti malevoli): doc e' il contenuto di hashes.bin (bytes), il payload e' binario (vedi BlocklistVerifier)."""
-    if fmt != 3:
+    if fmt == 5:
+        errors = validate_model(doc)
+        if errors:
+            sys.exit("RIFIUTO di firmare, manifest non valido:\n  " + "\n  ".join(errors))
+    elif fmt not in (3, 4):
         errors = (validate_rules if fmt == 1 else validate_campaigns)(doc)
         if errors:
             sys.exit("RIFIUTO di firmare, contenuto non valido:\n  " + "\n  ".join(errors[:30]))
@@ -175,14 +217,15 @@ def make_envelope(keyfile, key_id, version, doc, domain, fmt, ttl_days=45):
     now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
     issued = now.strftime("%Y-%m-%dT%H:%M:%SZ")
     expires = (now + datetime.timedelta(days=ttl_days)).strftime("%Y-%m-%dT%H:%M:%SZ")
-    if fmt == 3:
-        plain = make_blocklist_plain(version, key_id, doc, issued, expires)
+    if fmt in (3, 4):
+        plain = make_blocklist_plain(version, key_id, doc, issued, expires, NUMBERS_MAGIC if fmt == 4 else None)
     else:
         doc = dict(doc)
         doc["version"] = version
         doc["keyId"] = key_id
         doc["issuedAt"] = issued
-        doc["expiresAt"] = expires
+        if fmt != 5:  # il manifest del modello non scade (parser stretto: nessun campo in piu)
+            doc["expiresAt"] = expires
         plain = json.dumps(doc, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     payload = gzip.compress(plain, mtime=0)
     msg = domain + key_id.encode() + b"\n" + str(version).encode() + b"\n" + payload
@@ -228,6 +271,44 @@ def sign_blocklist(a):
     print("scritto", a.out, "versione", a.version)
 
 
+def sign_numbers(a):
+    write_bytes(a.out, make_envelope(a.key, a.key_id, a.version, read_bytes(a.hashes), NUMBERS_DOMAIN, 4, ttl_days=30))
+    print("scritto", a.out, "versione", a.version)
+
+
+def sign_model(a):
+    """Firma il manifest del modello (sha256 di modello e tokenizer, soglia, autotest) e prepara il file del modello da pubblicare."""
+    if a.version <= BUNDLED_MODEL_VERSION:
+        sys.exit("version deve essere > %d (modello incluso nell'APK)" % BUNDLED_MODEL_VERSION)
+    model = read_bytes(a.model)
+    tok = read_bytes(a.tokenizer)
+    app_tok = os.path.join(REPO, "app", "src", "main", "assets", "ml", "tokenizer.json")
+    if os.path.exists(app_tok) and hashlib.sha256(read_bytes(app_tok)).hexdigest() != hashlib.sha256(tok).hexdigest():
+        sys.exit("RIFIUTO: il tokenizer non coincide con quello incluso nell'app (l'app rifiuterebbe il modello)")
+    at = load_json(a.autotest) if a.autotest else DEFAULT_AUTOTEST
+    name = "model-%d.onnx" % a.version
+    doc = {"modelSha256": hashlib.sha256(model).hexdigest(), "modelSize": len(model), "modelUrl": name,
+           "tokenizerSha256": hashlib.sha256(tok).hexdigest(), "tokenizerSize": len(tok),
+           "raiseThreshold": a.raise_threshold, "benign": at["benign"], "scam": at["scam"]}
+    env = make_envelope(a.key, a.key_id, a.version, doc, MODEL_DOMAIN, 5)
+    os.makedirs(a.out_dir, exist_ok=True)
+    write_bytes(os.path.join(a.out_dir, "model.eye.json"), env)
+    write_bytes(os.path.join(a.out_dir, name), model)
+    entry = {"version": a.version, "sha256": hashlib.sha256(env).hexdigest(), "url": "model.eye.json"}
+    if a.site_data:
+        os.makedirs(a.site_data, exist_ok=True)
+        vpath = os.path.join(a.site_data, "version.json")
+        index = load_json(vpath) if os.path.exists(vpath) else {}
+        if int(index.get("model", {}).get("version", 0)) >= a.version:
+            sys.exit("version.json ha gia' un modello con versione >= %d" % a.version)
+        write_bytes(os.path.join(a.site_data, "model.eye.json"), env)
+        write_bytes(os.path.join(a.site_data, name), model)
+        index["model"] = entry
+        write_bytes(vpath, (json.dumps(index, separators=(",", ":")) + "\n").encode("utf-8"))
+    print("scritto in", a.out_dir, "- manifest versione", a.version, "- modello", name, len(model), "byte")
+    print('voce per version.json: "model":', json.dumps(entry))
+
+
 def build_site_data(a):
     """Firma regole e campagne e scrive version.json + i due envelope nella cartella dati del sito."""
     os.makedirs(a.site_data, exist_ok=True)
@@ -249,16 +330,25 @@ def build_site_data(a):
     if os.path.exists(bl_path):
         bv = a.blocklist_version or int(old.get("blocklist", {}).get("version", 0)) + 1
         files["blocklist.eye.json"] = (make_envelope(a.key, a.key_id, bv, read_bytes(bl_path), BLOCKLIST_DOMAIN, 3, ttl_days=30), bv)
+    nm_path = a.numbers_hashes or os.path.join(REPO, "tools", "numbers", "out", "hashes.bin")
+    if os.path.exists(nm_path) and os.path.getsize(nm_path) > 0:  # elenco vuoto: non si firma, resta la voce precedente
+        nv = a.numbers_version or int(old.get("numbers", {}).get("version", 0)) + 1
+        files["numbers.eye.json"] = (make_envelope(a.key, a.key_id, nv, read_bytes(nm_path), NUMBERS_DOMAIN, 4, ttl_days=30), nv)
     index = {}
     for name, (data, ver) in files.items():
         write_bytes(os.path.join(a.site_data, name), data)
         index[name.split(".")[0]] = {"version": ver, "sha256": hashlib.sha256(data).hexdigest(), "url": name}
     if "blocklist" not in index and "blocklist" in old:
         index["blocklist"] = old["blocklist"]  # nessun nuovo elenco: resta quello pubblicato
+    if "numbers" not in index and "numbers" in old:
+        index["numbers"] = old["numbers"]
+    if "model" in old:
+        index["model"] = old["model"]  # il modello AI si pubblica solo con sign-model: build-site-data non lo tocca
     write_bytes(vpath, (json.dumps(index, separators=(",", ":")) + "\n").encode("utf-8"))
     headers = "/*\n  Content-Type: application/json; charset=utf-8\n  Cache-Control: public, max-age=300\n  X-Content-Type-Options: nosniff\n"
     write_bytes(os.path.join(a.site_data, "_headers"), headers.encode("utf-8"))
-    print("scritto in", a.site_data, "- regole v%d, campagne v%d" % (rv, cv), ("- siti malevoli v%d" % index["blocklist"]["version"]) if "blocklist" in index else "")
+    print("scritto in", a.site_data, "- regole v%d, campagne v%d" % (rv, cv), ("- siti malevoli v%d" % index["blocklist"]["version"]) if "blocklist" in index else "",
+          ("- numeri v%d" % index["numbers"]["version"]) if "numbers" in index else "")
 
 
 p = argparse.ArgumentParser()
@@ -289,6 +379,24 @@ bl.add_argument("--version", type=int, required=True)
 bl.add_argument("--hashes", required=True)
 bl.add_argument("--out", required=True)
 bl.set_defaults(f=sign_blocklist)
+nm = s.add_parser("sign-numbers")
+nm.add_argument("--key", required=True)
+nm.add_argument("--key-id", required=True)
+nm.add_argument("--version", type=int, required=True)
+nm.add_argument("--hashes", required=True)
+nm.add_argument("--out", required=True)
+nm.set_defaults(f=sign_numbers)
+md = s.add_parser("sign-model")
+md.add_argument("--key", required=True)
+md.add_argument("--key-id", required=True)
+md.add_argument("--version", type=int, required=True)
+md.add_argument("--model", required=True, help="model.int8.onnx")
+md.add_argument("--tokenizer", default=os.path.join(REPO, "app", "src", "main", "assets", "ml", "tokenizer.json"))
+md.add_argument("--raise-threshold", type=float, required=True, help="soglia consigliata per alzare il verdetto (0.5..0.9999)")
+md.add_argument("--autotest", help="JSON {benign:[{text,pMax}x3], scam:[{text,pMin}x2]} (default: stessi testi dell'autotest dell'app)")
+md.add_argument("--out-dir", required=True)
+md.add_argument("--site-data", help="se dato, copia manifest e modello nel sito e aggiorna version.json (solo la voce model)")
+md.set_defaults(f=sign_model)
 b = s.add_parser("build-site-data")
 b.add_argument("--key", required=True, help="chiave privata di produzione (fuori dal repo)")
 b.add_argument("--key-id", required=True)
@@ -299,6 +407,8 @@ b.add_argument("--rules-version", type=int)
 b.add_argument("--campaigns-version", type=int)
 b.add_argument("--blocklist-hashes", help="hashes.bin di tools/blocklist (default: tools/blocklist/out/hashes.bin se esiste)")
 b.add_argument("--blocklist-version", type=int)
+b.add_argument("--numbers-hashes", help="hashes.bin di tools/numbers (default: tools/numbers/out/hashes.bin se esiste e non e' vuoto)")
+b.add_argument("--numbers-version", type=int)
 b.set_defaults(f=build_site_data)
 a = p.parse_args()
 a.f(a)

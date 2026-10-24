@@ -5,8 +5,21 @@ import android.os.Bundle
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import app.eye.android.BuildConfig
+import app.eye.android.R
+import app.eye.android.core.Redactor
+import app.eye.android.core.ai.AiConfig
+import app.eye.android.core.ai.AiJudgement
+import app.eye.android.core.ai.AiOutcome
+import app.eye.android.core.ai.AiService
+import app.eye.android.data.KeyVault
+import app.eye.android.data.VerdictJson
+import app.eye.engine.llm.LegitGate
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import app.eye.android.EyeApp
 import app.eye.engine.Input
+import app.eye.engine.Level
+import app.eye.engine.Verdict
 import app.eye.engine.Source
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -77,12 +90,40 @@ class EyeNotificationListener : NotificationListenerService() {
         val verdict = app.container.checker.analyze(Input(text, Source.SHARE, declaredSender = n.title?.toString()?.take(120), origin = n.pkg,
             // link accorciati: si chiede la destinazione al servizio PRIMA dell'analisi (max 4 s, sul worker seriale)
             resolvedLinks = app.container.shortLinks.expandBlocking(text, background = true)))
-        if (!NotificationGate.shouldAlert(verdict) || !g.allowAlert(n.pkg)) return
+        if (!NotificationGate.shouldAlert(verdict)) return
+        if (aiDismisses(n, text, verdict)) return // l'AI collegata (opt-in) ritiene il messaggio legittimo: nessun avviso, analisi in cronologia
+        if (!g.allowAlert(n.pkg)) return
         val label = MonitoredApps.presets(BuildConfig.DEBUG).firstOrNull { it.pkg == n.pkg }?.label ?: n.pkg
         val id = alertId(n.pkg, n.title)
         // cifrato su disco finché l'avviso non è aperto o scartato; senza cifratura non si avvisa (mai testo in chiaro)
         if (!app.container.alerts.put(id, text, verdict.level.name, n.pkg, n.title?.toString()?.take(120))) return
         if (!AlertNotifier.post(applicationContext, label, verdict.level, id, loud = g.allowLoud())) app.container.alerts.discard(id)
+    }
+
+    /**
+     * Verifica opt-in con l'AI dell'utente (testo oscurato, max 8 s). Fail-safe: qualsiasi errore, timeout, limite o
+     * parere diverso da "legittimo" con confidenza alta = false (l'avviso parte). Mai per segnali gravi o PROBABILE_TRUFFA.
+     */
+    private fun aiDismisses(n: NotifData, text: String, verdict: Verdict): Boolean = try {
+        if (verdict.level != Level.SOSPETTO || LegitGate.hasGraveSignals(verdict)) false
+        else {
+            val st = runBlocking { app.container.settings.settings.first() }
+            val key = if (st.aiVerifyBeforeAlert && st.aiConfigured) st.aiKeyCipher?.let { KeyVault.decrypt(it) } else null
+            val out = if (key == null) null else AiService().ask(AiConfig(st.aiProvider, st.aiModel, st.aiBaseUrl, key), Redactor.redactKeepLinks(text), quickMs = AI_VERIFY_MS)
+            val op = (out as? AiOutcome.Success)?.opinion
+            if (op == null || !LegitGate.mayDismiss(verdict, op.judgement == AiJudgement.NESSUN_SEGNALE, op.confidence)) false
+            else {
+                if (st.saveHistory) runBlocking {
+                    val note = applicationContext.getString(R.string.alert_not_sent_note)
+                    app.container.history.save(
+                        verdict.level.name, Redactor.preview(text), listOf(note) + verdict.reasons.map { it.text }, text, VerdictJson.encode(verdict),
+                    )
+                }
+                true
+            }
+        }
+    } catch (_: Exception) {
+        false
     }
 
     private fun read(sbn: StatusBarNotification): NotifData {
@@ -127,6 +168,7 @@ class EyeNotificationListener : NotificationListenerService() {
 
     companion object {
         /** Pacchetti da controllare; vuoto = protezione spenta. */
+        private const val AI_VERIFY_MS = 8_000L
         @Volatile private var active: Set<String> = emptySet()
 
         // coda piccola, scarta le più vecchie

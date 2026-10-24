@@ -166,7 +166,7 @@ data class FeedEntry(val version: Long, val sha256: String, val url: String) {
 }
 
 /** [blocklist] opzionale: un indice senza (o con voce malformata) non blocca regole e campagne. */
-data class FeedIndex(val rules: FeedEntry, val campaigns: FeedEntry, val blocklist: FeedEntry? = null) {
+data class FeedIndex(val rules: FeedEntry, val campaigns: FeedEntry, val blocklist: FeedEntry? = null, val numbers: FeedEntry? = null, val model: FeedEntry? = null) {
     companion object {
         const val MAX_BYTES = 4 * 1024
         private val SHA = Regex("^[0-9a-f]{64}$")
@@ -179,7 +179,7 @@ data class FeedIndex(val rules: FeedEntry, val campaigns: FeedEntry, val blockli
         fun parse(bytes: ByteArray): Result<FeedIndex> = try {
             require(bytes.size <= MAX_BYTES) { "version.json troppo grande" }
             val root = Json.parseToJsonElement(bytes.toString(Charsets.UTF_8)).jsonObject
-            Result.success(FeedIndex(entry(root, "rules"), entry(root, "campaigns"), runCatching { entry(root, "blocklist") }.getOrNull()))
+            Result.success(FeedIndex(entry(root, "rules"), entry(root, "campaigns"), runCatching { entry(root, "blocklist") }.getOrNull(), runCatching { entry(root, "numbers") }.getOrNull(), runCatching { entry(root, "model") }.getOrNull()))
         } catch (e: Exception) {
             Result.failure(IllegalArgumentException("version.json non valido"))
         }

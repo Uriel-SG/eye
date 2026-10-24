@@ -8,6 +8,11 @@ import app.eye.engine.UrlInfo
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import com.google.mlkit.vision.label.ImageLabeling
+import com.google.mlkit.vision.label.defaults.ImageLabelerOptions
+import app.eye.engine.image.ImageFacts
+import app.eye.engine.image.ImageLabel
+import app.eye.engine.image.OcrBlock
 import com.google.android.gms.tasks.Task
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
@@ -76,25 +81,44 @@ object OcrReader {
     }
 
 
-    /** Risultato di una immagine: testo OCR e primo QR trovato (entrambi opzionali). */
-    data class ImageScan(val text: String, val qr: String?)
+    /** Risultato di una immagine: testo OCR, primo QR trovato e fatti per riconoscere fumetti/illustrazioni (tutto opzionale). */
+    data class ImageScan(val text: String, val qr: String?, val facts: ImageFacts = ImageFacts(0, 0))
 
-    /** Esegue SIA OCR SIA lettura QR sulla stessa immagine, tutto sul telefono. */
+    /** Esegue OCR, lettura QR ed etichettatura sulla stessa immagine, tutto sul telefono (modelli inclusi nell'app). */
     suspend fun scanImage(context: Context, uri: Uri): ImageScan {
         val bmp = decode(context, uri) ?: throw OcrException(ScanError.Failed)
         try {
             val qr = BarcodeReader.fromBitmap(bmp) // offline
+            var blocks = emptyList<OcrBlock>()
             val text = try {
                 val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-                try { recognizer.process(InputImage.fromBitmap(bmp, 0)).await().text } finally { recognizer.close() }
+                try {
+                    val r = recognizer.process(InputImage.fromBitmap(bmp, 0)).await()
+                    blocks = r.textBlocks.mapNotNull { b -> b.boundingBox?.let { OcrBlock(b.text, it.left, it.top, it.right, it.bottom) } }
+                    r.text
+                } finally { recognizer.close() }
             } catch (e: Exception) {
                 if (qr == null) throw OcrException(ScanError.Unavailable)
                 ""
             }
-            return ImageScan(text, qr)
+            return ImageScan(text, qr, ImageFacts(bmp.width, bmp.height, ImageLabelReader.read(bmp), blocks, hasQr = qr != null))
         } finally {
             bmp.recycle()
         }
+    }
+}
+
+/** Etichette dell'immagine con il modello di base ML Kit incluso nell'app (offline). Qualsiasi errore: nessuna etichetta. */
+object ImageLabelReader {
+    suspend fun read(bmp: Bitmap): List<ImageLabel> = try {
+        val labeler = ImageLabeling.getClient(ImageLabelerOptions.Builder().setConfidenceThreshold(0.3f).build())
+        try {
+            labeler.process(InputImage.fromBitmap(bmp, 0)).await().map { ImageLabel(it.text, it.confidence) }
+        } finally {
+            labeler.close()
+        }
+    } catch (_: Exception) {
+        emptyList()
     }
 }
 

@@ -41,6 +41,7 @@ junit4 = { module = "junit:junit", version.ref = "junit4" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 
 mlkit-text = { module = "com.google.mlkit:text-recognition", version = "16.0.1" }
+mlkit-image-labeling = { module = "com.google.mlkit:image-labeling", version = "17.0.9" }
 mlkit-genai-prompt = { module = "com.google.mlkit:genai-prompt", version = "1.0.0-beta4" }
 play-app-update-ktx = { module = "com.google.android.play:app-update-ktx", version = "2.1.0" }
 zxing-core = { module = "com.google.zxing:core", version = "3.5.3" }

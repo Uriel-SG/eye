@@ -9,6 +9,8 @@ import app.eye.engine.RulePackVerifier
 import app.eye.engine.install
 import app.eye.engine.installBlocklist
 import app.eye.engine.installCampaigns
+import app.eye.engine.installNumberlist
+import app.eye.engine.numberlistVerifier
 import java.io.IOException
 
 /** Stato leggero dei feed (ETag, ultimo controllo, id già visti). Mai dati dell'utente. */
@@ -25,6 +27,9 @@ interface FeedState {
     /** Ultimo controllo di regole/campagne/siti malevoli andato a buon fine (ms), 0 = mai. */
     fun lastFeedUpdate(): Long = 0L
     fun setLastFeedUpdate(t: Long) {}
+    /** Ultima versione del modello AI scartata (download corrotto o autotest fallito): non si riprova finche' non ne esce una piu' nuova. */
+    fun rejectedModel(): Long = 0L
+    fun setRejectedModel(version: Long) {}
     fun clear()
 }
 
@@ -53,6 +58,8 @@ class FeedUpdater(
     private val clock: () -> Long = System::currentTimeMillis,
     private val blocklistStore: RulePackStore? = null,
     private val blocklistVerifier: BlocklistVerifier = BlocklistVerifier(),
+    private val numbersStore: RulePackStore? = null,
+    private val numbersVerifier: BlocklistVerifier = numberlistVerifier(),
 ) {
     private val base = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
 
@@ -135,8 +142,27 @@ class FeedUpdater(
         return FeedResult.Updated(list.version)
     }
 
-    class All(val rules: FeedResult, val campaigns: FeedResult, val blocklist: FeedResult) {
-        private val all get() = listOf(rules, campaigns, blocklist)
+    /** Elenco locale di numeri usati per truffe (feed firmato separato EYE-NUMBERS-v1): stessi limiti e controlli dell'elenco siti. */
+    fun updateNumbers(): FeedResult {
+        val store = numbersStore ?: return FeedResult.UpToDate
+        val idx = when (val i = fetchIndex(NUMBERS)) {
+            Idx.Same -> return FeedResult.UpToDate
+            is Idx.Bad -> return FeedResult.Failed(i.why)
+            is Idx.New -> i
+        }
+        val entry = idx.index.numbers
+        if (entry == null || entry.version <= store.installedVersion()) {
+            state.setEtag(NUMBERS, idx.etag)
+            return FeedResult.UpToDate
+        }
+        val bytes = download(entry, BlocklistVerifier.MAX_ENVELOPE) ?: return FeedResult.Failed(FeedFailure.BAD_DOWNLOAD)
+        val list = store.installNumberlist(numbersVerifier, bytes).getOrNull() ?: return FeedResult.Failed(FeedFailure.REJECTED)
+        state.setEtag(NUMBERS, idx.etag)
+        return FeedResult.Updated(list.version)
+    }
+
+    class All(val rules: FeedResult, val campaigns: FeedResult, val blocklist: FeedResult, val numbers: FeedResult = FeedResult.UpToDate) {
+        private val all get() = listOf(rules, campaigns, blocklist, numbers)
         /** Updated se qualcosa e' cambiato; altrimenti Failed (rete in testa) se qualcosa e' fallito; altrimenti UpToDate. */
         val summary: FeedResult get() = all.firstOrNull { it is FeedResult.Updated }
             ?: all.filterIsInstance<FeedResult.Failed>().let { f -> f.firstOrNull { it.why == FeedFailure.NETWORK } ?: f.firstOrNull() }
@@ -145,13 +171,14 @@ class FeedUpdater(
 
     /** Aggiornamento manuale («Aggiorna»): regole, campagne e siti malevoli. [minIntervalMs] vale solo per le campagne. */
     fun updateAll(minIntervalMs: Long = 0): All {
-        val r = All(updateRules(), updateCampaigns(minIntervalMs), updateBlocklist())
+        val r = All(updateRules(), updateCampaigns(minIntervalMs), updateBlocklist(), updateNumbers())
         if (r.summary !is FeedResult.Failed) state.setLastFeedUpdate(clock())
         return r
     }
 
     companion object {
         const val BLOCKLIST = "blocklist"
+        const val NUMBERS = "numbers"
         const val RULES = "rules"
         const val CAMPAIGNS = "campaigns"
         const val FREE_MIN_INTERVAL_MS = 60 * 60 * 1000L

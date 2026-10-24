@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ai_gemini_get_key">Ottieni chiave Google AI</string>
+    <string name="ai_gemini_howto">Per ottenere una chiave gratuita, usare il pulsante qui sotto e accedere con un account Google. Se la chiave viene copiata, al ritorno nell\'app è inserita in automatico. Con il piano gratuito Google può usare i testi inviati per migliorare i propri servizi.</string>
+    <string name="ai_key_from_clipboard">Chiave inserita dagli appunti</string>
+    <string name="ai_verify_label">Verifica con l\'AI collegata prima di inviare un avviso</string>
+    <string name="ai_verify_sub">Prima di un avviso di livello «Sospetto», il testo della notifica, oscurato, viene inviato al servizio scelto. Se l\'AI lo ritiene legittimo con sicurezza, l\'avviso non è inviato e l\'analisi resta in cronologia. Se il servizio non risponde, l\'avviso parte comunque.</string>
+    <string name="ai_provider_pollinations">Servizio gratuito (Pollinations)</string>
+    <string name="ai_err_free_limit">Il servizio gratuito accetta una richiesta ogni 30 secondi. Riprovare tra poco.</string>
+    <string name="ai_free_consent_title">Inviare il testo al servizio gratuito?</string>
+    <string name="ai_free_consent_body">Il testo verrà inviato, con numeri, email, IBAN, codici fiscali e link oscurati (i nomi scritti nel testo possono restare visibili), a Pollinations (Myceli.AI OÜ, Estonia), un servizio gratuito senza account. I server possono trovarsi anche fuori dall\'UE e le richieste possono restare in cache fino a 30 giorni. Il parere può solo aggiungere cautela, mai ridurre l\'avviso di Eye.</string>
+    <string name="ai_free_consent_once">Invia</string>
+    <string name="ai_free_consent_always">Invia e non chiedere più</string>
+    <string name="alert_not_sent_note">Avviso non inviato: l\'AI collegata ha ritenuto il messaggio legittimo</string>
+</resources>

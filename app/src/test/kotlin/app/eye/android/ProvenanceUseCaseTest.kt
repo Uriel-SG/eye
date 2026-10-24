@@ -34,4 +34,28 @@ class ProvenanceUseCaseTest {
             assertEquals(k, r.provenance?.kind)
         }
     }
+
+    @Test fun imageWithoutTextShowsProvenanceCardOnly() = runTest {
+        val done = uc.noText(ProvenanceReport(ProvenanceKind.AI_DECLARED, "Midjourney"))
+        val r = done.result
+        assertEquals(app.eye.engine.Level.NESSUN_SEGNALE, r.verdict.level)
+        assertEquals(ProvenanceKind.AI_DECLARED, r.provenance?.kind)
+        assertTrue(r.verdict.reasons.any { it.text == "Nessun testo da analizzare nell'immagine." })
+        assertEquals("", r.originalText)
+        assertEquals(null, r.historyId)
+        // anche senza informazioni di provenienza la scheda c'e' (con il suo testo «nessuna informazione trovata»)
+        assertEquals(ProvenanceKind.NONE, uc.noText(ProvenanceReport(ProvenanceKind.NONE)).result.provenance?.kind)
+    }
+
+    @Test fun illustrationWithoutLinkIsNoSignalWithNote() = runTest {
+        val plain = "Urgente: codice PIN subito"
+        val comic = (uc.run(plain, Source.OCR, nature = app.eye.engine.image.ImageNature.ILLUSTRATION) as CheckOutcome.Done).result.verdict
+        assertEquals(app.eye.engine.Level.NESSUN_SEGNALE, comic.level)
+        assertTrue(comic.reasons.any { it.text == app.eye.engine.image.ImageNatureDetector.ILLUSTRATION_NOTE })
+        // con un link (o un QR) il controllo resta normale
+        val withLink = (uc.run(text, Source.OCR, nature = app.eye.engine.image.ImageNature.ILLUSTRATION) as CheckOutcome.Done).result.verdict
+        assertTrue(withLink.level != app.eye.engine.Level.NESSUN_SEGNALE)
+        val qr = (uc.run(plain, Source.OCR, nature = app.eye.engine.image.ImageNature.ILLUSTRATION, hasQr = true) as CheckOutcome.Done).result.verdict
+        assertTrue(qr.level != app.eye.engine.Level.NESSUN_SEGNALE)
+    }
 }

@@ -5,7 +5,9 @@ import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
 import android.content.Context
 import android.util.Log
+import app.eye.android.core.feed.ModelPaths
 import app.eye.engine.MiniLmTokenizer
+import app.eye.engine.ModelAutotest
 import app.eye.engine.TextClassifier
 import java.io.File
 import java.nio.LongBuffer
@@ -22,12 +24,31 @@ class OnnxTextClassifier(context: Context) : TextClassifier {
 
     private class Loaded(val env: OrtEnvironment, val session: OrtSession, val tokenizer: MiniLmTokenizer)
 
-    private val loaded: Loaded? by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+    private val loadedLazy = lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
         val t0 = System.nanoTime()
         runCatching { load() }
             .onFailure { Log.w(TAG, "modello non disponibile: ${it.javaClass.simpleName}") }
             .onSuccess { Log.i(TAG, "modello caricato in ${(System.nanoTime() - t0) / 1_000_000} ms") }
             .getOrNull()
+    }
+    private val loaded: Loaded? get() = loadedLazy.value
+
+    /** Libera la sessione (dopo un aggiornamento del modello l'istanza viene sostituita). */
+    fun close() {
+        if (loadedLazy.isInitialized()) runCatching { loadedLazy.value?.session?.close() }
+    }
+
+    /**
+     * Prova un file di modello candidato (apertura + autotest con i testi del manifest firmato) senza attivarlo.
+     * Gira nel processo ":ai": un crash nativo uccide solo quel processo e vale come «non superato».
+     */
+    fun checkCandidate(model: File, autotest: ModelAutotest): Boolean = try {
+        val m = openVerified(model, loadTokenizer(), autotest, "candidato")
+        m.session.close()
+        true
+    } catch (e: Throwable) {
+        Log.w(TAG, "candidato scartato: ${e.javaClass.simpleName}")
+        false
     }
 
     /** Avvia il caricamento su un thread di background (non blocca nessuno). */
@@ -68,9 +89,25 @@ class OnnxTextClassifier(context: Context) : TextClassifier {
         }
     }
 
+    private fun loadTokenizer(): MiniLmTokenizer =
+        appContext.assets.open("ml/tokenizer.json").use { MiniLmTokenizer(it.readBytes().toString(Charsets.UTF_8)) }
+
+    /**
+     * Modello scaricato dal feed firmato (se presente, integro, col tokenizer atteso e SE supera l'autotest sul questo
+     * telefono), altrimenti quello dell'APK. Il modello del feed non sostituisce mai quello incluso: se non va, si ripiega.
+     */
     private fun load(): Loaded {
-        val tokenizer = appContext.assets.open("ml/tokenizer.json").use { MiniLmTokenizer(it.readBytes().toString(Charsets.UTF_8)) }
-        val model = modelFile()
+        val tokenizer = loadTokenizer()
+        val installed = ModelPaths.installed(appContext)
+        if (installed != null) {
+            runCatching { openVerified(installed.file, tokenizer, installed.manifest.autotest(), "feed v${installed.manifest.version}") }
+                .onSuccess { return it }
+                .onFailure { Log.w(TAG, "modello del feed scartato (${it.javaClass.simpleName}): resta quello dell'app") }
+        }
+        return openVerified(modelFile(), tokenizer, BUNDLED_AUTOTEST, "incluso")
+    }
+
+    private fun openVerified(model: File, tokenizer: MiniLmTokenizer, autotest: ModelAutotest, source: String): Loaded {
         val env = OrtEnvironment.getEnvironment()
         // Autotest all'avvio: i kernel int8 di ONNX Runtime dipendono dalla CPU (x86/arm64, dotprod/i8mm...). Se su QUESTO
         // telefono il modello non riproduce i risultati attesi sul PC si riprova senza ottimizzazioni di grafo; se ancora
@@ -83,16 +120,19 @@ class OnnxTextClassifier(context: Context) : TextClassifier {
             }
             val session = env.createSession(model.absolutePath, opts)
             val candidate = Loaded(env, session, tokenizer)
-            if (selfCheck(candidate, level.name)) return candidate
+            if (selfCheck(candidate, autotest, "$source/${level.name}")) return candidate
             session.close()
         }
         error("autotest del modello fallito")
     }
 
-    private fun selfCheck(m: Loaded, label: String): Boolean = try {
-        val benign = SELF_CHECK_BENIGN.map { infer(m, m.tokenizer.encode(it)) }
-        val scam = SELF_CHECK_SCAM.map { infer(m, m.tokenizer.encode(it)) }
-        val ok = benign.all { it < 0.2f } && scam.all { it > 0.8f }
+    private fun selfCheck(m: Loaded, autotest: ModelAutotest, label: String): Boolean = try {
+        val benign = autotest.benign.map { infer(m, m.tokenizer.encode(it.first)) }
+        val scam = autotest.scam.map { infer(m, m.tokenizer.encode(it.first)) }
+        val seen = HashMap<String, Float>()
+        autotest.benign.zip(benign).forEach { seen[it.first.first] = it.second }
+        autotest.scam.zip(scam).forEach { seen[it.first.first] = it.second }
+        val ok = autotest.passes { seen[it] }
         Log.i(TAG, "autotest $label: ${if (ok) "ok" else "FALLITO"} legittimi=${benign.joinToString { "%.3f".format(it) }} truffe=${scam.joinToString { "%.3f".format(it) }}")
         ok
     } catch (e: Throwable) {
@@ -134,5 +174,8 @@ class OnnxTextClassifier(context: Context) : TextClassifier {
             "Gentile clienti, e' stato effettuato un accesso anomalo al suo conto, inserire i dati al seguente link https://intesa-clienti-xq7k.com/login",
             "Royal Mail: Your parcel could not be delivered due to an unpaid shipping fee of 1.99 GBP. Please settle this here: https://rm-redelivery-uk-x7.com",
         )
+
+        /** Autotest del modello incluso nell'APK: soglie larghe (vedi sopra). */
+        private val BUNDLED_AUTOTEST get() = ModelAutotest(SELF_CHECK_BENIGN.map { it to 0.2f }, SELF_CHECK_SCAM.map { it to 0.8f })
     }
 }

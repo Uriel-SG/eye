@@ -23,9 +23,22 @@ class RulesUpdateWorker(ctx: Context, p: WorkerParameters) : CoroutineWorker(ctx
         val all = c.feedUpdater.updateAll(FeedUpdater.FREE_MIN_INTERVAL_MS) // regole, campagne, siti malevoli
         if (all.rules is FeedResult.Updated) c.reloadRules()
         if (all.blocklist is FeedResult.Updated) c.reloadBlocklist()
+        if (all.numbers is FeedResult.Updated) c.reloadNumberlist()
         if (all.campaigns is FeedResult.Updated) c.reloadCampaigns()
+        app.eye.android.core.notif.UpdateAvailableNotifier.check(applicationContext, c.settings) // nuova versione dell'app: una notifica discreta
         // solo la rete assente si riprova (backoff esponenziale di WorkManager); verifiche fallite: si aspetta il prossimo ciclo
         val r = all.summary
+        if (r is FeedResult.Failed && r.why == FeedFailure.NETWORK) Result.retry() else Result.success()
+    }
+}
+
+/**
+ * Modello AI aggiornabile (feed firmato EYE-MODEL-v1): solo con rete NON a consumo, telefono in carica e batteria non scarica
+ * (il file pesa decine di MB). Verifiche e autotest in processo isolato prima di attivarlo: vedi [ModelUpdater].
+ */
+class ModelUpdateWorker(ctx: Context, p: WorkerParameters) : CoroutineWorker(ctx, p) {
+    override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
+        val r = applicationContext.container.modelUpdater.update()
         if (r is FeedResult.Failed && r.why == FeedFailure.NETWORK) Result.retry() else Result.success()
     }
 }
@@ -55,6 +68,15 @@ object FeedScheduler {
     private const val RULES = "eye_rules_update"
     private const val ALERTS = "eye_campaign_alerts"
     private val net = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).setRequiresBatteryNotLow(true).build()
+
+    private const val MODEL = "eye_model_update"
+    private val modelConstraints = Constraints.Builder()
+        .setRequiredNetworkType(NetworkType.UNMETERED).setRequiresCharging(true).setRequiresBatteryNotLow(true).build()
+
+    fun scheduleModel(ctx: Context) {
+        val req = PeriodicWorkRequestBuilder<ModelUpdateWorker>(24, TimeUnit.HOURS).setConstraints(modelConstraints).build()
+        WorkManager.getInstance(ctx).enqueueUniquePeriodicWork(MODEL, ExistingPeriodicWorkPolicy.KEEP, req)
+    }
 
     fun scheduleRules(ctx: Context) {
         val req = PeriodicWorkRequestBuilder<RulesUpdateWorker>(24, TimeUnit.HOURS).setConstraints(net).build()

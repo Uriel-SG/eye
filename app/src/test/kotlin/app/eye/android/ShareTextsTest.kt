@@ -102,7 +102,7 @@ class ShareTextsTest {
         ).map { b.indexOf(it).also { i -> assertTrue("manca: $it", i >= 0) } }
         assertEquals(idx.sorted(), idx)
         assertTrue(b.lines().take(4).all { it.isEmpty() || it == ShareTexts.COMMENT_LABEL })
-        assertTrue(b.endsWith(sms))
+        assertTrue(b.endsWith(ShareTexts.REPORT_END))
     }
 
     @Test fun safeOutgoingDefangsAndAddsNoteOnlyWhenNeeded() {
@@ -112,5 +112,17 @@ class ShareTextsTest {
         assertEquals(out, ShareTexts.safeOutgoing(out))
         val plain = "Ciao, ci vediamo alle 18.30"
         assertEquals(plain, ShareTexts.safeOutgoing(plain))
+    }
+
+    @Test fun reportBlockIsMachineReadableAndAnonymized() {
+        val txt = "Gentile Mario Rossi, chiama +39 333 1234567 o scrivi a mario@x.it, IBAN IT60X0542811101000000123456. Vai su https://brt-consegna.com/x"
+        val b = ShareTexts.feedbackBody(txt, "Sospetto", ShareTexts.UserView.LEGIT, "Messaggio", 40, listOf(Reason("R1", "m", 10)), listOf("brt-consegna.com"), Source.SHARE, "1.7.0", 5L, "oggi")
+        val block = b.substringAfter(ShareTexts.REPORT_BEGIN + "\n").substringBefore("\n" +ShareTexts.REPORT_END)
+        assertTrue(b.contains(ShareTexts.CONSENT_NOTE))
+        assertTrue(block.startsWith("{") && block.endsWith("}"))
+        assertTrue(block.contains("\"user\":\"false_positive\""))
+        assertTrue(block.contains("\"ruleIds\":[\"R1\"]"))
+        assertTrue(block, block.contains("[nome]"))
+        for (pii in listOf("Mario", "Rossi", "1234567", "mario@x.it", "IT60X05428", "https://brt")) assertFalse(pii, block.contains(pii))
     }
 }

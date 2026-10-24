@@ -14,8 +14,8 @@ android {
         applicationId = "com.urielsec.eye"
         minSdk = 26
         targetSdk = 36
-        versionCode = 13
-        versionName = "1.7.0"
+        versionCode = 14
+        versionName = "1.8.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Simboli nativi (librerie ML Kit) nell'AAB: Play Console li usa per leggere crash/ANR.
         ndk { debugSymbolLevel = "SYMBOL_TABLE" }
@@ -94,6 +94,11 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
     implementation(libs.mlkit.text)
+    implementation(libs.mlkit.image.labeling) // etichette dell'immagine sul telefono (modello incluso nell'app, nessuna rete)
+    // ML Kit vision-internal-vkp porta okhttp 3.0.0 (2016, CVE) e ne usa le classi all'avvio (escluderlo manda in crash): forziamo una 4.x corretta
+    constraints {
+        implementation("com.squareup.okhttp3:okhttp:4.12.0") { because("okhttp 3.0.0 transitivo di ML Kit ha vulnerabilita' note") }
+    }
     implementation(libs.mlkit.genai.prompt)
     implementation(libs.play.app.update.ktx)
     implementation(libs.onnxruntime.android)

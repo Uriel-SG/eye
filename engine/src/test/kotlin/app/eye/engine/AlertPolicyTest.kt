@@ -60,7 +60,9 @@ class AlertPolicyTest {
 
     @Test fun aiStillRaisesForegroundPaste() {
         val e = RuleEngine(rules, classifier = { 0.99f })
-        assertEquals(Level.SOSPETTO, e.analyze(Input("Mario\nok", Source.PASTE)).level)
+        assertEquals(Level.SOSPETTO, e.analyze(Input("Mario\nok 347 123 4567", Source.PASTE)).level)
+        // nessuna azione richiesta: il modello da solo non basta
+        assertEquals(Level.NESSUN_SEGNALE, e.analyze(Input("Mario\nok", Source.PASTE)).level)
     }
 
     @Test fun googleShareShortLinksAreNotShorteners() {

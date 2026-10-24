@@ -71,6 +71,35 @@ object LlmCombiner {
         opinion != null && opinion.verdict == LlmVerdict.LEGITTIMO && rules != Level.NESSUN_SEGNALE
 }
 
+/**
+ * Decisioni pure su un parere "legittimo" (Gemini Nano o AI collegata) per verdetti SOSPETTO. Il parere puo' solo
+ * attenuare un SOSPETTO senza segnali gravi: mai PROBABILE_TRUFFA, mai in presenza di un segnale tecnico/noto.
+ * Il testo del messaggio non influisce sulla decisione (e' solo un dato inviato al modello).
+ */
+object LegitGate {
+    const val CONFIDENCE = 0.8
+    const val NANO_REASON_ID = "LLM-02"
+    const val NANO_REASON = "Gemini Nano sul telefono ritiene il messaggio legittimo."
+
+    /** Segnali che non si attenuano mai: elenchi di truffe note, numeri a rischio, sito contraffatto, analisi incompleta. */
+    val GRAVE_IDS = setOf(
+        "BLK-01", "NUM-01", "NUM-02", "INC-01",
+        "URL-01", "URL-02", "URL-05", "URL-06", "URL-09", "URL-10", "MIS-01", "MIS-02", "RDP-01",
+    )
+
+    fun hasGraveSignals(v: Verdict): Boolean = v.reasons.any { it.ruleId in GRAVE_IDS }
+
+    /** true se il parere "legittimo" con confidenza alta permette di attenuare il verdetto [v]. */
+    fun mayDismiss(v: Verdict, legitimate: Boolean, confidence: Double): Boolean =
+        legitimate && !confidence.isNaN() && confidence >= CONFIDENCE && v.level == Level.SOSPETTO && !hasGraveSignals(v)
+
+    /** Nano dice legittimo: SOSPETTO -> NESSUN_SEGNALE con motivo esplicito; altrimenti il verdetto resta com'e'. */
+    fun applyNano(v: Verdict, opinion: LlmOpinion?): Verdict {
+        if (opinion == null || !mayDismiss(v, opinion.verdict == LlmVerdict.LEGITTIMO, opinion.confidence)) return v
+        return v.copy(level = Level.NESSUN_SEGNALE, reasons = v.reasons + Reason(NANO_REASON_ID, NANO_REASON, 0), actions = emptyList())
+    }
+}
+
 object LlmPrompt {
     /** Il contesto di Nano e' piccolo: il testo si tronca. */
     const val MAX_TEXT_CHARS = 1500

@@ -25,6 +25,8 @@ class PrefsFeedState(context: Context) : FeedState {
     override fun setNotifiedCampaignIds(ids: Set<String>) { p.edit().putStringSet("notified_ids", ids).apply() }
     override fun lastFeedUpdate() = p.getLong("feeds_updated", 0L)
     override fun setLastFeedUpdate(t: Long) { p.edit().putLong("feeds_updated", t).apply() }
+    override fun rejectedModel() = p.getLong("model_rejected", 0L)
+    override fun setRejectedModel(version: Long) { p.edit().putLong("model_rejected", version).apply() }
     override fun clear() { p.edit().clear().apply() }
 }
 

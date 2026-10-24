@@ -5,12 +5,12 @@ import java.net.URI
 
 enum class AiProvider(val id: String, val defaultModel: String) {
     ANTHROPIC("anthropic", "claude-opus-5-5"),
-    GEMINI("gemini", "gemini-2.5-flash"),
+    GEMINI("gemini", "gemini-flash-lite-latest"),
     OPENAI("openai", "gpt-5-mini"),
     COMPATIBLE("compatible", "");
 
     companion object {
-        fun fromId(id: String?): AiProvider = entries.firstOrNull { it.id == id } ?: ANTHROPIC
+        fun fromId(id: String?): AiProvider = entries.firstOrNull { it.id == id } ?: GEMINI
     }
 }
 
@@ -55,7 +55,7 @@ object AiUrls {
 
 enum class AiJudgement { TRUFFA, SOSPETTO, NESSUN_SEGNALE }
 
-data class AiOpinion(val judgement: AiJudgement, val reasons: List<String>, val advice: String) {
+data class AiOpinion(val judgement: AiJudgement, val reasons: List<String>, val advice: String, val confidence: Double = 0.0) {
     /** Il parere AI non cambia mai il verdetto: se è più tranquillo delle regole va mostrato un avviso. */
     fun softerThan(rules: Level): Boolean = rank(judgement) < when (rules) {
         Level.PROBABILE_TRUFFA -> 2
@@ -66,7 +66,7 @@ data class AiOpinion(val judgement: AiJudgement, val reasons: List<String>, val 
     private fun rank(j: AiJudgement) = when (j) { AiJudgement.TRUFFA -> 2; AiJudgement.SOSPETTO -> 1; AiJudgement.NESSUN_SEGNALE -> 0 }
 }
 
-enum class AiError { BAD_KEY, NOT_CONFIGURED, NETWORK, TIMEOUT, AUTH, RATE_LIMIT, OVERLOADED, HTTP, REFUSED, TRUNCATED, INVALID }
+enum class AiError { BAD_KEY, NOT_CONFIGURED, NETWORK, TIMEOUT, AUTH, RATE_LIMIT, FREE_LIMIT, OVERLOADED, HTTP, REFUSED, TRUNCATED, INVALID }
 
 sealed interface AiOutcome {
     data class Success(val opinion: AiOpinion) : AiOutcome
@@ -74,7 +74,7 @@ sealed interface AiOutcome {
 }
 
 /** Richiesta HTTP costruita senza rete (testabile). */
-data class HttpSpec(val url: String, val headers: Map<String, String>, val body: String, val readTimeoutMs: Int = 90_000) {
+data class HttpSpec(val url: String, val headers: Map<String, String>, val body: String, val readTimeoutMs: Int = 90_000, val connectTimeoutMs: Int = 15_000) {
     override fun toString() = "HttpSpec($url)" // mai intestazioni (chiave)
 }
 

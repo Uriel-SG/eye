@@ -1,5 +1,5 @@
 {
- "version": 13,
+ "version": 15,
  "thresholds": {
   "probable": 55,
   "suspect": 25
@@ -40,7 +40,9 @@
    "BAN-12",
    "CRD-02",
    "MBX-01",
-   "BLK-01"
+   "BLK-01",
+   "NUM-01",
+   "NUM-02"
   ]
  },
  "lists": {
@@ -2310,6 +2312,24 @@
    "detector": "known_malicious_domain"
   },
   {
+   "id": "NUM-01",
+   "category": "generico",
+   "weight": 45,
+   "explanation": "Il numero {number} compare in elenchi pubblici di numeri usati per truffe.",
+   "example": "Chiama il +39 333 0000000",
+   "kind": "detector",
+   "detector": "known_spam_number"
+  },
+  {
+   "id": "NUM-02",
+   "category": "generico",
+   "weight": 25,
+   "explanation": "Contiene un numero a sovrapprezzo o non tracciabile (es. +39 899, +979): chiamarlo puo' costare molto.",
+   "example": "Richiama il +39 899 123456",
+   "kind": "detector",
+   "detector": "premium_number_intl"
+  },
+  {
    "id": "MIS-01",
    "category": "link",
    "weight": 35,
@@ -2752,7 +2772,7 @@
    "example": "Scriva a rimborsi-esempio-eye@outlook.com con IBAN e documento",
    "kind": "regex",
    "patterns": [
-    "^(?=.{0,400}?(?:rimbors|eccesso|vincit|premio|eredit|lotteria|consegn|pacc|spedizion|conto|carta|account|sanzion|multa|addebit|ordine|abbonament|fattura|bolletta|tribut|iban|codice fiscale|identit|credit|blocc|sospes|guadagn|stipendio|da casa|prize|winner|refund|inherit|payment|invoice|parcel|delivery)).{0,400}?\\b(?:scriv\\w{1,5}|invi\\w{1,5}|mand\\w{1,5}|inoltr\\w{1,5}|contatt\\w{1,6}|rispond\\w{1,5}|write|send|email|mail|e-mail|pec)\\b[^@\\n]{0,45}?[\\w.%+-]{1,40}@(?:gmail|outlook|hotmail|yahoo|live|libero|icloud|proton|protonmail|aol|gmx|mail|email|tiscali|virgilio|yandex|zoho)\\.[a-z.]{2,8}"
+    "^(?=.{0,400}?(?:rimbors|eccesso|vincit|premio|eredit|lotteria|consegn|pacc|spedizion|conto|carta|account|sanzion|multa|addebit|ordine|abbonament|fattura|bolletta|tribut|iban|codice fiscale|identit|credit|blocc|sospes|guadagn|stipendio|da casa|prize|winner|refund|inherit|payment|invoice|parcel|delivery)).{0,400}?\\b(?:(?:scriv|invi|mand|inoltr|contatt|rispond)(?!at[oaie]\\b)\\w{1,6}|write|send)\\b[^@\\n]{0,45}?[\\w.%+-]{1,40}@(?:gmail|outlook|hotmail|yahoo|live|libero|icloud|proton|protonmail|aol|gmx|mail|email|tiscali|virgilio|yandex|zoho)\\.[a-z.]{2,8}"
    ],
    "keywords": [],
    "unless": null

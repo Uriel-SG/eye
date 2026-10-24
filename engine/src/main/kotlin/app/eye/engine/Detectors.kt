@@ -19,6 +19,8 @@ internal class Ctx(
     val expansions: List<Pair<ParsedUrl, ParsedUrl>> = emptyList(),
     /** Notifiche: URL (forma [ParsedUrl.raw]) che sono solo un dominio nudo nel testo, non un link reale. Vedi [ActionVector.LINK_BARE]. */
     val weakBare: Set<String> = emptySet(),
+    /** Elenco locale di numeri usati per truffe (NUM-01). */
+    val numbers: NumberReputation = NumberReputation.NONE,
 ) {
     /** Testo con budget di tempo per i rilevatori che usano regex (lancia BudgetExceeded). */
     var scanText: CharSequence = text
@@ -129,6 +131,8 @@ internal object Detectors {
         "unresolved_link" to { c -> if (c.anomalies > 0) Hit() else null },
         "shortener_official_context" to ::shortenerOfficialContext,
         "known_malicious_domain" to ::knownMaliciousDomain,
+        "known_spam_number" to ::knownSpamNumber,
+        "premium_number_intl" to ::premiumNumberIntl,
         "shortener_resolved" to ::shortenerResolved,
         "shortener_resolved_unknown" to ::shortenerResolvedUnknown,
     )
@@ -290,6 +294,19 @@ internal object Detectors {
         c.phones.firstOrNull { p ->
             !p.startsWith("+") && (p.startsWith("89") && p.length in 6..10 || p.startsWith("144") || p.startsWith("166"))
         }?.let { Hit() }
+
+    /** NUM-01: numero nell'elenco pubblico dei numeri usati per truffe. Mai numeri verdi, brevi o a sovrapprezzo (non sono nell'elenco). */
+    private fun knownSpamNumber(c: Ctx): Hit? {
+        for (p in c.phones) {
+            val n = PhoneNumbers.parse(p) ?: continue
+            if (n.isListable && c.numbers.isKnownSpam(n.e164)) return Hit(mapOf("number" to n.e164))
+        }
+        return null
+    }
+
+    /** NUM-02: numero a sovrapprezzo scritto con prefisso (+39 89x, 0039 144...) o internazionale non tracciabile (+979, +88x). Le forme nazionali sono di PHN-01. */
+    private fun premiumNumberIntl(c: Ctx): Hit? =
+        c.phones.firstOrNull { p -> p.startsWith("+") && PhoneNumbers.parse(p)?.kind == NumberKind.PREMIUM }?.let { Hit() }
 
     private fun foreignNumber(c: Ctx): Hit? {
         val foreign = c.phones.any { it.startsWith("+") && !it.startsWith("+39") }

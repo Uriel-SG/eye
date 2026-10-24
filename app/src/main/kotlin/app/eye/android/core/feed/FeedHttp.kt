@@ -27,10 +27,47 @@ sealed interface FeedResponse {
 /** Trasporto HTTP minimo, sostituibile nei test. Lancia IOException per rete, HTTP != 200/304 e risposte troppo grandi. */
 interface FeedHttp {
     fun get(url: String, etag: String?, maxBytes: Int): FeedResponse
+
+    /** Scarica su file (per il modello, troppo grande per la memoria). Predefinito: tramite [get]; l'implementazione di rete scrive in streaming. */
+    fun download(url: String, dest: java.io.File, maxBytes: Long) {
+        val r = get(url, null, maxBytes.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()) as? FeedResponse.Ok ?: throw IOException("risposta inattesa")
+        dest.writeBytes(r.bytes)
+    }
 }
 
 /** GET su HttpURLConnection: nessun cookie, nessun identificativo, niente corpo, niente redirect, timeout brevi. */
 class UrlConnectionFeedHttp(private val allowCleartext: Boolean = false) : FeedHttp {
+    override fun download(url: String, dest: java.io.File, maxBytes: Long) {
+        val u = URL(url)
+        if (u.protocol != "https" && !(allowCleartext && u.protocol == "http")) throw IOException("solo https")
+        val c = u.openConnection() as HttpURLConnection
+        try {
+            c.requestMethod = "GET"
+            c.connectTimeout = CONNECT_MS
+            c.readTimeout = DOWNLOAD_READ_MS
+            c.instanceFollowRedirects = false
+            c.useCaches = false
+            c.setRequestProperty("User-Agent", "Eye/" + BuildConfig.VERSION_NAME)
+            if (c.responseCode != 200) throw IOException("HTTP ${c.responseCode}")
+            if (c.contentLengthLong > maxBytes) throw FeedTooLargeException()
+            var total = 0L
+            c.inputStream.use { ins ->
+                dest.outputStream().use { out ->
+                    val buf = ByteArray(1 shl 16)
+                    while (true) {
+                        val n = ins.read(buf)
+                        if (n < 0) break
+                        total += n
+                        if (total > maxBytes) throw FeedTooLargeException()
+                        out.write(buf, 0, n)
+                    }
+                }
+            }
+        } finally {
+            c.disconnect()
+        }
+    }
+
     override fun get(url: String, etag: String?, maxBytes: Int): FeedResponse {
         val u = URL(url)
         if (u.protocol != "https" && !(allowCleartext && u.protocol == "http")) throw IOException("solo https")
@@ -69,5 +106,6 @@ class UrlConnectionFeedHttp(private val allowCleartext: Boolean = false) : FeedH
     companion object {
         const val CONNECT_MS = 10_000
         const val READ_MS = 15_000
+        const val DOWNLOAD_READ_MS = 60_000
     }
 }

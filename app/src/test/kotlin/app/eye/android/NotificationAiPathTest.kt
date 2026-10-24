@@ -43,8 +43,10 @@ class NotificationAiPathTest {
         assertEquals(Level.NESSUN_SEGNALE, level(n, 0.99f))
     }
 
-    @Test fun pasteOfShortTextStillRaised() {
+    @Test fun pasteOfShortTextStillRaisedOnlyWithAnAction() {
         val engine = RuleEngine(RuleEngine.loadBundled(), classifier = { 0.99f })
-        assertEquals(Level.SOSPETTO, engine.analyze(Input("Mario\nok", Source.PASTE)).level)
+        assertEquals(Level.SOSPETTO, engine.analyze(Input("Mario\nok https://x-promo-win.top/a", Source.PASTE)).level)
+        // nessuna azione richiesta: il modello da solo non basta a fare di un testo un sospetto
+        assertEquals(Level.NESSUN_SEGNALE, engine.analyze(Input("Mario\nok", Source.PASTE)).level)
     }
 }

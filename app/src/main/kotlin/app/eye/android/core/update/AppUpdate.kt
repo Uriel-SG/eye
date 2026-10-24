@@ -8,7 +8,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.stateIn
 
 /** Stato dell'aggiornamento (flusso flexible di Google Play) come lo vede l'app. */
@@ -68,12 +71,15 @@ class UpdateController(
     private val store: UpdateSnoozeStore,
     scope: CoroutineScope,
     private val clock: () -> Long = System::currentTimeMillis,
+    private val notifyStore: UpdateNotifyStore? = null,
 ) {
     val state: StateFlow<UpdateCardState> = combine(
         client.snapshots().catch { emit(null) }, // Play assente, app non installata da Play, errore di rete: nessuna scheda
         store.snooze,
     ) { snap, snooze ->
         UpdatePolicy.decide(snap, snooze, clock())
+    }.onEach { st -> // scheda mostrata per questa versione: niente notifica in piu'
+        if (st is UpdateCardState.Available) runCatching { notifyStore?.setCardSeen(st.versionCode) }
     }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), UpdateCardState.Hidden)
 
     suspend fun later() {
@@ -83,4 +89,47 @@ class UpdateController(
 
     fun start(launcher: ActivityResultLauncher<IntentSenderRequest>): Boolean = runCatching { client.start(launcher) }.getOrDefault(false)
     fun restart() { runCatching { client.complete() } }
+}
+
+/** Stato minimo dell'avviso: ultima versione per cui e' comparsa la notifica / la scheda in Home. */
+data class UpdateNotifyState(val notifiedCode: Int = 0, val cardSeenCode: Int = 0)
+
+interface UpdateNotifyStore {
+    suspend fun state(): UpdateNotifyState
+    suspend fun setNotified(code: Int)
+    suspend fun setCardSeen(code: Int)
+}
+
+object UpdateNotifyPolicy {
+    /**
+     * Logica pura: una sola notifica discreta per versione, solo se l'aggiornamento e' disponibile, la scheda non e' in pausa
+     * («Più tardi»), non e' gia' stata notificata ne' vista in Home, e il permesso notifiche c'e'.
+     * Ritorna il versionCode da notificare o null.
+     */
+    fun versionToNotify(snapshot: UpdateSnapshot?, snooze: UpdateSnooze, state: UpdateNotifyState, canPost: Boolean, now: Long): Int? {
+        if (!canPost) return null
+        val card = UpdatePolicy.decide(snapshot, snooze, now) as? UpdateCardState.Available ?: return null
+        val v = card.versionCode
+        if (v == state.notifiedCode || v == state.cardSeenCode) return null
+        return v
+    }
+}
+
+/** Controllo periodico (dal worker giornaliero gia' esistente). Mai eccezioni: senza Play non fa nulla. */
+class UpdateNotifier(
+    private val client: UpdateClient,
+    private val snoozeStore: UpdateSnoozeStore,
+    private val notifyStore: UpdateNotifyStore,
+    private val canPost: () -> Boolean,
+    private val post: (Int) -> Unit,
+    private val clock: () -> Long = System::currentTimeMillis,
+) {
+    suspend fun check(): Boolean = runCatching {
+        if (!canPost()) return false // niente richiesta di permesso: si tace
+        val snap = withTimeoutOrNull(20_000) { client.snapshots().first() }
+        val v = UpdateNotifyPolicy.versionToNotify(snap, snoozeStore.snooze.first(), notifyStore.state(), true, clock()) ?: return false
+        post(v)
+        notifyStore.setNotified(v)
+        true
+    }.getOrDefault(false)
 }
