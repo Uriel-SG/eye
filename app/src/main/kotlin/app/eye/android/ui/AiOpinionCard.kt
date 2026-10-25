@@ -87,6 +87,16 @@ fun AiSecondOpinion(vm: AppViewModel, text: String, rulesLevel: Level, historyId
     AiKeyOpinion(vm, text, rulesLevel, historyId)
 }
 
+/** Parere AI automatico (parte del verdetto) valido per [text]: quello appena ricevuto o quello salvato in cronologia. */
+@Composable
+fun autoAiFor(vm: AppViewModel, text: String, historyId: Long?): SavedAiOpinion? {
+    val session by vm.ai.collectAsState()
+    val history by vm.history.collectAsState()
+    val live = (if (session.key == aiKey(text)) session.state else null) as? AiUiState.Done
+    val s = live?.saved ?: historyId?.let { id -> history.firstOrNull { it.id == id }?.aiOpinion }?.let(AiOpinionJson::decode)
+    return s?.takeIf { it.auto }
+}
+
 @Composable
 private fun AiKeyOpinion(vm: AppViewModel, text: String, rulesLevel: Level, historyId: Long?) {
     val settings by vm.settings.collectAsState()

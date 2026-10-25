@@ -25,6 +25,8 @@ import app.eye.android.core.ai.AiProvider
 import app.eye.android.core.ai.AiService
 import app.eye.android.core.ai.GeminiNanoLlm
 import app.eye.engine.llm.LegitGate
+import app.eye.engine.llm.AiFinalVerdict
+import app.eye.android.core.ai.toLlm
 import kotlinx.coroutines.withTimeoutOrNull
 import app.eye.engine.llm.LlmOpinion
 import app.eye.engine.llm.LlmStatus
@@ -54,7 +56,7 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val useCase = CheckUseCase(c.checker, c.history, { c.settings.settings.first().saveHistory }, expand = { c.shortLinks.expand(it) })
-    private val controller = CheckController(viewModelScope, useCase, Dispatchers.Default, refine = { refineWithNano(it) })
+    private val controller = CheckController(viewModelScope, useCase, Dispatchers.Default, refine = { refineResult(it) })
     val state: StateFlow<CheckState> = controller.state
 
     fun onShared(text: String?, origin: String? = null, sender: String? = null) = controller.onShared(text, origin, sender)
@@ -149,7 +151,14 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
             }
             var saved: SavedAiOpinion? = null
             if (outcome is AiOutcome.Success) {
-                saved = SavedAiOpinion(outcome.opinion, st.aiProvider.id, model, System.currentTimeMillis())
+                // un nuovo parere manuale su un'analisi con verdetto dell'AI resta parte del verdetto
+                val prevAuto = historyId?.let { id -> history.value.firstOrNull { it.id == id }?.aiOpinion }?.let(AiOpinionJson::decode)?.auto == true
+                saved = SavedAiOpinion(outcome.opinion, st.aiProvider.id, model, System.currentTimeMillis(), prevAuto)
+                if (prevAuto && historyId != null) {
+                    // livello in elenco coerente col nuovo verdetto (le regole non cambiano: si riparte dal verdetto salvato)
+                    val base = history.value.firstOrNull { it.id == historyId }?.let { app.eye.android.data.VerdictJson.decode(it.verdictJson) }
+                    if (base != null) runCatching { c.history.setLevel(historyId, AiFinalVerdict.apply(base, outcome.opinion.toLlm(), "").level.name) }
+                }
                 // resta salvato (cifrato) con l'analisi, anche se nel frattempo l'utente ha cambiato schermata
                 if (historyId != null) runCatching { c.history.setAiOpinion(historyId, AiOpinionJson.encode(saved)) }
             }
@@ -260,6 +269,42 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
     fun clearDomainAge() { ageJob?.cancel(); ageJob = null; _ageSession.value = AgeSession(0, AgeUiState.Idle) }
     fun setDomainAgeCheck(on: Boolean) = viewModelScope.launch { c.settings.setDomainAgeCheck(on) }
     fun setVtNoticeDismissed() = viewModelScope.launch { c.settings.setVtNoticeDismissed(true) }
+
+    private val _aiAnalyzing = MutableStateFlow(false)
+    /** true mentre l'analisi automatica dell'AI collegata e' in corso (indicatore «Analisi AI in corso…»). */
+    val aiAnalyzing: StateFlow<Boolean> = _aiAnalyzing
+    fun setAiAutoAnalysis(v: Boolean) = viewModelScope.launch { c.settings.setAiAutoAnalysis(v) }
+
+    /** Con una chiave AI e l'analisi automatica attiva decide l'AI collegata (la chiave ha la precedenza); altrimenti Nano come in 1.8.0. */
+    private suspend fun refineResult(r: app.eye.android.core.CheckResult): app.eye.android.core.CheckResult {
+        val st = settings.value
+        return if (st.aiConfigured && st.aiAutoAnalysis) refineWithAi(r, st) else refineWithNano(r)
+    }
+
+    /**
+     * Dopo il verdetto delle regole: una sola chiamata all'AI collegata (testo oscurato, ~10 s). Esito salvato come parere AI
+     * (auto) in cronologia; il verdetto finale lo decide [AiFinalVerdict]. Errore/timeout: restano le regole.
+     */
+    private suspend fun refineWithAi(r: app.eye.android.core.CheckResult, st: app.eye.android.data.Settings): app.eye.android.core.CheckResult {
+        val text = r.originalText
+        if (text.isBlank()) return r
+        val key = withContext(Dispatchers.IO) { st.aiKeyCipher?.let { KeyVault.decrypt(it) } } ?: return r
+        _aiAnalyzing.value = true
+        try {
+            val cfg = AiConfig(st.aiProvider, st.aiModel, st.aiBaseUrl, key)
+            val outcome = withContext(Dispatchers.IO) { aiService.ask(cfg, if (st.aiSendUnredacted) text else Redactor.redactKeepLinks(text), quickMs = AI_AUTO_MS) }
+            val op = (outcome as? AiOutcome.Success)?.opinion ?: return r
+            val saved = SavedAiOpinion(op, st.aiProvider.id, cfg.model, System.currentTimeMillis(), auto = true)
+            r.historyId?.let { id -> runCatching { c.history.setAiOpinion(id, AiOpinionJson.encode(saved)) } }
+            _ai.value = AiSession(aiKey(text), AiUiState.Done(outcome, saved))
+            val nv = AiFinalVerdict.apply(r.verdict, op.toLlm(), aiFinalNote(c.appContext, saved))
+            if (nv === r.verdict) return r
+            r.historyId?.let { id -> runCatching { c.history.setLevel(id, nv.level.name) } }
+            return r.copy(verdict = nv)
+        } finally {
+            _aiAnalyzing.value = false
+        }
+    }
 
     /**
      * Prima di mostrare un SOSPETTO attende Nano (max 4 s): se lo ritiene legittimo con confidenza alta e non ci sono
@@ -519,6 +564,11 @@ fun aiKey(text: String): Int = text.hashCode()
 
 /** Identificativo del servizio gratuito nei pareri salvati (non e' un provider con chiave). */
 const val FREE_PROVIDER_ID = "pollinations"
+private const val AI_AUTO_MS = 5_000L // connessione + lettura: ~10 s al massimo
+
+/** Motivo (condivisione, PDF) quando il verdetto dell'AI collegata cambia il livello. */
+fun aiFinalNote(ctx: android.content.Context, s: SavedAiOpinion): String =
+    ctx.getString(app.eye.android.R.string.ai_final_reason, ctx.getString(AiProvider.fromId(s.providerId).labelRes()), s.opinion.reasons.firstOrNull() ?: s.opinion.advice)
 private const val NANO_WAIT_MS = 4_000L
 internal val GOOGLE_KEY = Regex("""^AIza[0-9A-Za-z_-]{35}$""")
 

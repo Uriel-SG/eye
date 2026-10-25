@@ -55,6 +55,16 @@ object AiUrls {
 
 enum class AiJudgement { TRUFFA, SOSPETTO, NESSUN_SEGNALE }
 
+/** Parere per la logica pura del motore (verdetto finale); la spiegazione e' il primo motivo dell'AI. */
+fun AiOpinion.toLlm() = app.eye.engine.llm.LlmOpinion(
+    when (judgement) {
+        AiJudgement.TRUFFA -> app.eye.engine.llm.LlmVerdict.TRUFFA
+        AiJudgement.SOSPETTO -> app.eye.engine.llm.LlmVerdict.SOSPETTO
+        AiJudgement.NESSUN_SEGNALE -> app.eye.engine.llm.LlmVerdict.LEGITTIMO
+    },
+    confidence, reasons.firstOrNull() ?: advice, emptyList(),
+)
+
 data class AiOpinion(val judgement: AiJudgement, val reasons: List<String>, val advice: String, val confidence: Double = 0.0) {
     /** Il parere AI non cambia mai il verdetto: se è più tranquillo delle regole va mostrato un avviso. */
     fun softerThan(rules: Level): Boolean = rank(judgement) < when (rules) {

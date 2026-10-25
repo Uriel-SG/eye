@@ -19,7 +19,7 @@ import app.eye.android.core.QrContent
 
 /** Anteprima del contenuto del QR: il link non viene mai aperto, solo mostrato. */
 @Composable
-fun QrScreen(q: QrContent, state: CheckState, onCheck: () -> Unit, onBack: () -> Unit) {
+fun QrScreen(q: QrContent, state: CheckState, aiBusy: Boolean = false, onCheck: () -> Unit, onBack: () -> Unit) {
     val primary = MaterialTheme.colorScheme.primary
     val domainLabel = stringResource(R.string.verdict_domain)
     ScreenScaffold(stringResource(R.string.qr_title), onBack = onBack) {
@@ -49,7 +49,7 @@ fun QrScreen(q: QrContent, state: CheckState, onCheck: () -> Unit, onBack: () ->
             Text(stringResource(R.string.qr_not_opened), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         when (state) {
-            CheckState.Running -> Text(stringResource(R.string.state_checking))
+            CheckState.Running -> Text(stringResource(if (aiBusy) R.string.ai_autoan_running else R.string.state_checking))
             CheckState.TooLong -> Text(stringResource(R.string.paste_too_long), color = MaterialTheme.colorScheme.error)
             CheckState.Error -> Text(stringResource(R.string.state_error), color = MaterialTheme.colorScheme.error)
             else -> {}

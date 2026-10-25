@@ -144,7 +144,7 @@ fun AppNav(vm: AppViewModel) {
             }
             composable(Route.PASTE) { PasteScreen(vm) { nav.popBackStack() } }
             composable(Route.QR) {
-                qr?.let { q -> QrScreen(q, state, onCheck = { vm.check(q.raw, Source.QR) }, onBack = { vm.clearQr(); vm.reset(); nav.popBackStack() }) }
+                qr?.let { q -> QrScreen(q, state, aiBusy = vm.aiAnalyzing.collectAsState().value, onCheck = { vm.check(q.raw, Source.QR) }, onBack = { vm.clearQr(); vm.reset(); nav.popBackStack() }) }
             }
             composable(Route.VERDICT) {
                 val s = state

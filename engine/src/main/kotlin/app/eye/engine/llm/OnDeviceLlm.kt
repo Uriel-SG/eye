@@ -59,7 +59,7 @@ object LlmCombiner {
      * "affidabile" dell'utente non viene scavalcata dal modello.
      */
     fun apply(verdict: Verdict, opinion: LlmOpinion?): Verdict {
-        if (verdict.reasons.any { it.ruleId == UserExceptions.TRUSTED_ID || it.ruleId == REASON_ID }) return verdict
+        if (verdict.reasons.any { it.ruleId == UserExceptions.TRUSTED_ID || it.ruleId == REASON_ID || it.ruleId == AiFinalVerdict.REASON_ID }) return verdict
         val c = combine(verdict.level, opinion)
         if (!c.raisedByLlm || c.reason == null) return verdict
         // azioni vuote: l'app usa quelle predefinite del nuovo livello, non quelle di NESSUN_SEGNALE

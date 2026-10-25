@@ -55,8 +55,10 @@ data class Settings(
     /** Chiede al servizio di accorciamento dove porta il link (mai il sito finale). */
     /** L'avviso prima di aprire VirusTotal non va piu' mostrato. */
     val vtNoticeDismissed: Boolean = false,
-    /** Verifica con l'AI collegata (chiave dell'utente) prima di inviare un avviso SOSPETTO. Spenta di default. */
-    val aiVerifyBeforeAlert: Boolean = false,
+    /** Verifica con l'AI collegata (chiave dell'utente) prima di inviare un avviso SOSPETTO. Attiva di default (agisce solo con una chiave). */
+    val aiVerifyBeforeAlert: Boolean = true,
+    /** Analisi automatica dell'AI collegata dopo ogni controllo manuale (testo oscurato). Attiva di default (agisce solo con una chiave). */
+    val aiAutoAnalysis: Boolean = true,
     /** Consenso permanente all'invio (testo oscurato) al servizio gratuito senza account. */
     val aiFreeConsent: Boolean = false,
 ) {
@@ -85,6 +87,7 @@ class SettingsStore(private val context: Context) {
     private val alertKey = booleanPreferencesKey("alert_campaigns")
     private val ageKey = booleanPreferencesKey("domain_age_check_v2") // v2: dalla 1.6.1 disattivato di default (la vecchia chiave, predefinita ON, e' ignorata)
     private val verifyKey = booleanPreferencesKey("ai_verify_before_alert")
+    private val autoAiKey = booleanPreferencesKey("ai_auto_analysis")
     private val freeKey = booleanPreferencesKey("ai_free_consent")
     private val vtKey = booleanPreferencesKey("vt_notice_dismissed")
 
@@ -118,7 +121,7 @@ class SettingsStore(private val context: Context) {
             autoProtect = it[autoKey] ?: false, autoDisabledApps = it[autoOff] ?: emptySet(), alertCampaigns = it[alertKey] ?: false,
             retention = HistoryRetention.fromId(it[retentionKey]),
             domainAgeCheck = it[ageKey] ?: false, vtNoticeDismissed = it[vtKey] ?: false,
-            aiVerifyBeforeAlert = it[verifyKey] ?: false, aiFreeConsent = it[freeKey] ?: false,
+            aiVerifyBeforeAlert = it[verifyKey] ?: true, aiAutoAnalysis = it[autoAiKey] ?: true, aiFreeConsent = it[freeKey] ?: false,
         )
     }
 
@@ -142,6 +145,7 @@ class SettingsStore(private val context: Context) {
     suspend fun setAlertCampaigns(v: Boolean) = edit { it[alertKey] = v }
     suspend fun setDomainAgeCheck(v: Boolean) = edit { it[ageKey] = v }
     suspend fun setAiVerifyBeforeAlert(v: Boolean) = edit { it[verifyKey] = v }
+    suspend fun setAiAutoAnalysis(v: Boolean) = edit { it[autoAiKey] = v }
     suspend fun setAiFreeConsent(v: Boolean) = edit { it[freeKey] = v }
     suspend fun setVtNoticeDismissed(v: Boolean) = edit { it[vtKey] = v }
     suspend fun clearAll() = context.dataStore.edit { it.clear() }

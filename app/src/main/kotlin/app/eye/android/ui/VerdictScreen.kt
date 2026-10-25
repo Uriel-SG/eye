@@ -1,5 +1,6 @@
 package app.eye.android.ui
 
+import app.eye.android.core.ai.toLlm
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -100,7 +101,10 @@ fun VerdictScreen(result0: CheckResult, vm: AppViewModel, onClose: () -> Unit, f
     // eta' del dominio (RDAP, solo in primo piano): puo' solo alzare il livello; poi l'eventuale parere Nano
     val ageResult = domainAgeFor(vm, result0.originalText, entryId)
     val agedV = if (ageResult == null) baseV else app.eye.engine.enrich.DomainAge.apply(baseV, ageResult.entries, ageResult.checkedAt)
-    val v = app.eye.engine.llm.LlmCombiner.apply(agedV, nanoOpinionFor(vm, result0.originalText, entryId))
+    // verdetto dell'AI collegata (analisi automatica dei controlli manuali): decide il livello finale, vedi AiFinalVerdict
+    val autoAi = autoAiFor(vm, result0.originalText, entryId)
+    val aiV = if (autoAi == null) agedV else app.eye.engine.llm.AiFinalVerdict.apply(agedV, autoAi.opinion.toLlm(), aiFinalNote(ctx, autoAi))
+    val v = app.eye.engine.llm.LlmCombiner.apply(aiV, nanoOpinionFor(vm, result0.originalText, entryId))
     val result = if (v !== result0.verdict) result0.copy(verdict = v) else result0 // condivisione, report e PDF riflettono il verdetto aggiornato (eccezione, parere Nano)
     var excDialog by remember { mutableStateOf<app.eye.engine.ExceptionKind?>(null) }
     val snackbar = remember { androidx.compose.material3.SnackbarHostState() }
@@ -165,6 +169,9 @@ fun VerdictScreen(result0: CheckResult, vm: AppViewModel, onClose: () -> Unit, f
                 LevelIcon(v.level, iconTint, Modifier.size(if (family) 72.dp else 48.dp), pupil)
                 Text(title, style = MaterialTheme.typography.displaySmall, color = colors.text)
                 Text(if (family) stringResource(v.level.familyLineRes()) else subtitle, style = MaterialTheme.typography.bodyLarge, color = colors.text)
+                if (autoAi != null) {
+                    Text(stringResource(R.string.ai_final_header, stringResource(app.eye.android.core.ai.AiProvider.fromId(autoAi.providerId).labelRes())), style = MaterialTheme.typography.bodyMedium, color = colors.text)
+                }
             }
         }
 
@@ -214,9 +221,11 @@ fun VerdictScreen(result0: CheckResult, vm: AppViewModel, onClose: () -> Unit, f
         // Perché
         EyeCard {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SectionTitle(stringResource(R.string.verdict_why))
-                if (reasons.isEmpty()) Text(stringResource(R.string.verdict_why_none))
-                v.reasonItems().forEach { r -> ReasonRow(r) }
+                SectionTitle(stringResource(if (autoAi != null) R.string.ai_found_by_eye else R.string.verdict_why))
+                // con il verdetto dell'AI i motivi delle regole restano sempre visibili (il motivo dell'AI e' nell'intestazione)
+                val shownReasons = v.reasonItems().filter { it.ruleId != app.eye.engine.llm.AiFinalVerdict.REASON_ID }
+                if (shownReasons.isEmpty()) Text(stringResource(R.string.verdict_why_none))
+                shownReasons.forEach { r -> ReasonRow(r) }
             }
         }
 

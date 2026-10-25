@@ -258,7 +258,7 @@ fun PasteScreen(vm: AppViewModel, onBack: () -> Unit) {
         if (truncated) Text(stringResource(R.string.truncated_warning), color = MaterialTheme.colorScheme.error)
         if (clipEmpty) Text(stringResource(R.string.paste_empty), color = MaterialTheme.colorScheme.error)
         when (state) {
-            CheckState.Running -> Text(stringResource(R.string.state_checking))
+            CheckState.Running -> Text(stringResource(if (vm.aiAnalyzing.collectAsState().value) R.string.ai_autoan_running else R.string.state_checking))
             CheckState.TooLong -> Text(stringResource(R.string.paste_too_long), color = MaterialTheme.colorScheme.error)
             CheckState.Error -> Text(stringResource(R.string.state_error), color = MaterialTheme.colorScheme.error)
             CheckState.Reading -> Text(stringResource(R.string.state_checking))

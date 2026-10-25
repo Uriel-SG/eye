@@ -203,6 +203,14 @@ fun AiSettingsSection(vm: AppViewModel, s: Settings) {
         if (s.aiConfigured) {
             Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.ai_autoan_label), style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.ai_autoan_sub), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Spacer(Modifier.width(12.dp))
+                Switch(checked = s.aiAutoAnalysis, onCheckedChange = { vm.setAiAutoAnalysis(it) })
+            }
+            Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
                     Text(stringResource(R.string.ai_verify_label), style = MaterialTheme.typography.titleMedium)
                     Text(stringResource(R.string.ai_verify_sub), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
