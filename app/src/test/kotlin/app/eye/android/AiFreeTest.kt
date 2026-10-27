@@ -47,5 +47,9 @@ class AiFreeTest {
         assertFalse(app.eye.android.ui.GOOGLE_KEY.matches(k + "x"))
         assertFalse(app.eye.android.ui.GOOGLE_KEY.matches("ciao " + k))
         assertFalse(app.eye.android.ui.GOOGLE_KEY.matches("sk-" + k))
+        val n = "AQ." + "Ab8RN6-_.x".repeat(5)
+        assertTrue(app.eye.android.ui.GOOGLE_KEY.matches(n))
+        assertFalse(app.eye.android.ui.GOOGLE_KEY.matches("AQ.corta"))
+        assertFalse(app.eye.android.ui.GOOGLE_KEY.matches(n + " x"))
     }
 }

@@ -49,6 +49,8 @@ class DomainAgeStoreTest {
         repo.setLevel(id, "SOSPETTO") // un rialzo piu' debole arrivato dopo non abbassa
         repo.setLevel(id, "NESSUN_SEGNALE")
         assertEquals("PROBABILE_TRUFFA", repo.observe().first().single().level)
+        repo.setFinalLevel(id, "NESSUN_SEGNALE") // verdetto finale dell'AI: puo' scendere
+        assertEquals("NESSUN_SEGNALE", repo.observe().first().single().level)
         repo.setDomainAge(id, "")
         assertEquals("", repo.observe().first().single().domainAge)
     }

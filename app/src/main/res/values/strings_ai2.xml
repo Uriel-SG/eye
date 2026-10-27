@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="ai_gemini_get_key">Ottieni chiave Google AI</string>
-    <string name="ai_gemini_howto">Per ottenere una chiave gratuita, usare il pulsante qui sotto e accedere con un account Google. Se la chiave viene copiata, al ritorno nell\'app è inserita in automatico. Con il piano gratuito Google può usare i testi inviati per migliorare i propri servizi.</string>
+    <string name="ai_gemini_howto">Per ottenere una chiave gratuita, usare il pulsante qui sotto e accedere con un account Google. Se la chiave viene copiata, al ritorno nell\'app è inserita in automatico. Secondo le condizioni di Google, nell’Unione Europea i testi inviati con il piano gratuito non vengono usati per migliorare i suoi servizi; fuori dall’UE possono esserlo.</string>
     <string name="ai_key_from_clipboard">Chiave inserita dagli appunti</string>
     <string name="ai_verify_label">Verifica con l\'AI collegata prima di inviare un avviso</string>
     <string name="ai_verify_sub">Prima di un avviso di livello «Sospetto», il testo della notifica, oscurato, viene inviato al servizio scelto. Se l\'AI lo ritiene legittimo con sicurezza, l\'avviso non è inviato e l\'analisi resta in cronologia. Se il servizio non risponde, l\'avviso parte comunque.</string>

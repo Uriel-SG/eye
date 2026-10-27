@@ -120,7 +120,7 @@ fun AppNav(vm: AppViewModel) {
     ) { pad ->
         NavHost(nav, startDestination = if (seen) Route.HOME else Route.ONBOARDING, modifier = Modifier.padding(pad)) {
             composable(Route.ONBOARDING) {
-                OnboardingScreen {
+                OnboardingScreen(vm, settings) {
                     vm.setOnboardingSeen()
                     nav.navigate(Route.HOME) { popUpTo(Route.ONBOARDING) { inclusive = true } }
                 }

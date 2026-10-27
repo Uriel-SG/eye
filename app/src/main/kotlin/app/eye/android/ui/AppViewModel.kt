@@ -32,6 +32,7 @@ import app.eye.engine.llm.LlmOpinion
 import app.eye.engine.llm.LlmStatus
 import app.eye.engine.llm.OnDeviceLlm
 import app.eye.android.data.AiOpinionJson
+import app.eye.android.data.ManualAi
 import app.eye.android.data.HistoryEntity
 import app.eye.android.data.SavedAiOpinion
 import app.eye.android.data.KeyVault
@@ -151,16 +152,11 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
             }
             var saved: SavedAiOpinion? = null
             if (outcome is AiOutcome.Success) {
-                // un nuovo parere manuale su un'analisi con verdetto dell'AI resta parte del verdetto
+                // un parere richiesto a mano NON e' mai "auto": non cambia il verdetto. Se l'analisi aveva gia' il parere
+                // automatico (che decide il verdetto) quello resta salvato e il nuovo si vede solo in questa schermata.
                 val prevAuto = historyId?.let { id -> history.value.firstOrNull { it.id == id }?.aiOpinion }?.let(AiOpinionJson::decode)?.auto == true
-                saved = SavedAiOpinion(outcome.opinion, st.aiProvider.id, model, System.currentTimeMillis(), prevAuto)
-                if (prevAuto && historyId != null) {
-                    // livello in elenco coerente col nuovo verdetto (le regole non cambiano: si riparte dal verdetto salvato)
-                    val base = history.value.firstOrNull { it.id == historyId }?.let { app.eye.android.data.VerdictJson.decode(it.verdictJson) }
-                    if (base != null) runCatching { c.history.setLevel(historyId, AiFinalVerdict.apply(base, outcome.opinion.toLlm(), "").level.name) }
-                }
-                // resta salvato (cifrato) con l'analisi, anche se nel frattempo l'utente ha cambiato schermata
-                if (historyId != null) runCatching { c.history.setAiOpinion(historyId, AiOpinionJson.encode(saved)) }
+                saved = ManualAi.opinion(outcome.opinion, st.aiProvider.id, model, System.currentTimeMillis())
+                if (historyId != null && ManualAi.persist(prevAuto)) runCatching { c.history.setAiOpinion(historyId, AiOpinionJson.encode(saved)) }
             }
             _ai.value = AiSession(sessionKey, AiUiState.Done(outcome, saved))
         }
@@ -174,7 +170,7 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
     fun setAiFreeConsent(v: Boolean) = viewModelScope.launch { c.settings.setAiFreeConsent(v) }
     fun setAiVerifyBeforeAlert(v: Boolean) = viewModelScope.launch { c.settings.setAiVerifyBeforeAlert(v) }
 
-    /** Chiave Google AI copiata dall'utente (formato AIza + 35 caratteri): salvata cifrata. false se il testo non e' una chiave. */
+    /** Chiave Google AI copiata dall'utente (formato AIza... o AQ....): salvata cifrata. false se il testo non e' una chiave. */
     fun saveGoogleKeyFromClipboard(clip: String?, provider: AiProvider, model: String, baseUrl: String): Boolean {
         val k = clip?.let { AiKeys.clean(it) } ?: return false
         if (!GOOGLE_KEY.matches(k)) return false
@@ -232,7 +228,7 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
         viewModelScope.launch {
             runCatching {
                 c.history.setNanoOpinion(historyId, app.eye.android.data.NanoOpinionJson.encode(op, System.currentTimeMillis()))
-                if (raisedTo != null) c.history.setLevel(historyId, raisedTo.name)
+                if (raisedTo != null) c.history.setFinalLevel(historyId, raisedTo.name)
             }
         }
     }
@@ -299,7 +295,7 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
             _ai.value = AiSession(aiKey(text), AiUiState.Done(outcome, saved))
             val nv = AiFinalVerdict.apply(r.verdict, op.toLlm(), aiFinalNote(c.appContext, saved))
             if (nv === r.verdict) return r
-            r.historyId?.let { id -> runCatching { c.history.setLevel(id, nv.level.name) } }
+            r.historyId?.let { id -> runCatching { c.history.setFinalLevel(id, nv.level.name) } }
             return r.copy(verdict = nv)
         } finally {
             _aiAnalyzing.value = false
@@ -307,12 +303,12 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
     }
 
     /**
-     * Prima di mostrare un SOSPETTO attende Nano (max 4 s): se lo ritiene legittimo con confidenza alta e non ci sono
-     * segnali gravi il livello mostrato diventa NESSUN_SEGNALE (con motivo e spiegazione). Mai per PROBABILE_TRUFFA.
+     * Prima di mostrare un SOSPETTO/PROBABILE_TRUFFA attende Nano (max 4 s): con confidenza alta e senza segnali gravi
+     * abbassa di un gradino (SOSPETTO -> NESSUN_SEGNALE, PROBABILE_TRUFFA -> SOSPETTO), con motivo e spiegazione.
      */
     private suspend fun refineWithNano(r: app.eye.android.core.CheckResult): app.eye.android.core.CheckResult {
         val v = r.verdict
-        if (v.level != app.eye.engine.Level.SOSPETTO || LegitGate.hasGraveSignals(v) || r.originalText.isBlank()) return r
+        if (v.level == app.eye.engine.Level.NESSUN_SEGNALE || LegitGate.hasGraveSignals(v) || r.originalText.isBlank()) return r
         if (runCatching { nano.status() }.getOrNull() != LlmStatus.AVAILABLE) return r
         val op = withTimeoutOrNull(NANO_WAIT_MS) { withContext(Dispatchers.Default) { nano.opinion(app.eye.engine.Input(r.originalText, Source.PASTE), v) } } ?: return r
         _nanoSession.value = NanoSession(aiKey(r.originalText), NanoUiState.Done(op)) // la card mostra la spiegazione senza richiamare Nano
@@ -320,7 +316,7 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
         r.historyId?.let { id ->
             runCatching {
                 c.history.setNanoOpinion(id, app.eye.android.data.NanoOpinionJson.encode(op, System.currentTimeMillis()))
-                if (nv !== v) c.history.setLevel(id, nv.level.name)
+                if (nv !== v) c.history.setFinalLevel(id, nv.level.name)
             }
         }
         return if (nv === v) r else r.copy(verdict = nv)
@@ -570,7 +566,8 @@ private const val AI_AUTO_MS = 5_000L // connessione + lettura: ~10 s al massimo
 fun aiFinalNote(ctx: android.content.Context, s: SavedAiOpinion): String =
     ctx.getString(app.eye.android.R.string.ai_final_reason, ctx.getString(AiProvider.fromId(s.providerId).labelRes()), s.opinion.reasons.firstOrNull() ?: s.opinion.advice)
 private const val NANO_WAIT_MS = 4_000L
-internal val GOOGLE_KEY = Regex("""^AIza[0-9A-Za-z_-]{35}$""")
+/** Vecchio formato (AIza + 35 caratteri) e nuovo formato («AQ.» + 30-200 caratteri). */
+internal val GOOGLE_KEY = Regex("""^(?:AIza[0-9A-Za-z_-]{35}|AQ\.[0-9A-Za-z._-]{28,197})$""")
 
 /** Esito dell'ultimo «Aggiorna» del catalogo. */
 enum class CatalogUpdate { IDLE, LOADING, UPDATED, UP_TO_DATE, OFFLINE, ERROR }

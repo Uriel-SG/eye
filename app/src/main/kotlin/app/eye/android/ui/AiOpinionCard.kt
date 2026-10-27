@@ -93,7 +93,7 @@ fun autoAiFor(vm: AppViewModel, text: String, historyId: Long?): SavedAiOpinion?
     val session by vm.ai.collectAsState()
     val history by vm.history.collectAsState()
     val live = (if (session.key == aiKey(text)) session.state else null) as? AiUiState.Done
-    val s = live?.saved ?: historyId?.let { id -> history.firstOrNull { it.id == id }?.aiOpinion }?.let(AiOpinionJson::decode)
+    val s = live?.saved?.takeIf { it.auto } ?: historyId?.let { id -> history.firstOrNull { it.id == id }?.aiOpinion }?.let(AiOpinionJson::decode)
     return s?.takeIf { it.auto }
 }
 

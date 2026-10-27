@@ -42,6 +42,7 @@ import app.eye.engine.Input
 import app.eye.engine.Level
 import app.eye.engine.Source
 import app.eye.engine.Verdict
+import app.eye.engine.llm.LegitGate
 import app.eye.engine.llm.LlmCombiner
 import app.eye.engine.llm.LlmStatus
 import app.eye.engine.llm.LlmVerdict
@@ -72,7 +73,7 @@ fun NanoSecondOpinion(vm: AppViewModel, text: String, verdict: Verdict?, history
     val liveOp = live?.opinion
     LaunchedEffect(historyId, liveOp, stored == null) {
         if (liveOp != null && historyId != null && stored == null && verdict != null) {
-            vm.saveNanoOpinion(historyId, liveOp, LlmCombiner.apply(verdict, liveOp).level.takeIf { it != verdict.level })
+            vm.saveNanoOpinion(historyId, liveOp, nanoFinal(verdict, liveOp).level.takeIf { it != verdict.level })
         }
     }
     if (verdict == null || (!active && stored == null)) return
@@ -82,7 +83,8 @@ fun NanoSecondOpinion(vm: AppViewModel, text: String, verdict: Verdict?, history
         live != null -> live
         else -> NanoUiState.Loading
     }
-    val contradictsCard = LlmCombiner.contradictsRules(verdict.level, (state as? NanoUiState.Done)?.opinion)
+    val alreadyLowered = verdict.reasons.any { it.ruleId == LegitGate.NANO_REASON_ID }
+    val contradictsCard = !alreadyLowered && LlmCombiner.contradictsRules(verdict.level, (state as? NanoUiState.Done)?.opinion) && nanoFinal(verdict, (state as? NanoUiState.Done)?.opinion).level == verdict.level
     EyeCard(
         Modifier.semantics { liveRegion = LiveRegionMode.Polite },
         borderOverride = BorderStroke(2.dp, if (contradictsCard) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary),
@@ -106,7 +108,7 @@ fun NanoSecondOpinion(vm: AppViewModel, text: String, verdict: Verdict?, history
                         OutlinedButton(onClick = { vm.clearNano() }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.nano_retry)) }
                     } else {
                         val raised = LlmCombiner.apply(verdict, op).level != verdict.level
-                        val contradicts = LlmCombiner.contradictsRules(verdict.level, op)
+                        val contradicts = !alreadyLowered && LlmCombiner.contradictsRules(verdict.level, op) && nanoFinal(verdict, op).level == verdict.level
                         val verdictRes = when (op.verdict) {
                             LlmVerdict.TRUFFA -> R.string.nano_verdict_truffa
                             LlmVerdict.SOSPETTO -> R.string.nano_verdict_sospetto
@@ -145,6 +147,9 @@ fun NanoSecondOpinion(vm: AppViewModel, text: String, verdict: Verdict?, history
         }
     }
 }
+
+/** Livello dopo il parere di Nano: puo' alzare NESSUN_SEGNALE -> SOSPETTO o abbassare di un gradino (vedi [LegitGate.applyNano]). */
+private fun nanoFinal(v: Verdict, op: LlmOpinion?): Verdict = LegitGate.applyNano(LlmCombiner.apply(v, op), op)
 
 /** Parere Nano salvato nella voce di cronologia [historyId], se c'e' (decifrato dal repository). */
 @Composable

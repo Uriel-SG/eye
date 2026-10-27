@@ -89,14 +89,28 @@ object LegitGate {
 
     fun hasGraveSignals(v: Verdict): Boolean = v.reasons.any { it.ruleId in GRAVE_IDS }
 
-    /** true se il parere "legittimo" con confidenza alta permette di attenuare il verdetto [v]. */
+    /** true se il parere "legittimo" con confidenza alta permette di attenuare il verdetto [v] (non NESSUN_SEGNALE, senza segnali gravi). */
     fun mayDismiss(v: Verdict, legitimate: Boolean, confidence: Double): Boolean =
-        legitimate && !confidence.isNaN() && confidence >= CONFIDENCE && v.level == Level.SOSPETTO && !hasGraveSignals(v)
+        legitimate && !confidence.isNaN() && confidence >= CONFIDENCE && v.level != Level.NESSUN_SEGNALE && !hasGraveSignals(v)
 
-    /** Nano dice legittimo: SOSPETTO -> NESSUN_SEGNALE con motivo esplicito; altrimenti il verdetto resta com'e'. */
+    const val NANO_STEP_REASON = "Gemini Nano sul telefono ritiene il messaggio meno rischioso di quanto indicato dalle regole."
+
+    /**
+     * Nano abbassa di UN gradino (SOSPETTO -> NESSUN_SEGNALE se dice "legittimo"; PROBABILE_TRUFFA -> SOSPETTO se dice
+     * "legittimo" o "sospetto"), solo con confidenza alta e senza segnali gravi; altrimenti il verdetto resta com'e'.
+     * Le azioni sono quelle di Nano (se ci sono), altrimenti vuote (l'app usa quelle del nuovo livello).
+     */
     fun applyNano(v: Verdict, opinion: LlmOpinion?): Verdict {
-        if (opinion == null || !mayDismiss(v, opinion.verdict == LlmVerdict.LEGITTIMO, opinion.confidence)) return v
-        return v.copy(level = Level.NESSUN_SEGNALE, reasons = v.reasons + Reason(NANO_REASON_ID, NANO_REASON, 0), actions = emptyList())
+        if (opinion == null || opinion.confidence.isNaN() || opinion.confidence < CONFIDENCE || hasGraveSignals(v)) return v
+        if (v.reasons.any { it.ruleId == UserExceptions.TRUSTED_ID || it.ruleId == NANO_REASON_ID || it.ruleId == AiFinalVerdict.REASON_ID }) return v
+        val steps = opinion.actions.filter { it.isNotBlank() }.take(4)
+        return when {
+            v.level == Level.SOSPETTO && opinion.verdict == LlmVerdict.LEGITTIMO ->
+                v.copy(level = Level.NESSUN_SEGNALE, reasons = v.reasons + Reason(NANO_REASON_ID, NANO_REASON, 0), actions = steps)
+            v.level == Level.PROBABILE_TRUFFA && opinion.verdict != LlmVerdict.TRUFFA ->
+                v.copy(level = Level.SOSPETTO, reasons = v.reasons + Reason(NANO_REASON_ID, NANO_STEP_REASON, 0), actions = steps)
+            else -> v
+        }
     }
 }
 

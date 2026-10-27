@@ -59,4 +59,17 @@ class AiFinalVerdictTest {
         val done = fin(v(Level.SOSPETTO, "URG-05"), op(LlmVerdict.LEGITTIMO, 0.9))
         assertSame(done, fin(done, op(LlmVerdict.TRUFFA, 1.0)))
     }
+
+    @Test fun aiStepsBecomeTheActionsOfTheFinalVerdict() {
+        val o = LlmOpinion(LlmVerdict.LEGITTIMO, 0.9, "ok", listOf("Puoi ignorarlo", " "))
+        assertEquals(listOf("Puoi ignorarlo"), fin(v(Level.SOSPETTO, "URG-05"), o).actions)
+        // livello invariato: restano il livello e i motivi, cambiano solo i consigli
+        val same = fin(v(Level.SOSPETTO, "URG-05"), LlmOpinion(LlmVerdict.SOSPETTO, 0.9, "ok", listOf("Non cliccare")))
+        assertEquals(Level.SOSPETTO, same.level)
+        assertEquals(listOf("Non cliccare"), same.actions)
+        assertEquals(listOf("URG-05"), same.reasons.map { it.ruleId })
+        // confidenza bassa: nessun consiglio dell'AI
+        val low = v(Level.SOSPETTO, "URG-05")
+        assertSame(low, fin(low, LlmOpinion(LlmVerdict.SOSPETTO, 0.5, "ok", listOf("x"))))
+    }
 }

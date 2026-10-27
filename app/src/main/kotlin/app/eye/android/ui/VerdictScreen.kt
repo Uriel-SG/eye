@@ -34,6 +34,8 @@ import androidx.compose.material.icons.rounded.BookmarkBorder
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.Share
@@ -75,6 +77,7 @@ import app.eye.android.core.reasonTone
 import app.eye.android.core.Redactor
 import app.eye.android.core.ReportLink
 import app.eye.android.core.ShareCard
+import app.eye.engine.enrich.VirusTotal
 import app.eye.android.core.familyLineRes
 import app.eye.android.core.reasonItems
 import app.eye.android.core.reasonTexts
@@ -104,7 +107,13 @@ fun VerdictScreen(result0: CheckResult, vm: AppViewModel, onClose: () -> Unit, f
     // verdetto dell'AI collegata (analisi automatica dei controlli manuali): decide il livello finale, vedi AiFinalVerdict
     val autoAi = autoAiFor(vm, result0.originalText, entryId)
     val aiV = if (autoAi == null) agedV else app.eye.engine.llm.AiFinalVerdict.apply(agedV, autoAi.opinion.toLlm(), aiFinalNote(ctx, autoAi))
-    val v = app.eye.engine.llm.LlmCombiner.apply(aiV, nanoOpinionFor(vm, result0.originalText, entryId))
+    val nanoOp = nanoOpinionFor(vm, result0.originalText, entryId)
+    // Nano (senza chiave: la chiave ha sempre la precedenza) puo' abbassare di un gradino, vedi LegitGate.applyNano
+    val nanoV = if (autoAi != null) aiV else app.eye.engine.llm.LegitGate.applyNano(aiV, nanoOp)
+    val v = app.eye.engine.llm.LlmCombiner.apply(nanoV, nanoOp)
+    val nanoDecided = nanoOp != null && v.reasons.any { it.ruleId == app.eye.engine.llm.LegitGate.NANO_REASON_ID || it.ruleId == app.eye.engine.llm.LlmCombiner.REASON_ID }
+    val aiDecides = autoAi != null || nanoDecided // decide l'AI (chiave o Nano): scheda con spiegazione e consigli dell'AI in alto
+    var foundOpen by remember { mutableStateOf(false) } // «Cosa aveva trovato Eye»: chiusa di default
     val result = if (v !== result0.verdict) result0.copy(verdict = v) else result0 // condivisione, report e PDF riflettono il verdetto aggiornato (eccezione, parere Nano)
     var excDialog by remember { mutableStateOf<app.eye.engine.ExceptionKind?>(null) }
     val snackbar = remember { androidx.compose.material3.SnackbarHostState() }
@@ -186,74 +195,134 @@ fun VerdictScreen(result0: CheckResult, vm: AppViewModel, onClose: () -> Unit, f
 
         if (result.truncated) Text(stringResource(R.string.truncated_warning), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
 
-        // Anteprima: testo dell'utente, solo in memoria; i link restano testo, mai aperti
-        EyeCard {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SectionTitle(stringResource(R.string.verdict_preview))
-                val shown = if (fromHistory && !showSensitive) Redactor.redact(result.originalText) else result.originalText
-                if (fromHistory) {
-                    if (shown.isBlank()) Text(stringResource(R.string.history_detail_missing), style = MaterialTheme.typography.bodyMedium)
-                    else Text(stringResource(R.string.history_sensitive_hidden_note), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Text(shown, maxLines = if (expanded) Int.MAX_VALUE else 3, style = MaterialTheme.typography.bodyLarge)
-                if (fromHistory && result.originalText.isNotBlank()) {
-                    TextButton(onClick = { showSensitive = !showSensitive }, modifier = Modifier.heightIn(min = 48.dp)) {
-                        Text(stringResource(if (showSensitive) R.string.history_hide_sensitive else R.string.history_show_sensitive))
-                    }
-                }
-                if (shown.length > 120 || shown.count { it == '\n' } > 2) {
-                    TextButton(onClick = { expanded = !expanded }, modifier = Modifier.heightIn(min = 48.dp)) {
-                        Text(stringResource(if (expanded) R.string.action_close else R.string.action_show_all))
-                    }
-                }
-                v.extracted.domains.distinct().take(3).forEach {
-                    Text(
-                        androidx.compose.ui.text.buildAnnotatedString {
-                            append(stringResource(R.string.verdict_domain) + " ")
-                            pushStyle(androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.Bold)); append(it); pop()
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
-            }
-        }
-
-        // Perché
-        EyeCard {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SectionTitle(stringResource(if (autoAi != null) R.string.ai_found_by_eye else R.string.verdict_why))
-                // con il verdetto dell'AI i motivi delle regole restano sempre visibili (il motivo dell'AI e' nell'intestazione)
-                val shownReasons = v.reasonItems().filter { it.ruleId != app.eye.engine.llm.AiFinalVerdict.REASON_ID }
-                if (shownReasons.isEmpty()) Text(stringResource(R.string.verdict_why_none))
-                shownReasons.forEach { r -> ReasonRow(r) }
-            }
-        }
-
-        // Provenienza dell'immagine (solo controlli da immagine): letta in locale, mai un giudizio di autenticita'
-        result.provenance?.let { prov ->
+        @Composable fun PreviewCard() {
             EyeCard {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SectionTitle(stringResource(R.string.prov_title))
-                    Text(app.eye.engine.provenance.ProvenanceMessages.body(prov), style = MaterialTheme.typography.bodyLarge)
-                    Text(stringResource(R.string.prov_local_note), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    TextButton(
-                        onClick = { ExternalIntents.openInBrowser(ctx, app.eye.engine.provenance.ImageProvenance.SYNTHID_URL) },
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    ) { Text(stringResource(R.string.prov_more)) }
+                    SectionTitle(stringResource(R.string.verdict_preview))
+                    val shown = if (fromHistory && !showSensitive) Redactor.redact(result.originalText) else result.originalText
+                    if (fromHistory) {
+                        if (shown.isBlank()) Text(stringResource(R.string.history_detail_missing), style = MaterialTheme.typography.bodyMedium)
+                        else Text(stringResource(R.string.history_sensitive_hidden_note), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Text(shown, maxLines = if (expanded) Int.MAX_VALUE else 3, style = MaterialTheme.typography.bodyLarge)
+                    if (fromHistory && result.originalText.isNotBlank()) {
+                        TextButton(onClick = { showSensitive = !showSensitive }, modifier = Modifier.heightIn(min = 48.dp)) {
+                            Text(stringResource(if (showSensitive) R.string.history_hide_sensitive else R.string.history_show_sensitive))
+                        }
+                    }
+                    if (shown.length > 120 || shown.count { it == '\n' } > 2) {
+                        TextButton(onClick = { expanded = !expanded }, modifier = Modifier.heightIn(min = 48.dp)) {
+                            Text(stringResource(if (expanded) R.string.action_close else R.string.action_show_all))
+                        }
+                    }
+                    v.extracted.domains.distinct().take(3).forEach {
+                        Text(
+                            androidx.compose.ui.text.buildAnnotatedString {
+                                append(stringResource(R.string.verdict_domain) + " ")
+                                pushStyle(androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.Bold)); append(it); pop()
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
+            }
+        }
+        @Composable fun WhyCard() {
+            EyeCard {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SectionTitle(stringResource(R.string.verdict_why))
+                    if (v.reasonItems().isEmpty()) Text(stringResource(R.string.verdict_why_none))
+                    v.reasonItems().forEach { r -> ReasonRow(r) }
                 }
             }
         }
 
-        // Cosa fare ora
-        val steps = v.todoSteps(ctx)
-        EyeCard {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SectionTitle(stringResource(R.string.verdict_todo), color = MaterialTheme.extras.green)
-                steps.forEachIndexed { i, s ->
-                    val stepCd = stringResource(R.string.cd_step, i + 1, steps.size)
-                    Text("${i + 1}. $s", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.extras.green, modifier = Modifier.semantics { contentDescription = "$stepCd. $s" })
+        // Con il verdetto dell'AI: sezione in fondo, chiusa di default; se il verdetto e' verde titolo neutro, icone grigie e frase di sintesi
+        @Composable fun FoundByEyeCard() {
+            val green = v.level == Level.NESSUN_SEGNALE
+            val shownReasons = v.reasonItems().filter { it.ruleId != app.eye.engine.llm.AiFinalVerdict.REASON_ID && it.ruleId != app.eye.engine.llm.LegitGate.NANO_REASON_ID && it.ruleId != app.eye.engine.llm.LlmCombiner.REASON_ID }
+            val title = stringResource(if (green) R.string.ai_neutral_title else R.string.ai_found_by_eye)
+            EyeCard {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth().heightIn(min = 48.dp).selectable(selected = foundOpen, role = Role.Button, onClick = { foundOpen = !foundOpen }),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(Modifier.weight(1f)) { SectionTitle(title) }
+                        Icon(
+                            if (foundOpen) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown,
+                            contentDescription = stringResource(if (foundOpen) R.string.action_close else R.string.action_show_all),
+                        )
+                    }
+                    if (foundOpen) {
+                        if (green) Text(stringResource(R.string.ai_neutral_summary), style = MaterialTheme.typography.bodyLarge)
+                        if (shownReasons.isEmpty()) Text(stringResource(R.string.verdict_why_none))
+                        shownReasons.forEach { r -> ReasonRow(r, neutral = green) }
+                    }
                 }
             }
+        }
+
+        @Composable fun AiExplanationCard() {
+            EyeCard {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SectionTitle(stringResource(R.string.ai_explain_title))
+                    val lines = autoAi?.opinion?.reasons?.filter { it.isNotBlank() }?.takeIf { it.isNotEmpty() } ?: listOfNotNull(nanoOp?.explanation?.takeIf { it.isNotBlank() })
+                    lines.forEach { Text(it, style = MaterialTheme.typography.bodyLarge) }
+                }
+            }
+        }
+
+        @Composable fun VtBlock() {
+            if (VirusTotal.domainsFor(v).isEmpty()) return
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                VirusTotalButton(vm, v)
+                Text(stringResource(R.string.vt_note_1), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.vt_note_2), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+
+        @Composable fun ProvenanceCard() {
+            result.provenance?.let { prov ->
+                EyeCard {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SectionTitle(stringResource(R.string.prov_title))
+                        Text(app.eye.engine.provenance.ProvenanceMessages.body(prov), style = MaterialTheme.typography.bodyLarge)
+                        Text(stringResource(R.string.prov_local_note), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        TextButton(
+                            onClick = { ExternalIntents.openInBrowser(ctx, app.eye.engine.provenance.ImageProvenance.SYNTHID_URL) },
+                            modifier = Modifier.heightIn(min = 48.dp),
+                        ) { Text(stringResource(R.string.prov_more)) }
+                    }
+                }
+            }
+        }
+        @Composable fun TodoCard() {
+            val steps = v.todoSteps(ctx)
+            EyeCard {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SectionTitle(stringResource(R.string.verdict_todo), color = MaterialTheme.extras.green)
+                    steps.forEachIndexed { i, s ->
+                        val stepCd = stringResource(R.string.cd_step, i + 1, steps.size)
+                        Text("${i + 1}. $s", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.extras.green, modifier = Modifier.semantics { contentDescription = "$stepCd. $s" })
+                    }
+                }
+            }
+        }
+
+        if (aiDecides) {
+            AiExplanationCard()
+            VtBlock()
+            TodoCard()
+            PreviewCard()
+            ProvenanceCard()
+            FoundByEyeCard()
+        } else {
+            PreviewCard()
+            WhyCard()
+            VtBlock()
+            ProvenanceCard()
+            TodoCard()
         }
 
         // Secondo parere AI: facoltativo, mai automatico, mai al posto del verdetto delle regole
@@ -320,7 +389,6 @@ fun VerdictScreen(result0: CheckResult, vm: AppViewModel, onClose: () -> Unit, f
             }
         }
         OutlinedButton(onClick = { pdfDialog = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text(stringResource(R.string.pdf_button)) }
-        VirusTotalButton(vm, v)
         TextButton(onClick = { reportDialog = true }, modifier = Modifier.heightIn(min = 48.dp)) {
             Icon(Icons.Rounded.Flag, contentDescription = null)
             Spacer(Modifier.width(8.dp))
@@ -418,8 +486,8 @@ fun VerdictScreen(result0: CheckResult, vm: AppViewModel, onClose: () -> Unit, f
 }
 
 @Composable
-private fun ReasonRow(r: app.eye.engine.Reason) {
-    val (icon, tint, cd) = when (reasonTone(r.weight)) {
+private fun ReasonRow(r: app.eye.engine.Reason, neutral: Boolean = false) {
+    val (icon, tint, cd) = when (if (neutral) ReasonTone.NEUTRAL else reasonTone(r.weight)) {
         ReasonTone.RISK -> Triple(Icons.Rounded.Warning, MaterialTheme.colorScheme.error, R.string.reason_cd_risk)
         ReasonTone.REDUCES -> Triple(Icons.Rounded.CheckCircle, MaterialTheme.extras.of(app.eye.engine.Level.NESSUN_SEGNALE).icon, R.string.reason_cd_reduces)
         ReasonTone.NEUTRAL -> Triple(Icons.Rounded.Info, MaterialTheme.colorScheme.onSurfaceVariant, R.string.reason_cd_info)

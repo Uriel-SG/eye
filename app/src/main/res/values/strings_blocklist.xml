@@ -7,7 +7,7 @@
     <string name="info_blocklist_value">%1$s voci, aggiornata il %2$s. Controllo sul telefono, anche senza rete.</string>
     <string name="info_blocklist_stale">%1$s voci, aggiornata il %2$s. Elenco non recente: Eye lo utilizza comunque e lo aggiorna automaticamente quando è disponibile la rete.</string>
     <string name="info_model_title">Modello AI</string>
-    <string name="info_model_value">Versione %1$d (si aggiorna da solo, con Wi-Fi e telefono in carica, solo se supera una prova sul telefono)</string>
+    <string name="info_model_value">Versione %1$d (si aggiorna da solo, solo se supera una prova sul telefono)</string>
     <string name="info_numbers_title">Elenco numeri spam</string>
     <string name="info_numbers_value">%1$s voci, aggiornato il %2$s. Controllo sul telefono: nessun tuo numero viene inviato.</string>
     <string name="info_numbers_none">Non ancora scaricato: il download è automatico quando è disponibile la rete, oppure con «Aggiorna» nel Catalogo.</string>

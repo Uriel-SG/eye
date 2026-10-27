@@ -83,6 +83,10 @@ interface HistoryDao {
     )
     suspend fun setLevel(id: Long, level: String)
 
+    /** Sovrascrive il livello (verdetto finale dell'AI, che puo' anche abbassarlo). */
+    @Query("UPDATE history SET level = :level WHERE id = :id")
+    suspend fun forceLevel(id: Long, level: String)
+
     @Query("UPDATE history SET exceptionKind = :kind WHERE id = :id")
     suspend fun setExceptionKind(id: Long, kind: Int)
 
@@ -200,6 +204,9 @@ class HistoryRepository(
 
     /** Livello mostrato in elenco: solo rialzi (parere di Gemini Nano, eta' del dominio), mai un abbassamento. */
     suspend fun setLevel(id: Long, level: String) = dao.setLevel(id, level)
+
+    /** Verdetto finale dell'AI (chiave o Nano): il livello in elenco segue la scheda, anche se scende. */
+    suspend fun setFinalLevel(id: Long, level: String) = dao.forceLevel(id, level)
 
     suspend fun setExceptionKind(id: Long, kind: Int) = dao.setExceptionKind(id, kind)
 

@@ -61,7 +61,8 @@ fun Level.cardTitleRes(): Int = when (this) {
 fun Verdict.todoSteps(context: Context): List<String> =
     actions.filter { it.isNotBlank() }.ifEmpty { level.defaultActionRes().map(context::getString) }.take(4)
 
-fun Verdict.reasonTexts(max: Int = 5): List<String> = reasons.map { it.text }.filter { it.isNotBlank() }.take(max)
+/** Con il verdetto dell'AI (AI-01, LLM-01/02) i suoi motivi vengono per primi: condivisione e PDF restano coerenti col livello finale. */
+fun Verdict.reasonTexts(max: Int = 5): List<String> = reasons.sortedBy { if (it.ruleId in AI_REASON_IDS) 0 else 1 }.map { it.text }.filter { it.isNotBlank() }.take(max)
 
 /** Motivi con testo non vuoto (max [max]), con il peso: serve a colorare l'icona. */
 fun Verdict.reasonItems(max: Int = 5): List<app.eye.engine.Reason> = reasons.filter { it.text.isNotBlank() }.take(max)
@@ -111,3 +112,5 @@ object ReportBuilder {
     fun feedbackSubject(context: Context, r: CheckResult, view: ShareTexts.UserView): String =
         ShareTexts.feedbackSubject(view, context.getString(r.verdict.level.titleRes()))
 }
+
+private val AI_REASON_IDS = setOf(app.eye.engine.llm.AiFinalVerdict.REASON_ID, app.eye.engine.llm.LegitGate.NANO_REASON_ID, app.eye.engine.llm.LlmCombiner.REASON_ID)

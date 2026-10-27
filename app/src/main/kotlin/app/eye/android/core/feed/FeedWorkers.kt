@@ -71,7 +71,7 @@ object FeedScheduler {
 
     private const val MODEL = "eye_model_update"
     private val modelConstraints = Constraints.Builder()
-        .setRequiredNetworkType(NetworkType.UNMETERED).setRequiresCharging(true).setRequiresBatteryNotLow(true).build()
+        .setRequiredNetworkType(NetworkType.CONNECTED).setRequiresBatteryNotLow(true).build() // decisione utente: anche con dati mobili e senza carica
 
     fun scheduleModel(ctx: Context) {
         val req = PeriodicWorkRequestBuilder<ModelUpdateWorker>(24, TimeUnit.HOURS).setConstraints(modelConstraints).build()

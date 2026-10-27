@@ -10,6 +10,7 @@ import app.eye.android.core.Redactor
 import app.eye.android.core.ai.AiConfig
 import app.eye.android.core.ai.AiJudgement
 import app.eye.android.core.ai.AiOutcome
+import app.eye.android.core.ai.AiRequests
 import app.eye.android.core.ai.AiService
 import app.eye.android.data.KeyVault
 import app.eye.android.data.VerdictJson
@@ -101,15 +102,23 @@ class EyeNotificationListener : NotificationListenerService() {
     }
 
     /**
-     * Verifica opt-in con l'AI dell'utente (testo oscurato, max 8 s). Fail-safe: qualsiasi errore, timeout, limite o
-     * parere diverso da "legittimo" con confidenza alta = false (l'avviso parte). Mai per segnali gravi o PROBABILE_TRUFFA.
+     * Verifica opt-in con l'AI dell'utente (testo oscurato, 8 s a tentativo). Vale anche per PROBABILE_TRUFFA senza segnali
+     * gravi. Rete assente/timeout: un secondo tentativo se la rete torna (tetto ~40 s, vedi [AiVerifyRetry]). Fail-safe:
+     * qualsiasi errore, limite o parere diverso da "legittimo" con confidenza alta = false (l'avviso parte).
      */
     private fun aiDismisses(n: NotifData, text: String, verdict: Verdict): Boolean = try {
-        if (verdict.level != Level.SOSPETTO || LegitGate.hasGraveSignals(verdict)) false
+        if (verdict.level == Level.NESSUN_SEGNALE || LegitGate.hasGraveSignals(verdict)) false
         else {
             val st = runBlocking { app.container.settings.settings.first() }
             val key = if (st.aiVerifyBeforeAlert && st.aiConfigured) st.aiKeyCipher?.let { KeyVault.decrypt(it) } else null
-            val out = if (key == null) null else AiService().ask(AiConfig(st.aiProvider, st.aiModel, st.aiBaseUrl, key), Redactor.redactKeepLinks(text), quickMs = AI_VERIFY_MS)
+            val out = if (key == null) null else {
+                val cfg = AiConfig(st.aiProvider, st.aiModel, st.aiBaseUrl, key)
+                val safe = Redactor.redactKeepLinks(text)
+                val svc = AiService()
+                val host = AiRequests.build(cfg, "x")?.url?.let { runCatching { java.net.URI(it).host }.getOrNull() }
+                // senza permesso di stato rete: la rete "c'e'" se il nome del servizio si risolve
+                AiVerifyRetry({ host != null && runCatching { java.net.InetAddress.getByName(host) }.isSuccess }).run { ms -> svc.ask(cfg, safe, quickMs = ms) }
+            }
             val op = (out as? AiOutcome.Success)?.opinion
             if (op == null || !LegitGate.mayDismiss(verdict, op.judgement == AiJudgement.NESSUN_SEGNALE, op.confidence)) false
             else {
@@ -168,7 +177,6 @@ class EyeNotificationListener : NotificationListenerService() {
 
     companion object {
         /** Pacchetti da controllare; vuoto = protezione spenta. */
-        private const val AI_VERIFY_MS = 8_000L
         @Volatile private var active: Set<String> = emptySet()
 
         // coda piccola, scarta le più vecchie

@@ -7,6 +7,12 @@ import app.eye.android.core.ai.AiOpinion
 /** Secondo parere AI salvato con la voce di cronologia: contenuto già oscurato, più provider, modello e data. */
 data class SavedAiOpinion(val opinion: AiOpinion, val providerId: String, val model: String, val at: Long, val auto: Boolean = false)
 
+/** Pareri AI richiesti a mano: mai "auto" (non cambiano il verdetto) e non sostituiscono il parere automatico gia' salvato. */
+object ManualAi {
+    fun opinion(o: app.eye.android.core.ai.AiOpinion, providerId: String, model: String, at: Long) = SavedAiOpinion(o, providerId, model, at, auto = false)
+    fun persist(previousWasAuto: Boolean): Boolean = !previousWasAuto
+}
+
 object AiOpinionJson {
     fun encode(s: SavedAiOpinion): String = MiniJson.stringify(
         mapOf(

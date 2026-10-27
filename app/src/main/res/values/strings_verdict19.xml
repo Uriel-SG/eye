@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ai_explain_title">Cosa ne pensa l\'AI</string>
+    <string name="ai_neutral_title">Dettagli: cosa ha valutato l\'AI</string>
+    <string name="ai_neutral_summary">Eye aveva notato alcuni elementi tipici delle truffe; l\'AI li ha valutati nel contesto e non li considera un rischio.</string>
+    <string name="vt_note_1">VirusTotal è un servizio gratuito che controlla i siti con decine di antivirus.</string>
+    <string name="vt_note_2">Si apre nel browser e riceve solo il nome del sito.</string>
+</resources>

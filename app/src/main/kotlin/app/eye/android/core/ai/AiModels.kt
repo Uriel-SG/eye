@@ -62,7 +62,7 @@ fun AiOpinion.toLlm() = app.eye.engine.llm.LlmOpinion(
         AiJudgement.SOSPETTO -> app.eye.engine.llm.LlmVerdict.SOSPETTO
         AiJudgement.NESSUN_SEGNALE -> app.eye.engine.llm.LlmVerdict.LEGITTIMO
     },
-    confidence, reasons.firstOrNull() ?: advice, emptyList(),
+    confidence, reasons.firstOrNull() ?: advice, listOfNotNull(advice.trim().takeIf { it.isNotEmpty() }),
 )
 
 data class AiOpinion(val judgement: AiJudgement, val reasons: List<String>, val advice: String, val confidence: Double = 0.0) {

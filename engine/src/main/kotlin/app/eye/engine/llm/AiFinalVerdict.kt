@@ -43,7 +43,13 @@ object AiFinalVerdict {
      */
     fun apply(v: Verdict, opinion: LlmOpinion?, note: String): Verdict {
         val l = finalLevel(v, opinion)
-        if (l == v.level) return v
-        return v.copy(level = l, reasons = v.reasons + Reason(REASON_ID, note, 0), actions = emptyList())
+        val steps = if (opinion == null || !decides(v, opinion)) emptyList() else opinion.actions.filter { it.isNotBlank() }.take(4)
+        if (l == v.level) return if (steps.isEmpty() || steps == v.actions) v else v.copy(actions = steps)
+        return v.copy(level = l, reasons = v.reasons + Reason(REASON_ID, note, 0), actions = steps)
     }
+
+    /** L'AI "decide" (parere con confidenza alta e verdetto non gia' bloccato da eccezione/AI precedente): i suoi consigli valgono come "Cosa fare ora". */
+    private fun decides(v: Verdict, o: LlmOpinion): Boolean =
+        !o.confidence.isNaN() && o.confidence >= LegitGate.CONFIDENCE &&
+            v.reasons.none { it.ruleId == UserExceptions.TRUSTED_ID || it.ruleId == REASON_ID }
 }

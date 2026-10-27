@@ -49,6 +49,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -433,8 +434,9 @@ private fun InfoRow(title: String, subtitle: String) {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun OnboardingScreen(onDone: () -> Unit) {
-    val pager = rememberPagerState { 3 }
+fun OnboardingScreen(vm: AppViewModel, settings: app.eye.android.data.Settings, onDone: () -> Unit) {
+    val total = if (settings.aiHasKey) 5 else 4
+    val pager = rememberPagerState { total }
     val scope = rememberCoroutineScope()
     val page = pager.currentPage
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -443,13 +445,13 @@ fun OnboardingScreen(onDone: () -> Unit) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             TextButton(onClick = onDone, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.action_skip)) }
         }
-        HorizontalPager(pager, Modifier.weight(1f)) { p -> OnboardingPage(p) }
+        HorizontalPager(pager, Modifier.weight(1f)) { p -> OnboardingPage(p, vm, settings) }
         val pageCd = stringResource(R.string.cd_page, page + 1)
         Row(
             Modifier.fillMaxWidth().padding(vertical = 16.dp).semantics { contentDescription = pageCd },
             horizontalArrangement = Arrangement.Center,
         ) {
-            repeat(3) { i ->
+            repeat(total) { i ->
                 Box(
                     Modifier.padding(4.dp).size(10.dp)
                         .background(if (i == page) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, CircleShape),
@@ -461,18 +463,18 @@ fun OnboardingScreen(onDone: () -> Unit) {
                 Text(stringResource(R.string.action_back))
             }
             Button(
-                onClick = { if (page < 2) scope.launch { pager.animateScrollToPage(page + 1) } else onDone() },
+                onClick = { if (page < total - 1) scope.launch { pager.animateScrollToPage(page + 1) } else onDone() },
                 modifier = Modifier.weight(1f).heightIn(min = 56.dp),
-            ) { Text(stringResource(if (page < 2) R.string.action_next else R.string.action_start), style = MaterialTheme.typography.titleMedium) }
+            ) { Text(stringResource(if (page < total - 1) R.string.action_next else R.string.action_start), style = MaterialTheme.typography.titleMedium) }
         }
     }
     }
 }
 
 @Composable
-private fun OnboardingPage(p: Int) {
+private fun OnboardingPage(p: Int, vm: AppViewModel, s: app.eye.android.data.Settings) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        if (p == 1) Icon(
+        if (p >= 3) {} else if (p == 1) Icon(
             Icons.Rounded.Lock, contentDescription = null,
             tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(96.dp).align(Alignment.CenterHorizontally),
         ) else EyeIcon(Modifier.size(96.dp).align(Alignment.CenterHorizontally))
@@ -486,6 +488,8 @@ private fun OnboardingPage(p: Int) {
                 listOf(R.string.onb_does_1, R.string.onb_does_2, R.string.onb_does_3, R.string.onb_does_4, R.string.onb_does_5).forEach { Bullet(true, stringResource(it)) }
                 listOf(R.string.onb_doesnt_1, R.string.onb_doesnt_2, R.string.onb_doesnt_3, R.string.onb_doesnt_4).forEach { Bullet(false, stringResource(it)) }
             }
+            3 -> GeminiOnboardingKeyPage(vm, s)
+            4 -> GeminiOnboardingOptionsPage(vm, s)
             else -> {
                 Text(stringResource(R.string.onb_title_3), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
                 listOf(R.string.onb_step_1, R.string.onb_step_2, R.string.onb_step_3).forEachIndexed { i, r ->
@@ -504,4 +508,42 @@ private fun Bullet(yes: Boolean, text: String) {
         Spacer(Modifier.width(12.dp))
         Text(text, style = MaterialTheme.typography.bodyLarge)
     }
+}
+
+@Composable
+private fun GeminiOnboardingKeyPage(vm: AppViewModel, s: app.eye.android.data.Settings) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    var key by remember { mutableStateOf("") }
+    val keyError by vm.aiKeyError.collectAsState()
+    val flow = rememberGoogleKeyFlow(vm, "", "") { key = "" }
+    Text(stringResource(R.string.onb_ai_title), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
+    Text(stringResource(R.string.onb_ai_body), style = MaterialTheme.typography.bodyLarge)
+    if (s.aiHasKey) {
+        Text(stringResource(R.string.onb_ai_saved), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+        return
+    }
+    OutlinedButton(onClick = { openUrl(ctx, GEMINI_HELP_URL) }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text(stringResource(R.string.onb_ai_instructions)) }
+    OutlinedButton(onClick = { flow.open() }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text(stringResource(R.string.ai_gemini_get_key)) }
+    OutlinedTextField(
+        value = key, onValueChange = { key = it.take(500); vm.clearAiKeyError() },
+        isError = keyError, label = { Text(stringResource(R.string.ai_key_label)) }, singleLine = true,
+        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Password, autoCorrectEnabled = false),
+        supportingText = { if (keyError) Text(stringResource(R.string.ai_key_invalid)) },
+        modifier = Modifier.fillMaxWidth(),
+    )
+    PasteKeyButton(flow)
+    Button(
+        onClick = { vm.saveAi(app.eye.android.core.ai.AiProvider.GEMINI, "", "", key); key = "" },
+        enabled = key.isNotBlank(), modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+    ) { Text(stringResource(R.string.ai_save)) }
+}
+
+@Composable
+private fun GeminiOnboardingOptionsPage(vm: AppViewModel, s: app.eye.android.data.Settings) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    Text(stringResource(R.string.onb_ai_title2), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
+    AiToggleRows(vm, s)
+    Text(stringResource(R.string.onb_ai_privacy), style = MaterialTheme.typography.bodyLarge)
+    TextButton(onClick = { openUrl(ctx, REDACTION_HELP_URL) }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.onb_ai_learn)) }
 }

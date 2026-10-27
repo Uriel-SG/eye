@@ -67,34 +67,7 @@ fun AiSettingsSection(vm: AppViewModel, s: Settings) {
     val revoked = stringResource(R.string.ai_revoke_consent_done)
     DisposableEffect(Unit) { onDispose { vm.clearAiTest(); vm.clearAiKeyError() } }
 
-    // Appunti: letti UNA sola volta, solo al ritorno dalla pagina aperta con il pulsante "Ottieni chiave Google AI".
-    val owner = androidx.lifecycle.compose.LocalLifecycleOwner.current
-    var resumed by remember { mutableStateOf(true) }
-    DisposableEffect(owner) {
-        val obs = androidx.lifecycle.LifecycleEventObserver { _, e ->
-            when (e) {
-                androidx.lifecycle.Lifecycle.Event.ON_PAUSE -> { resumed = false; if (vm.googleKeyPending) vm.googleKeyLeft = true }
-                androidx.lifecycle.Lifecycle.Event.ON_RESUME -> resumed = true
-                else -> {}
-            }
-        }
-        owner.lifecycle.addObserver(obs)
-        onDispose { owner.lifecycle.removeObserver(obs) }
-    }
-    val focused = androidx.compose.ui.platform.LocalWindowInfo.current.isWindowFocused
-    val clipDone = stringResource(R.string.ai_key_from_clipboard)
-    androidx.compose.runtime.LaunchedEffect(focused, resumed) {
-        if (focused && resumed && vm.googleKeyPending && vm.googleKeyLeft) {
-            vm.googleKeyPending = false; vm.googleKeyLeft = false
-            val clip = runCatching {
-                (ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager).primaryClip?.getItemAt(0)?.text?.toString()
-            }.getOrNull()
-            if (vm.saveGoogleKeyFromClipboard(clip, AiProvider.GEMINI, model, baseUrl)) {
-                key = ""
-                android.widget.Toast.makeText(ctx, clipDone, android.widget.Toast.LENGTH_LONG).show()
-            }
-        }
-    }
+    val keyFlow = rememberGoogleKeyFlow(vm, model, baseUrl) { key = "" }
 
     val compatible = provider == AiProvider.COMPATIBLE
     val baseOk = !compatible || AiUrls.validBase(baseUrl) != null
@@ -124,9 +97,10 @@ fun AiSettingsSection(vm: AppViewModel, s: Settings) {
         if (provider == AiProvider.GEMINI) {
             Text(stringResource(R.string.ai_gemini_howto), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             OutlinedButton(
-                onClick = { vm.googleKeyPending = true; vm.googleKeyLeft = false; openGoogleKeyPage(ctx) },
+                onClick = { keyFlow.open() },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
             ) { Text(stringResource(R.string.ai_gemini_get_key)) }
+            GeminiStepsAndLink()
         }
         if (compatible) {
             OutlinedTextField(
@@ -171,6 +145,7 @@ fun AiSettingsSection(vm: AppViewModel, s: Settings) {
             modifier = Modifier.fillMaxWidth(),
         )
 
+        if (provider == AiProvider.GEMINI) PasteKeyButton(keyFlow)
         Button(
             onClick = { vm.saveAi(provider, model, baseUrl, key); key = "" },
             enabled = valid,
@@ -200,24 +175,7 @@ fun AiSettingsSection(vm: AppViewModel, s: Settings) {
             }
         }
 
-        if (s.aiConfigured) {
-            Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(stringResource(R.string.ai_autoan_label), style = MaterialTheme.typography.titleMedium)
-                    Text(stringResource(R.string.ai_autoan_sub), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Spacer(Modifier.width(12.dp))
-                Switch(checked = s.aiAutoAnalysis, onCheckedChange = { vm.setAiAutoAnalysis(it) })
-            }
-            Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(stringResource(R.string.ai_verify_label), style = MaterialTheme.typography.titleMedium)
-                    Text(stringResource(R.string.ai_verify_sub), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Spacer(Modifier.width(12.dp))
-                Switch(checked = s.aiVerifyBeforeAlert, onCheckedChange = { vm.setAiVerifyBeforeAlert(it) })
-            }
-        }
+        if (s.aiConfigured) AiToggleRows(vm, s)
         Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(stringResource(R.string.ai_raw_label), style = MaterialTheme.typography.titleMedium)
@@ -272,6 +230,112 @@ private fun NanoSettingsRow(vm: AppViewModel) {
         stringResource(res), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
         fontStyle = if (st == app.eye.engine.llm.LlmStatus.AVAILABLE) androidx.compose.ui.text.font.FontStyle.Normal else androidx.compose.ui.text.font.FontStyle.Italic,
     )
+}
+
+/** I due interruttori dell'AI collegata (analisi automatica, verifica prima degli avvisi): condivisi con l'onboarding. */
+@Composable
+fun AiToggleRows(vm: AppViewModel, s: Settings) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(stringResource(R.string.ai_autoan_label), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.ai_autoan_sub), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Spacer(Modifier.width(12.dp))
+        Switch(checked = s.aiAutoAnalysis, onCheckedChange = { vm.setAiAutoAnalysis(it) })
+    }
+    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(stringResource(R.string.ai_verify_label), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.ai_verify_sub), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Spacer(Modifier.width(12.dp))
+        Switch(checked = s.aiVerifyBeforeAlert, onCheckedChange = { vm.setAiVerifyBeforeAlert(it) })
+    }
+}
+
+/** Tre passi brevissimi e link alla pagina con le immagini. */
+@Composable
+fun GeminiStepsAndLink() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    Text(stringResource(R.string.ai_gemini_steps), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    TextButton(onClick = { openUrl(ctx, GEMINI_HELP_URL) }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.ai_gemini_help_images)) }
+}
+
+const val GEMINI_HELP_URL = "https://eye.urielsec.com/gemini.html"
+const val REDACTION_HELP_URL = "https://eye.urielsec.com/oscuramento.html"
+
+fun openUrl(ctx: android.content.Context, url: String) {
+    runCatching { ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))) }
+}
+
+/** Flusso "Ottieni chiave" + "Incolla chiave". Gli appunti si leggono solo su azione dell'utente o al ritorno dalla pagina aperta. */
+class GoogleKeyFlow(
+    private val vm: AppViewModel,
+    private val ctx: android.content.Context,
+    val opened: Boolean,
+    val clipPresent: Boolean,
+    private val onOpen: () -> Unit,
+    private val onSaved: () -> Unit,
+    private val model: String,
+    private val baseUrl: String,
+) {
+    val canPaste get() = opened && clipPresent
+    fun open() { onOpen(); vm.googleKeyPending = true; vm.googleKeyLeft = false; openGoogleKeyPage(ctx) }
+    fun paste() {
+        val clip = readClip(ctx)
+        if (vm.saveGoogleKeyFromClipboard(clip, AiProvider.GEMINI, model, baseUrl)) {
+            onSaved()
+            android.widget.Toast.makeText(ctx, ctx.getString(R.string.ai_key_from_clipboard), android.widget.Toast.LENGTH_LONG).show()
+        } else android.widget.Toast.makeText(ctx, ctx.getString(R.string.ai_key_paste_invalid), android.widget.Toast.LENGTH_LONG).show()
+    }
+}
+
+private fun readClip(ctx: android.content.Context): String? = runCatching {
+    (ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager).primaryClip?.getItemAt(0)?.text?.toString()
+}.getOrNull()
+
+@Composable
+fun rememberGoogleKeyFlow(vm: AppViewModel, model: String, baseUrl: String, onSaved: () -> Unit): GoogleKeyFlow {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    var opened by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    val owner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    var resumed by remember { mutableStateOf(true) }
+    var clipPresent by remember { mutableStateOf(false) }
+    fun hasClip() = runCatching {
+        (ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager).hasPrimaryClip()
+    }.getOrDefault(false) // non legge il contenuto
+    DisposableEffect(owner) {
+        val obs = androidx.lifecycle.LifecycleEventObserver { _, e ->
+            when (e) {
+                androidx.lifecycle.Lifecycle.Event.ON_PAUSE -> { resumed = false; if (vm.googleKeyPending) vm.googleKeyLeft = true }
+                androidx.lifecycle.Lifecycle.Event.ON_RESUME -> { resumed = true; clipPresent = hasClip() }
+                else -> {}
+            }
+        }
+        owner.lifecycle.addObserver(obs)
+        onDispose { owner.lifecycle.removeObserver(obs) }
+    }
+    val focused = androidx.compose.ui.platform.LocalWindowInfo.current.isWindowFocused
+    val clipDone = stringResource(R.string.ai_key_from_clipboard)
+    val onSavedNow by androidx.compose.runtime.rememberUpdatedState(onSaved)
+    androidx.compose.runtime.LaunchedEffect(focused, resumed) {
+        if (focused && resumed) clipPresent = hasClip()
+        if (focused && resumed && vm.googleKeyPending && vm.googleKeyLeft) {
+            vm.googleKeyPending = false; vm.googleKeyLeft = false
+            if (vm.saveGoogleKeyFromClipboard(readClip(ctx), AiProvider.GEMINI, model, baseUrl)) {
+                onSavedNow()
+                android.widget.Toast.makeText(ctx, clipDone, android.widget.Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+    return GoogleKeyFlow(vm, ctx, opened, clipPresent, { opened = true }, onSavedNow, model, baseUrl)
+}
+
+@Composable
+fun PasteKeyButton(flow: GoogleKeyFlow) {
+    OutlinedButton(onClick = { flow.paste() }, enabled = flow.canPaste, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+        Text(stringResource(R.string.ai_key_paste))
+    }
 }
 
 /** Pagina delle chiavi di Google AI Studio nel browser (Custom Tab non e' tra le dipendenze del progetto: ACTION_VIEW). */

@@ -25,8 +25,9 @@ class LegitGateTest {
         assertFalse(LegitGate.mayDismiss(v(Level.SOSPETTO, "URG-05"), false, 1.0))
     }
 
-    @Test fun neverForScamOrNoSignal() {
-        assertFalse(LegitGate.mayDismiss(v(Level.PROBABILE_TRUFFA, "URG-05"), true, 1.0))
+    @Test fun probableWithoutGraveSignalsCanBeDismissedButNoSignalNever() {
+        assertTrue(LegitGate.mayDismiss(v(Level.PROBABILE_TRUFFA, "URG-05"), true, 0.9))
+        assertFalse(LegitGate.mayDismiss(v(Level.PROBABILE_TRUFFA, "URG-05", "BLK-01"), true, 1.0))
         assertFalse(LegitGate.mayDismiss(v(Level.NESSUN_SEGNALE), true, 1.0))
     }
 
@@ -49,7 +50,29 @@ class LegitGateTest {
         val grave = v(Level.SOSPETTO, "BLK-01")
         assertSame(grave, LegitGate.applyNano(grave, op(LlmVerdict.LEGITTIMO, 1.0)))
         val scam = v(Level.PROBABILE_TRUFFA, "URG-05")
-        assertSame(scam, LegitGate.applyNano(scam, op(LlmVerdict.LEGITTIMO, 1.0)))
+        assertSame(scam, LegitGate.applyNano(scam, op(LlmVerdict.LEGITTIMO, 0.79)))
+        assertSame(scam, LegitGate.applyNano(scam, op(LlmVerdict.TRUFFA, 1.0)))
+        val none = v(Level.NESSUN_SEGNALE)
+        assertSame(none, LegitGate.applyNano(none, op(LlmVerdict.LEGITTIMO, 1.0)))
+    }
+
+    @Test fun nanoLowersProbableByOneStepOnly() {
+        for (o in listOf(LlmVerdict.LEGITTIMO, LlmVerdict.SOSPETTO)) {
+            val r = LegitGate.applyNano(v(Level.PROBABILE_TRUFFA, "URG-05"), op(o, 0.9))
+            assertEquals(Level.SOSPETTO, r.level, "mai direttamente a NESSUN_SEGNALE")
+            assertTrue(r.reasons.any { it.ruleId == LegitGate.NANO_REASON_ID })
+        }
+        // un SOSPETTO scende solo se Nano dice "legittimo"
+        val s = v(Level.SOSPETTO, "URG-05")
+        assertSame(s, LegitGate.applyNano(s, op(LlmVerdict.SOSPETTO, 1.0)))
+        // gia' applicato: non si abbassa due volte
+        val once = LegitGate.applyNano(v(Level.PROBABILE_TRUFFA, "URG-05"), op(LlmVerdict.LEGITTIMO, 0.9))
+        assertSame(once, LegitGate.applyNano(once, op(LlmVerdict.LEGITTIMO, 0.9)))
+    }
+
+    @Test fun nanoUsesItsOwnStepsWhenPresent() {
+        val o = LlmOpinion(LlmVerdict.LEGITTIMO, 0.9, "ok", listOf("Non fare nulla"))
+        assertEquals(listOf("Non fare nulla"), LegitGate.applyNano(v(Level.SOSPETTO, "URG-05"), o).actions)
     }
 
     @Test fun promptInjectionIsDataAndCannotBypassGuards() {

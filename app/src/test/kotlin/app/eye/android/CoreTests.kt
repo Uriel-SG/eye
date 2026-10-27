@@ -38,6 +38,7 @@ class FakeDao : HistoryDao {
     override suspend fun setDomainAge(id: Long, value: String) { rows.value = rows.value.map { if (it.id == id) it.copy(domainAge = value) else it } }
     private fun rank(l: String) = when (l) { "PROBABILE_TRUFFA" -> 0; "SOSPETTO" -> 1; else -> 2 }
     override suspend fun setLevel(id: Long, level: String) { rows.value = rows.value.map { if (it.id == id && rank(level) < rank(it.level)) it.copy(level = level) else it } }
+    override suspend fun forceLevel(id: Long, level: String) { rows.value = rows.value.map { if (it.id == id) it.copy(level = level) else it } }
     override suspend fun deleteUnsaved() { rows.value = rows.value.filter { it.saved } }
     override suspend fun deleteAll() { rows.value = emptyList() }
 }

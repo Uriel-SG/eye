@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ai_gemini_steps">1. Premere «Ottieni chiave Google AI» e accedere con un account Google.\n2. Toccare «Crea chiave» e poi «Copia».\n3. Tornare in Eye: la chiave è inserita da sola, oppure premere «Incolla chiave».</string>
+    <string name="ai_gemini_help_images">Istruzioni con immagini</string>
+    <string name="ai_key_paste">Incolla chiave</string>
+    <string name="ai_key_paste_invalid">La chiave copiata non sembra valida</string>
+    <string name="onb_ai_title">Collega Gemini per un\'analisi più precisa</string>
+    <string name="onb_ai_body">Facoltativo. Con una chiave gratuita di Google, Eye può chiedere a Gemini un secondo parere sui testi dubbi. Si può fare anche più tardi, da Impostazioni.</string>
+    <string name="onb_ai_instructions">Istruzioni</string>
+    <string name="onb_ai_saved">Chiave salvata.</string>
+    <string name="onb_ai_title2">Come usare Gemini</string>
+    <string name="onb_ai_privacy">Viene inviato solo il testo del controllo, con numeri, email, IBAN e codici oscurati; dei link resta il sito, senza parametri. Secondo le condizioni di Google, nello Spazio economico europeo i testi non sono usati per migliorare i suoi servizi; altrove, con il piano gratuito, possono esserlo.</string>
+    <string name="onb_ai_learn">Scopri come</string>
+</resources>
