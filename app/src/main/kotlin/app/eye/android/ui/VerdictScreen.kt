@@ -181,6 +181,12 @@ fun VerdictScreen(result0: CheckResult, vm: AppViewModel, onClose: () -> Unit, f
                 if (autoAi != null) {
                     Text(stringResource(R.string.ai_final_header, stringResource(app.eye.android.core.ai.AiProvider.fromId(autoAi.providerId).labelRes())), style = MaterialTheme.typography.bodyMedium, color = colors.text)
                 }
+                // nota diagnostica discreta: solo se il verdetto finale e' piu' basso di quello con cui e' partito l'avviso
+                val alertLv = result0.alertLevel
+                val reasonRes = app.eye.android.core.notif.AlertReason.parse(result0.alertReason)?.labelRes()
+                if (alertLv != null && reasonRes != null && v.level.ordinal > alertLv.ordinal) {
+                    Text(stringResource(reasonRes), style = MaterialTheme.typography.labelSmall, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, color = colors.text.copy(alpha = 0.75f))
+                }
             }
         }
 
@@ -327,7 +333,7 @@ fun VerdictScreen(result0: CheckResult, vm: AppViewModel, onClose: () -> Unit, f
 
         // Secondo parere AI: facoltativo, mai automatico, mai al posto del verdetto delle regole
         DomainAgeCheck(vm, result.originalText, baseV, entryId)
-        AiSecondOpinion(vm, result.originalText, v.level, entryId, agedV)
+        if (!aiDecides) AiSecondOpinion(vm, result.originalText, v.level, entryId, agedV) // se decide già l'AI, il suo parere è in alto: niente duplicato né «chiedi di nuovo»
 
         Text(stringResource(R.string.verdict_disclaimer_short), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 

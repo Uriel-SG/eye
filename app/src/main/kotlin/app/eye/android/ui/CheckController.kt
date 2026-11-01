@@ -42,21 +42,25 @@ class CheckController(
     fun set(s: CheckState) { _state.value = s }
 
     /** Testo da Share Target: analisi automatica; oltre il limite si controllano i primi MAX_CHARS caratteri. */
-    fun onShared(text: String?, origin: String? = null, sender: String? = null) {
+    fun onShared(text: String?, origin: String? = null, sender: String? = null, alertLevel: app.eye.engine.Level? = null, alertReason: String? = null) {
         if (text.isNullOrBlank()) return
-        check(text, Source.SHARE, origin = origin, sender = sender)
+        check(text, Source.SHARE, origin = origin, sender = sender, alertLevel = alertLevel, alertReason = alertReason)
     }
 
     /** [alreadyTruncated]: il chiamante ha gia' tagliato il testo (es. campo di input). */
     fun check(text: String, source: Source = Source.PASTE, alreadyTruncated: Boolean = false, origin: String? = null, sender: String? = null, provenance: ProvenanceReport? = null,
-        nature: app.eye.engine.image.ImageNature = app.eye.engine.image.ImageNature.OTHER, hasQr: Boolean = false) {
+        nature: app.eye.engine.image.ImageNature = app.eye.engine.image.ImageNature.OTHER, hasQr: Boolean = false,
+        alertLevel: app.eye.engine.Level? = null, alertReason: String? = null) {
         val truncated = alreadyTruncated || text.length > CheckUseCase.MAX_CHARS
         val t = text.take(CheckUseCase.MAX_CHARS)
         _state.value = CheckState.Running
         scope.launch {
             _state.value = try {
                 when (val o = withContext(dispatcher) { useCase.run(t, source, truncated, origin, sender, provenance, nature, hasQr) }) {
-                    is CheckOutcome.Done -> CheckState.Done(refine?.let { runCatching { it(o.result) }.getOrDefault(o.result) } ?: o.result)
+                    is CheckOutcome.Done -> {
+                        val r0 = if (alertLevel != null) o.result.copy(alertLevel = alertLevel, alertReason = alertReason) else o.result
+                        CheckState.Done(refine?.let { runCatching { it(r0) }.getOrDefault(r0) } ?: r0)
+                    }
                     CheckOutcome.TooLong -> CheckState.TooLong
                     CheckOutcome.Empty -> CheckState.Error
                 }

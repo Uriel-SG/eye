@@ -60,7 +60,8 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
     private val controller = CheckController(viewModelScope, useCase, Dispatchers.Default, refine = { refineResult(it) })
     val state: StateFlow<CheckState> = controller.state
 
-    fun onShared(text: String?, origin: String? = null, sender: String? = null) = controller.onShared(text, origin, sender)
+    fun onShared(text: String?, origin: String? = null, sender: String? = null, alertLevel: app.eye.engine.Level? = null, alertReason: String? = null) =
+        controller.onShared(text, origin, sender, alertLevel, alertReason)
     fun reset() = controller.reset()
     fun check(text: String, source: Source = Source.PASTE, alreadyTruncated: Boolean = false, provenance: ProvenanceReport? = null,
         nature: app.eye.engine.image.ImageNature = app.eye.engine.image.ImageNature.OTHER, hasQr: Boolean = false) =

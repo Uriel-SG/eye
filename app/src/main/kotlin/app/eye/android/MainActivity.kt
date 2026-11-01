@@ -68,7 +68,7 @@ class MainActivity : ComponentActivity() {
         intent.removeExtra(app.eye.android.core.notif.AlertNotifier.EXTRA_ID)
         val alert = if (id == Int.MIN_VALUE) null else (application as EyeApp).container.alerts.takeAlert(id)
         if (id != Int.MIN_VALUE) getSystemService(android.app.NotificationManager::class.java)?.cancel(id)
-        if (alert == null) Toast.makeText(this, R.string.alert_expired, Toast.LENGTH_LONG).show() else vm.onShared(alert.text, alert.origin, alert.sender)
+        if (alert == null) Toast.makeText(this, R.string.alert_expired, Toast.LENGTH_LONG).show() else vm.onShared(alert.text, alert.origin, alert.sender, runCatching { app.eye.engine.Level.valueOf(alert.level.orEmpty()) }.getOrNull(), alert.reason)
     }
 
     private fun handleOpenCatalog(intent: Intent?) {

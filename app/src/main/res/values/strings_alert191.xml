@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="alert_reason_network">Avviso inviato prima della verifica AI: rete non disponibile.</string>
+    <string name="alert_reason_timeout">Avviso inviato prima della verifica AI: tempo scaduto.</string>
+    <string name="alert_reason_limit">Avviso inviato prima della verifica AI: limite del servizio raggiunto.</string>
+    <string name="alert_reason_error">Avviso inviato prima della verifica AI: servizio non riuscito.</string>
+    <string name="alert_reason_not_legit">Avviso inviato: in quel momento l’AI non aveva escluso il rischio.</string>
+    <string name="alert_reason_low_conf">Avviso inviato: l’AI era orientata verso «legittimo» ma non abbastanza sicura.</string>
+    <string name="alert_reason_grave">Avviso inviato: segnali tecnici gravi, senza verifica AI.</string>
+    <string name="alert_reason_not_verified">Avviso inviato dalle regole di Eye: verifica AI non attiva.</string>
+</resources>

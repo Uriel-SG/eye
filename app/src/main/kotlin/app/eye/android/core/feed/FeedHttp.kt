@@ -8,7 +8,10 @@ import java.net.URL
 
 /** Base dei feed firmati: UN SOLO punto (provvisoria, da confermare). Mai presa dal server. */
 object FeedConfig {
-    const val FEED_BASE_URL = "https://eye-security.netlify.app/data/"
+    const val FEED_BASE_URL = "https://eye.urielsec.com/data/"
+
+    /** Alternativa usata, richiesta per richiesta, se la base principale non risponde (rete/HTTP). */
+    const val FEED_FALLBACK_URL = "https://eye-security.netlify.app/data/"
 
     /** Solo debug: server locale per le prove (vuoto in release). */
     val baseUrl: String = BuildConfig.FEED_BASE_OVERRIDE.ifEmpty { FEED_BASE_URL }
@@ -32,6 +35,28 @@ interface FeedHttp {
     fun download(url: String, dest: java.io.File, maxBytes: Long) {
         val r = get(url, null, maxBytes.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()) as? FeedResponse.Ok ?: throw IOException("risposta inattesa")
         dest.writeBytes(r.bytes)
+    }
+}
+
+/**
+ * Prova [primary]; se la richiesta fallisce (IOException: rete, HTTP != 200/304, troppo grande) ripete UNA volta su
+ * [fallback] con lo stesso percorso. Firme e anti-rollback sono verificati dai chiamanti: la base non e' di per se' fidata.
+ */
+class FallbackFeedHttp(private val inner: FeedHttp, private val primary: String, private val fallback: String) : FeedHttp {
+    private fun alt(url: String) = if (url.startsWith(primary) && primary != fallback) fallback + url.removePrefix(primary) else null
+
+    override fun get(url: String, etag: String?, maxBytes: Int): FeedResponse = try {
+        inner.get(url, etag, maxBytes)
+    } catch (e: IOException) {
+        val a = alt(url) ?: throw e
+        inner.get(a, etag, maxBytes)
+    }
+
+    override fun download(url: String, dest: java.io.File, maxBytes: Long) = try {
+        inner.download(url, dest, maxBytes)
+    } catch (e: IOException) {
+        val a = alt(url) ?: throw e
+        inner.download(a, dest, maxBytes)
     }
 }
 

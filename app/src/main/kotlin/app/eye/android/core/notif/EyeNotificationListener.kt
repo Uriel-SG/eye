@@ -5,22 +5,9 @@ import android.os.Bundle
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import app.eye.android.BuildConfig
-import app.eye.android.R
-import app.eye.android.core.Redactor
-import app.eye.android.core.ai.AiConfig
-import app.eye.android.core.ai.AiJudgement
-import app.eye.android.core.ai.AiOutcome
-import app.eye.android.core.ai.AiRequests
-import app.eye.android.core.ai.AiService
-import app.eye.android.data.KeyVault
 import app.eye.android.data.VerdictJson
-import app.eye.engine.llm.LegitGate
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import app.eye.android.EyeApp
 import app.eye.engine.Input
-import app.eye.engine.Level
-import app.eye.engine.Verdict
 import app.eye.engine.Source
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -92,47 +79,20 @@ class EyeNotificationListener : NotificationListenerService() {
             // link accorciati: si chiede la destinazione al servizio PRIMA dell'analisi (max 4 s, sul worker seriale)
             resolvedLinks = app.container.shortLinks.expandBlocking(text, background = true)))
         if (!NotificationGate.shouldAlert(verdict)) return
-        if (aiDismisses(n, text, verdict)) return // l'AI collegata (opt-in) ritiene il messaggio legittimo: nessun avviso, analisi in cronologia
+        // verifica opt-in con l'AI collegata (se attiva): legittimo = nessun avviso e analisi in cronologia; altrimenti il motivo resta con l'avviso
+        val decision = AlertVerifier.verify(app, text, verdict, deferrable = AlertVerifier.deviceIdle(applicationContext))
+        if (decision is VerifyDecision.Dismiss) return
         if (!g.allowAlert(n.pkg)) return
-        val label = MonitoredApps.presets(BuildConfig.DEBUG).firstOrNull { it.pkg == n.pkg }?.label ?: n.pkg
         val id = alertId(n.pkg, n.title)
+        val reason = when (decision) { is VerifyDecision.Alert -> decision.reason; is VerifyDecision.Defer -> decision.reason; else -> null }?.name
+        val defer = decision is VerifyDecision.Defer
         // cifrato su disco finché l'avviso non è aperto o scartato; senza cifratura non si avvisa (mai testo in chiaro)
-        if (!app.container.alerts.put(id, text, verdict.level.name, n.pkg, n.title?.toString()?.take(120))) return
-        if (!AlertNotifier.post(applicationContext, label, verdict.level, id, loud = g.allowLoud())) app.container.alerts.discard(id)
-    }
-
-    /**
-     * Verifica opt-in con l'AI dell'utente (testo oscurato, 8 s a tentativo). Vale anche per PROBABILE_TRUFFA senza segnali
-     * gravi. Rete assente/timeout: un secondo tentativo se la rete torna (tetto ~40 s, vedi [AiVerifyRetry]). Fail-safe:
-     * qualsiasi errore, limite o parere diverso da "legittimo" con confidenza alta = false (l'avviso parte).
-     */
-    private fun aiDismisses(n: NotifData, text: String, verdict: Verdict): Boolean = try {
-        if (verdict.level == Level.NESSUN_SEGNALE || LegitGate.hasGraveSignals(verdict)) false
-        else {
-            val st = runBlocking { app.container.settings.settings.first() }
-            val key = if (st.aiVerifyBeforeAlert && st.aiConfigured) st.aiKeyCipher?.let { KeyVault.decrypt(it) } else null
-            val out = if (key == null) null else {
-                val cfg = AiConfig(st.aiProvider, st.aiModel, st.aiBaseUrl, key)
-                val safe = Redactor.redactKeepLinks(text)
-                val svc = AiService()
-                val host = AiRequests.build(cfg, "x")?.url?.let { runCatching { java.net.URI(it).host }.getOrNull() }
-                // senza permesso di stato rete: la rete "c'e'" se il nome del servizio si risolve
-                AiVerifyRetry({ host != null && runCatching { java.net.InetAddress.getByName(host) }.isSuccess }).run { ms -> svc.ask(cfg, safe, quickMs = ms) }
-            }
-            val op = (out as? AiOutcome.Success)?.opinion
-            if (op == null || !LegitGate.mayDismiss(verdict, op.judgement == AiJudgement.NESSUN_SEGNALE, op.confidence)) false
-            else {
-                if (st.saveHistory) runBlocking {
-                    val note = applicationContext.getString(R.string.alert_not_sent_note)
-                    app.container.history.save(
-                        verdict.level.name, Redactor.preview(text), listOf(note) + verdict.reasons.map { it.text }, text, VerdictJson.encode(verdict),
-                    )
-                }
-                true
-            }
+        if (!app.container.alerts.put(id, text, verdict.level.name, n.pkg, n.title?.toString()?.take(120), reason, if (defer) VerdictJson.encode(verdict) else null, pending = defer)) return
+        if (defer) { // telefono a riposo e rete assente: verifica ripetuta con rete, avviso comunque entro 30 minuti
+            AlertVerifier.schedule(applicationContext, id)
+            return
         }
-    } catch (_: Exception) {
-        false
+        if (!AlertVerifier.publish(app, id, verdict.level, n.pkg, loud = g.allowLoud())) app.container.alerts.discard(id)
     }
 
     private fun read(sbn: StatusBarNotification): NotifData {
@@ -187,6 +147,8 @@ class EyeNotificationListener : NotificationListenerService() {
         private val worker: CoroutineDispatcher = Dispatchers.Default.limitedParallelism(1)
 
         @Volatile private var gateInstance: NotificationGate? = null
+        /** Suono/heads-up per un avviso pubblicato in ritardo (stessa regola di [NotificationGate.allowLoud]). */
+        fun allowLoud(pkg: String): Boolean = gate(pkg).allowLoud()
         private fun gate(pkg: String) = gateInstance ?: synchronized(this) { gateInstance ?: NotificationGate(pkg).also { gateInstance = it } }
     }
 }

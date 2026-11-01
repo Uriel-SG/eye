@@ -225,3 +225,14 @@ private fun OpinionBody(saved: SavedAiOpinion, rulesLevel: Level, again: @Compos
         }
     }
 }
+
+fun app.eye.android.core.notif.AlertReason.labelRes(): Int = when (this) {
+    app.eye.android.core.notif.AlertReason.NETWORK -> R.string.alert_reason_network
+    app.eye.android.core.notif.AlertReason.TIMEOUT -> R.string.alert_reason_timeout
+    app.eye.android.core.notif.AlertReason.AI_LIMIT -> R.string.alert_reason_limit
+    app.eye.android.core.notif.AlertReason.AI_ERROR -> R.string.alert_reason_error
+    app.eye.android.core.notif.AlertReason.AI_NOT_LEGIT -> R.string.alert_reason_not_legit
+    app.eye.android.core.notif.AlertReason.AI_LOW_CONF -> R.string.alert_reason_low_conf
+    app.eye.android.core.notif.AlertReason.GRAVE -> R.string.alert_reason_grave
+    app.eye.android.core.notif.AlertReason.NOT_VERIFIED -> R.string.alert_reason_not_verified
+}

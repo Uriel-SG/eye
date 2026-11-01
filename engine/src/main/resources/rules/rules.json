@@ -1,5 +1,5 @@
 {
- "version": 16,
+ "version": 17,
  "thresholds": {
   "probable": 55,
   "suspect": 25
@@ -517,7 +517,9 @@
      "fb.com",
      "fb.me",
      "meta.com",
-     "messenger.com"
+     "messenger.com",
+     "facebookmail.com",
+     "fbcdn.net"
     ]
    },
    {
@@ -531,7 +533,9 @@
     ],
     "official": [
      "instagram.com",
-     "ig.me"
+     "ig.me",
+     "instagr.am",
+     "cdninstagram.com"
     ]
    },
    {

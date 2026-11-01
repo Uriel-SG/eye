@@ -25,6 +25,9 @@ data class CheckResult(
     val sender: String? = null,
     /** Provenienza dichiarata dell'immagine controllata (solo controlli da immagine, solo in sessione). */
     val provenance: app.eye.engine.provenance.ProvenanceReport? = null,
+    /** Solo avvisi della Protezione automatica: livello con cui e' partito l'avviso e codice del motivo (nessun contenuto). */
+    val alertLevel: Level? = null,
+    val alertReason: String? = null,
 )
 
 fun Level.titleRes(): Int = when (this) {

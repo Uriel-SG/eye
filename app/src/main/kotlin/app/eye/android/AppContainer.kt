@@ -97,15 +97,19 @@ class AppContainer(context: Context) {
         app.eye.android.core.links.BackgroundNetwork.check(appContext),
     )
 
+    private fun feedHttp(): app.eye.android.core.feed.FeedHttp = app.eye.android.core.feed.FallbackFeedHttp(
+        UrlConnectionFeedHttp(FeedConfig.allowCleartext), FeedConfig.baseUrl, FeedConfig.FEED_FALLBACK_URL,
+    )
+
     val feedUpdater = FeedUpdater(
-        UrlConnectionFeedHttp(FeedConfig.allowCleartext), FeedConfig.baseUrl, rulesStore, campaignStore, feedState, bundled.version,
+        feedHttp(), FeedConfig.baseUrl, rulesStore, campaignStore, feedState, bundled.version,
         blocklistStore = blocklistStore, numbersStore = numbersStore,
     )
 
     /** Modello AI aggiornabile da feed firmato: prova nel processo ":ai" prima di attivare, poi lo fa ricaricare. */
     private val modelAdmin = app.eye.android.core.ai.RemoteModelAdmin(appContext)
     val modelUpdater = app.eye.android.core.feed.ModelUpdater(
-        UrlConnectionFeedHttp(FeedConfig.allowCleartext), FeedConfig.baseUrl, app.eye.android.core.feed.ModelPaths.store(appContext),
+        feedHttp(), FeedConfig.baseUrl, app.eye.android.core.feed.ModelPaths.store(appContext),
         app.eye.android.core.feed.ModelPaths.modelDir(appContext), feedState, modelAdmin,
         bundledTokenizerSha = { app.eye.android.core.feed.ModelPaths.bundledTokenizerSha(appContext) },
         onActivated = { modelAdmin.reload() },

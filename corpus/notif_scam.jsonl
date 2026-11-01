@@ -331,3 +331,4 @@
 {"id": "ns-HARD-044", "text": "Amazon\nIl tuo ordine non è stato consegnato. Aggiorna l'indirizzo qui: https://bit.ly/3xRt9Kd entro 24 ore\nLink: https://bit.ly/3xRt9Kd", "label": "scam", "origin": "com.google.android.apps.messaging", "sender": "Amazon"}
 {"id": "ns-HARD-045", "text": "Zalando\nOfferta riservata a te: coupon da 50€, solo oggi https://tinyurl.com/zlnd50eur\nLink: https://tinyurl.com/zlnd50eur", "label": "scam", "origin": "com.google.android.apps.messaging", "sender": "Zalando"}
 {"id": "ns-HARD-046", "text": "Plenitude\nComunicazione importante sui tuoi dati. Maggiori informazioni: https://cutt.ly/ReXp2a0\nLink: https://cutt.ly/ReXp2a0", "label": "scam", "origin": "com.google.android.apps.messaging", "sender": "Plenitude"}
+{"id": "ns-SOC-001", "text": "Instagram\nIl tuo account Instagram è stato sospeso, verifica qui: hxxp://insta-verify.top\nLink: http://insta-verify.top", "label": "scam", "origin": "com.google.android.gm", "sender": "Instagram"}
