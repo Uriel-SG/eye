@@ -35,9 +35,19 @@ class AiFinalVerdictTest {
         }
     }
 
-    @Test fun canRaiseOneStepEvenWithGraveSignals() {
-        assertEquals(Level.SOSPETTO, fin(v(Level.NESSUN_SEGNALE), op(LlmVerdict.TRUFFA, 0.9)).level)
-        assertEquals(Level.PROBABILE_TRUFFA, fin(v(Level.SOSPETTO, "BLK-01"), op(LlmVerdict.TRUFFA, 0.9)).level)
+    @Test fun raisesToAiLevelFromHalfConfidenceEvenWithGraveSignals() {
+        assertEquals(Level.PROBABILE_TRUFFA, fin(v(Level.NESSUN_SEGNALE), op(LlmVerdict.TRUFFA, 0.9)).level)
+        assertEquals(Level.SOSPETTO, fin(v(Level.NESSUN_SEGNALE), op(LlmVerdict.SOSPETTO, 0.5)).level)
+        assertEquals(Level.PROBABILE_TRUFFA, fin(v(Level.SOSPETTO, "BLK-01"), op(LlmVerdict.TRUFFA, 0.5)).level)
+        assertEquals(Level.NESSUN_SEGNALE, fin(v(Level.NESSUN_SEGNALE), op(LlmVerdict.SOSPETTO, 0.49)).level)
+    }
+
+    @Test fun raisedVerdictIsAiLed() {
+        val r = fin(v(Level.NESSUN_SEGNALE), LlmOpinion(LlmVerdict.SOSPETTO, 0.7, "x", listOf("Non cliccare")))
+        assertEquals(listOf("Non cliccare"), r.actions)
+        assertEquals(AiFinalVerdict.REASON_ID, r.reasons.last().ruleId)
+        assertTrue(AiFinalVerdict.raises(v(Level.NESSUN_SEGNALE), op(LlmVerdict.SOSPETTO, 0.7)))
+        assertTrue(!AiFinalVerdict.raises(v(Level.SOSPETTO), op(LlmVerdict.LEGITTIMO, 0.9)))
     }
 
     @Test fun errorOrLowConfidenceKeepsRules() {
@@ -70,6 +80,6 @@ class AiFinalVerdictTest {
         assertEquals(listOf("URG-05"), same.reasons.map { it.ruleId })
         // confidenza bassa: nessun consiglio dell'AI
         val low = v(Level.SOSPETTO, "URG-05")
-        assertSame(low, fin(low, LlmOpinion(LlmVerdict.SOSPETTO, 0.5, "ok", listOf("x"))))
+        assertSame(low, fin(low, LlmOpinion(LlmVerdict.SOSPETTO, 0.79, "ok", listOf("x"))))
     }
 }

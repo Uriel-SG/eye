@@ -47,4 +47,17 @@ class AiVerifyRetryTest {
         val r = AiVerifyRetry({ true }, f::sleep, { f.now }).run { calls++; net }
         assertEquals(net, r); assertEquals(2, calls)
     }
+
+    @Test fun autoAnalysisUsesLongFirstAttemptAndOneRetryWithin30s() {
+        val f = Fake(); val asked = mutableListOf<Long>()
+        val r = AiVerifyRetry.forAutoAnalysis { true }.let { retry ->
+            retry.run { ms -> asked += ms; f.now += 8_000; if (asked.size == 1) AiOutcome.Failure(AiError.TIMEOUT) else ok }
+        }
+        // clock di default: i tempi reali non scorrono, ma il primo tentativo e' 20 s e c'e' un solo secondo tentativo
+        assertEquals(ok, r)
+        assertEquals(AiVerifyRetry.AUTO_READ_MS, asked[0])
+        assertEquals(2, asked.size)
+        assertTrue(asked[1] <= AiVerifyRetry.AUTO_READ_MS)
+        assertEquals(20_000L, AiVerifyRetry.AUTO_READ_MS); assertEquals(8_000L, AiVerifyRetry.AUTO_CONNECT_MS)
+    }
 }

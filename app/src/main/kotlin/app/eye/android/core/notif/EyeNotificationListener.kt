@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import app.eye.android.BuildConfig
-import app.eye.android.data.VerdictJson
 import app.eye.android.EyeApp
 import app.eye.engine.Input
 import app.eye.engine.Source
@@ -78,20 +77,23 @@ class EyeNotificationListener : NotificationListenerService() {
         val verdict = app.container.checker.analyze(Input(text, Source.SHARE, declaredSender = n.title?.toString()?.take(120), origin = n.pkg,
             // link accorciati: si chiede la destinazione al servizio PRIMA dell'analisi (max 4 s, sul worker seriale)
             resolvedLinks = app.container.shortLinks.expandBlocking(text, background = true)))
-        if (!NotificationGate.shouldAlert(verdict)) return
+        if (!NotificationGate.shouldAlert(verdict)) {
+            // le regole non avvisano: con l'AI collegata, un messaggio dubbio che chiede un'azione puo' ricevere comunque un avviso
+            val aiLevel = BackgroundAiCheck.check(app, text, verdict) ?: return
+            if (!g.allowAlert(n.pkg)) return
+            val aid = alertId(n.pkg, n.title)
+            if (!app.container.alerts.put(aid, text, aiLevel.name, n.pkg, n.title?.toString()?.take(120), AlertReason.AI_BACKGROUND.name)) return
+            if (!AlertVerifier.publish(app, aid, aiLevel, n.pkg, loud = g.allowLoud())) app.container.alerts.discard(aid)
+            return
+        }
         // verifica opt-in con l'AI collegata (se attiva): legittimo = nessun avviso e analisi in cronologia; altrimenti il motivo resta con l'avviso
-        val decision = AlertVerifier.verify(app, text, verdict, deferrable = AlertVerifier.deviceIdle(applicationContext))
+        val decision = AlertVerifier.verify(app, text, verdict)
         if (decision is VerifyDecision.Dismiss) return
         if (!g.allowAlert(n.pkg)) return
         val id = alertId(n.pkg, n.title)
-        val reason = when (decision) { is VerifyDecision.Alert -> decision.reason; is VerifyDecision.Defer -> decision.reason; else -> null }?.name
-        val defer = decision is VerifyDecision.Defer
+        val reason = (decision as? VerifyDecision.Alert)?.reason?.name
         // cifrato su disco finché l'avviso non è aperto o scartato; senza cifratura non si avvisa (mai testo in chiaro)
-        if (!app.container.alerts.put(id, text, verdict.level.name, n.pkg, n.title?.toString()?.take(120), reason, if (defer) VerdictJson.encode(verdict) else null, pending = defer)) return
-        if (defer) { // telefono a riposo e rete assente: verifica ripetuta con rete, avviso comunque entro 30 minuti
-            AlertVerifier.schedule(applicationContext, id)
-            return
-        }
+        if (!app.container.alerts.put(id, text, verdict.level.name, n.pkg, n.title?.toString()?.take(120), reason)) return
         if (!AlertVerifier.publish(app, id, verdict.level, n.pkg, loud = g.allowLoud())) app.container.alerts.discard(id)
     }
 

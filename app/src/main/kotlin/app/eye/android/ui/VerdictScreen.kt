@@ -105,7 +105,7 @@ fun VerdictScreen(result0: CheckResult, vm: AppViewModel, onClose: () -> Unit, f
     val ageResult = domainAgeFor(vm, result0.originalText, entryId)
     val agedV = if (ageResult == null) baseV else app.eye.engine.enrich.DomainAge.apply(baseV, ageResult.entries, ageResult.checkedAt)
     // verdetto dell'AI collegata (analisi automatica dei controlli manuali): decide il livello finale, vedi AiFinalVerdict
-    val autoAi = autoAiFor(vm, result0.originalText, entryId)
+    val autoAi = autoAiFor(vm, result0.originalText, entryId, agedV)
     val aiV = if (autoAi == null) agedV else app.eye.engine.llm.AiFinalVerdict.apply(agedV, autoAi.opinion.toLlm(), aiFinalNote(ctx, autoAi))
     val nanoOp = nanoOpinionFor(vm, result0.originalText, entryId)
     // Nano (senza chiave: la chiave ha sempre la precedenza) puo' abbassare di un gradino, vedi LegitGate.applyNano
@@ -333,6 +333,7 @@ fun VerdictScreen(result0: CheckResult, vm: AppViewModel, onClose: () -> Unit, f
 
         // Secondo parere AI: facoltativo, mai automatico, mai al posto del verdetto delle regole
         DomainAgeCheck(vm, result.originalText, baseV, entryId)
+        if (!aiDecides) AiAutoFailedLine(vm, result0.originalText, entryId, v)
         if (!aiDecides) AiSecondOpinion(vm, result.originalText, v.level, entryId, agedV) // se decide già l'AI, il suo parere è in alto: niente duplicato né «chiedi di nuovo»
 
         Text(stringResource(R.string.verdict_disclaimer_short), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -502,5 +503,26 @@ private fun ReasonRow(r: app.eye.engine.Reason, neutral: Boolean = false) {
         Icon(icon, contentDescription = stringResource(cd), tint = tint, modifier = Modifier.size(24.dp))
         Spacer(Modifier.width(12.dp))
         Text(r.text, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+/** Analisi AI automatica non riuscita (rete lenta, testo lungo): lo si dice, con «Riprova». Compare solo se l'analisi automatica e' attiva. */
+@Composable
+private fun AiAutoFailedLine(vm: AppViewModel, text: String, historyId: Long?, verdict: app.eye.engine.Verdict) {
+    val failed by vm.aiAutoFailed.collectAsState()
+    val busy by vm.aiAnalyzing.collectAsState()
+    val st by vm.settings.collectAsState()
+    if (!st.aiConfigured || !st.aiAutoAnalysis || text.isBlank() || failed != aiKey(text)) return
+    Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+        if (busy) {
+            androidx.compose.material3.CircularProgressIndicator(Modifier.size(24.dp))
+            Spacer(Modifier.width(12.dp))
+            Text(stringResource(R.string.ai_autoan_running), style = MaterialTheme.typography.bodyLarge)
+        } else {
+            Text(stringResource(R.string.ai_autoan_failed), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error, modifier = Modifier.weight(1f))
+            androidx.compose.material3.TextButton(onClick = { vm.retryAutoAi(text, historyId, verdict) }, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.ai_autoan_retry))
+            }
+        }
     }
 }

@@ -36,6 +36,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import app.eye.android.R
+import app.eye.android.core.ai.toLlm
 import app.eye.android.core.ai.AiError
 import app.eye.android.core.ai.AiJudgement
 import app.eye.android.core.ai.AiOutcome
@@ -87,14 +88,20 @@ fun AiSecondOpinion(vm: AppViewModel, text: String, rulesLevel: Level, historyId
     AiKeyOpinion(vm, text, rulesLevel, historyId)
 }
 
-/** Parere AI automatico (parte del verdetto) valido per [text]: quello appena ricevuto o quello salvato in cronologia. */
+/**
+ * Parere AI che fa parte del verdetto, valido per [text]: quello automatico (appena ricevuto o salvato in cronologia) oppure,
+ * se [rules] e' dato, un parere chiesto a mano che ALZA il livello delle regole (l'AI collegata prevale: meglio un raro falso
+ * positivo di una truffa persa; un parere manuale non abbassa mai).
+ */
 @Composable
-fun autoAiFor(vm: AppViewModel, text: String, historyId: Long?): SavedAiOpinion? {
+fun autoAiFor(vm: AppViewModel, text: String, historyId: Long?, rules: app.eye.engine.Verdict? = null): SavedAiOpinion? {
     val session by vm.ai.collectAsState()
     val history by vm.history.collectAsState()
     val live = (if (session.key == aiKey(text)) session.state else null) as? AiUiState.Done
-    val s = live?.saved?.takeIf { it.auto } ?: historyId?.let { id -> history.firstOrNull { it.id == id }?.aiOpinion }?.let(AiOpinionJson::decode)
-    return s?.takeIf { it.auto }
+    val stored = historyId?.let { id -> history.firstOrNull { it.id == id }?.aiOpinion }?.let(AiOpinionJson::decode)
+    val auto = live?.saved?.takeIf { it.auto } ?: stored?.takeIf { it.auto }
+    if (auto != null || rules == null) return auto
+    return (live?.saved ?: stored)?.takeIf { app.eye.engine.llm.AiFinalVerdict.raises(rules, it.opinion.toLlm()) }
 }
 
 @Composable
@@ -235,4 +242,5 @@ fun app.eye.android.core.notif.AlertReason.labelRes(): Int = when (this) {
     app.eye.android.core.notif.AlertReason.AI_LOW_CONF -> R.string.alert_reason_low_conf
     app.eye.android.core.notif.AlertReason.GRAVE -> R.string.alert_reason_grave
     app.eye.android.core.notif.AlertReason.NOT_VERIFIED -> R.string.alert_reason_not_verified
+    app.eye.android.core.notif.AlertReason.AI_BACKGROUND -> R.string.alert_reason_ai_bg
 }

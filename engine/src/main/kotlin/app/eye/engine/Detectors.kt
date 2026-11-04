@@ -27,6 +27,9 @@ internal class Ctx(
     private val cl get() = lists.compiled
     val popular: Set<String> get() = cl.popular
 
+    /** Marchi scritti con separatori tra le lettere (BRD-02), calcolati una volta per analisi. */
+    val obfuscated: List<Brand> by lazy { Detectors.computeObfuscated(this) }
+
     /** Dominio ufficiale o di un sito molto diffuso (per MIS-01/02 e combinazioni di prudenza). */
     fun isKnown(d: String) = isOfficial(d) || d in popular
 
@@ -117,6 +120,8 @@ internal object Detectors {
         "suspicious_domain_words" to ::suspiciousWords,
         "apk_link" to ::apkLink,
         "sender_mismatch" to ::senderMismatch,
+        "obfuscated_brand" to ::obfuscatedBrand,
+        "mobile_sender_brand" to ::mobileSenderBrand,
         "text_link_mismatch" to ::textLinkMismatch,
         "premium_number" to ::premiumNumber,
         "foreign_number" to ::foreignNumber,
@@ -273,6 +278,50 @@ internal object Detectors {
             }
         }
         return null
+    }
+
+    private val OBF_SEP = "[.\\-_*·•\\s]{1,2}"
+    private val obfPatterns = java.util.concurrent.ConcurrentHashMap<String, java.util.regex.Pattern>()
+
+    /**
+     * Marchi scritti con separatori tra le lettere («N.e.x.i.», «U n i c r e d i t»): trucco per eludere i filtri.
+     * Solo marchi scritti normalmente come parola (non sigle come INPS, BNL, TIM: «I.N.P.S.» e' uno stile legittimo).
+     */
+    fun obfuscatedBrands(c: Ctx): List<Brand> = c.obfuscated
+
+    private val spacedLetters = java.util.regex.Pattern.compile("\\p{L}[.\\-_*·•\\s]{1,2}\\p{L}[.\\-_*·•\\s]{1,2}\\p{L}[.\\-_*·•\\s]{1,2}\\p{L}")
+
+    fun computeObfuscated(c: Ctx): List<Brand> {
+        if (!spacedLetters.matcher(c.rawText).find()) return emptyList() // prefiltro: servono almeno 4 lettere separate
+        val low = java.text.Normalizer.normalize(c.rawText, java.text.Normalizer.Form.NFKC).lowercase(java.util.Locale.ROOT)
+        return c.lists.brands.filter { b ->
+            if (b.name == b.name.uppercase() || b.name.any { it.isDigit() || it == '.' }) return@filter false
+            val names = (b.aliases + b.name.lowercase()).filter { n -> n.length in 4..12 && n.all { it in 'a'..'z' } }.distinct()
+            names.any { n ->
+                val pat = obfPatterns.computeIfAbsent(n) {
+                    java.util.regex.Pattern.compile("(?<![\\p{L}\\p{N}])" + n.map { it.toString() }.joinToString(OBF_SEP) + "(?![\\p{L}\\p{N}])")
+                }
+                pat.matcher(low).find()
+            }
+        }
+    }
+
+    /** Il marchio apre una riga come intestazione («Nexi: ...»): nelle notifiche la prima riga e' il titolo (il numero mittente). */
+    private fun headsLine(text: String, b: Brand): Boolean = (b.aliases + b.name.lowercase()).distinct().any { n ->
+        java.util.regex.Pattern.compile("(?m)^[^\\p{L}\\p{N}\\n]{0,15}" + java.util.regex.Pattern.quote(n) + "\\s{0,2}[:|\\-,]").matcher(text).find()
+    }
+
+    private fun obfuscatedBrand(c: Ctx): Hit? = obfuscatedBrands(c).firstOrNull()?.let { Hit(mapOf("brand" to it.name), it.category) }
+
+    private val itMobile = Regex("^(?:\\+39|0039|39)?3\\d{8,9}$")
+
+    /** MIS-03: banche, pagamenti ed enti non scrivono da un cellulare personale: il messaggio dichiara un marchio del genere ma il mittente e' un numero mobile. */
+    private fun mobileSenderBrand(c: Ctx): Hit? {
+        val sender = c.sender ?: return null
+        if (!itMobile.matches(sender.filter { it.isDigit() || it == '+' }) || sender.any { it.isLetter() }) return null
+        val claimed = c.brandsIn(c.text).filter { it.category == "banca" || it.category == "fisco" }.filter { c.presentsAs(it) || headsLine(c.rawText.lowercase(), it) } +
+            obfuscatedBrands(c).filter { it.category == "banca" || it.category == "fisco" }
+        return claimed.firstOrNull()?.let { Hit(mapOf("brand" to it.name), it.category) }
     }
 
     private fun textLinkMismatch(c: Ctx): Hit? {

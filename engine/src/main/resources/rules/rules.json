@@ -1,5 +1,5 @@
 {
- "version": 17,
+ "version": 18,
  "thresholds": {
   "probable": 55,
   "suspect": 25
@@ -2350,6 +2350,37 @@
    "example": "«Intesa Sanpaolo» + link a sito-qualsiasi.com",
    "kind": "detector",
    "detector": "text_link_mismatch"
+  },
+  {
+   "id": "CALL-02",
+   "category": "banca",
+   "weight": 35,
+   "explanation": "Un pagamento o un'operazione da confermare e l'invito a chiamare o contattare un numero scritto nel messaggio se non sei stato tu: è il trucco del falso operatore (call center truffa). Le banche vere non chiedono di richiamare un numero dal messaggio.",
+   "example": "È stata richiesta un'autorizzazione di pagamento di 500 EUR. Se non ha effettuato lei l'operazione, contatti il Servizio Clienti: 02 0000 0000",
+   "kind": "regex",
+   "patterns": [
+    "^(?=.{0,300}?(?:pagament|autorizzazion|addebit|transazion|operazion|acquist|bonifico|prelievo|ordine)).{0,300}?\\b(?:se non (?:ha|hai|è|e'|sei) (?:\\w{1,12} ){0,2}?(?:effettuat|autorizzat|riconosc|richiest|stato)\\w{0,4}(?: (?:lei|tu|voi))?|se non (?:riconosc|autorizz|effettu)\\w{1,6}|non (?:è|e'|sei) stato (?:lei|lui|tu)|in caso contrario|per (?:annullar|bloccar|disconoscer|contestar)\\w{1,4})\\b.{0,100}?\\b(?:chiam\\w{1,6}|contatt\\w{1,6}|telefon\\w{1,6}|richiam\\w{1,6}|call)\\b.{0,80}?(?<!\\d)(?!80[03])(?:\\+|00)?\\d[\\d ./-]{6,14}\\d"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "BRD-02",
+   "category": "banca",
+   "weight": 30,
+   "explanation": "Il nome {brand} è scritto con puntini, trattini o spazi tra le lettere: è un trucco per aggirare i filtri antispam, i messaggi veri non lo fanno.",
+   "example": "N.e.x.i.: autorizzazione di pagamento",
+   "kind": "detector",
+   "detector": "obfuscated_brand"
+  },
+  {
+   "id": "MIS-03",
+   "category": "banca",
+   "weight": 30,
+   "explanation": "Il messaggio dice di arrivare da {brand} ma è stato inviato da un normale numero di cellulare: banche ed enti non scrivono da numeri personali.",
+   "example": "Mittente 351 000 0000 + «Poste: il tuo conto è bloccato»",
+   "kind": "detector",
+   "detector": "mobile_sender_brand"
   },
   {
    "id": "PHN-01",

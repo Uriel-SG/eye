@@ -23,6 +23,7 @@ import app.eye.android.core.ai.AiKeys
 import app.eye.android.core.ai.AiOutcome
 import app.eye.android.core.ai.AiProvider
 import app.eye.android.core.ai.AiService
+import app.eye.android.core.notif.AiVerifyRetry
 import app.eye.android.core.ai.GeminiNanoLlm
 import app.eye.engine.llm.LegitGate
 import app.eye.engine.llm.AiFinalVerdict
@@ -278,28 +279,64 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
         return if (st.aiConfigured && st.aiAutoAnalysis) refineWithAi(r, st) else refineWithNano(r)
     }
 
+    private val _aiAutoFailed = MutableStateFlow(0)
+    /** [aiKey] del testo la cui analisi automatica AI non e' riuscita (0 = nessuno): la scheda mostra «Analisi AI non riuscita» e «Riprova». */
+    val aiAutoFailed: StateFlow<Int> = _aiAutoFailed
+
     /**
-     * Dopo il verdetto delle regole: una sola chiamata all'AI collegata (testo oscurato, ~10 s). Esito salvato come parere AI
-     * (auto) in cronologia; il verdetto finale lo decide [AiFinalVerdict]. Errore/timeout: restano le regole.
+     * Dopo il verdetto delle regole: una chiamata all'AI collegata (testo oscurato; lettura 20 s, connessione 8 s, un secondo
+     * tentativo entro ~30 s, vedi [AiVerifyRetry.forAutoAnalysis]). Esito salvato come parere AI (auto) in cronologia; il verdetto
+     * finale lo decide [AiFinalVerdict]. Errore/timeout: restano le regole, ma l'insuccesso e' visibile ([aiAutoFailed]).
      */
     private suspend fun refineWithAi(r: app.eye.android.core.CheckResult, st: app.eye.android.data.Settings): app.eye.android.core.CheckResult {
         val text = r.originalText
         if (text.isBlank()) return r
-        val key = withContext(Dispatchers.IO) { st.aiKeyCipher?.let { KeyVault.decrypt(it) } } ?: return r
         _aiAnalyzing.value = true
         try {
-            val cfg = AiConfig(st.aiProvider, st.aiModel, st.aiBaseUrl, key)
-            val outcome = withContext(Dispatchers.IO) { aiService.ask(cfg, if (st.aiSendUnredacted) text else Redactor.redactKeepLinks(text), quickMs = AI_AUTO_MS) }
-            val op = (outcome as? AiOutcome.Success)?.opinion ?: return r
-            val saved = SavedAiOpinion(op, st.aiProvider.id, cfg.model, System.currentTimeMillis(), auto = true)
-            r.historyId?.let { id -> runCatching { c.history.setAiOpinion(id, AiOpinionJson.encode(saved)) } }
-            _ai.value = AiSession(aiKey(text), AiUiState.Done(outcome, saved))
-            val nv = AiFinalVerdict.apply(r.verdict, op.toLlm(), aiFinalNote(c.appContext, saved))
-            if (nv === r.verdict) return r
-            r.historyId?.let { id -> runCatching { c.history.setFinalLevel(id, nv.level.name) } }
-            return r.copy(verdict = nv)
+            val nv = runAutoAi(text, r.historyId, r.verdict, st) ?: return r
+            return if (nv === r.verdict) r else r.copy(verdict = nv)
         } finally {
             _aiAnalyzing.value = false
+        }
+    }
+
+    /** «Riprova» dopo un'analisi automatica non riuscita: stessa analisi, il verdetto si aggiorna dal parere automatico salvato. */
+    fun retryAutoAi(text: String, historyId: Long?, verdict: app.eye.engine.Verdict) {
+        val st = settings.value
+        if (!st.aiConfigured || text.isBlank() || _aiAnalyzing.value) return
+        _aiAnalyzing.value = true
+        (c.appContext as app.eye.android.EyeApp).appScope.launch {
+            try { runAutoAi(text, historyId, verdict, st) } finally { _aiAnalyzing.value = false }
+        }
+    }
+
+    /** Analisi AI automatica; null se non riuscita (e' segnalata in [aiAutoFailed]). Mai propaga eccezioni. */
+    private suspend fun runAutoAi(text: String, historyId: Long?, verdict: app.eye.engine.Verdict, st: app.eye.android.data.Settings): app.eye.engine.Verdict? {
+        val failKey = aiKey(text)
+        try {
+            val key = withContext(Dispatchers.IO) { st.aiKeyCipher?.let { KeyVault.decrypt(it) } }
+            if (key == null) { _aiAutoFailed.value = failKey; return null }
+            val cfg = AiConfig(st.aiProvider, st.aiModel, st.aiBaseUrl, key)
+            val safe = if (st.aiSendUnredacted) text else Redactor.redactKeepLinks(text)
+            val host = app.eye.android.core.ai.AiRequests.build(cfg, "x")?.url?.let { runCatching { java.net.URI(it).host }.getOrNull() }
+            val outcome = withContext(Dispatchers.IO) {
+                AiVerifyRetry.forAutoAnalysis { host != null && runCatching { java.net.InetAddress.getByName(host) }.isSuccess }
+                    .run { ms -> aiService.ask(cfg, safe, quickMs = ms, connectMs = AiVerifyRetry.AUTO_CONNECT_MS) }
+            }
+            val op = (outcome as? AiOutcome.Success)?.opinion
+            if (op == null) { _aiAutoFailed.value = failKey; return null }
+            _aiAutoFailed.value = 0
+            val saved = SavedAiOpinion(op, st.aiProvider.id, cfg.model, System.currentTimeMillis(), auto = true)
+            historyId?.let { id -> runCatching { c.history.setAiOpinion(id, AiOpinionJson.encode(saved)) } }
+            _ai.value = AiSession(failKey, AiUiState.Done(outcome, saved))
+            val nv = AiFinalVerdict.apply(verdict, op.toLlm(), aiFinalNote(c.appContext, saved))
+            if (nv !== verdict) historyId?.let { id -> runCatching { c.history.setFinalLevel(id, nv.level.name) } }
+            return nv
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            _aiAutoFailed.value = failKey
+            return null
         }
     }
 
@@ -561,7 +598,6 @@ fun aiKey(text: String): Int = text.hashCode()
 
 /** Identificativo del servizio gratuito nei pareri salvati (non e' un provider con chiave). */
 const val FREE_PROVIDER_ID = "pollinations"
-private const val AI_AUTO_MS = 5_000L // connessione + lettura: ~10 s al massimo
 
 /** Motivo (condivisione, PDF) quando il verdetto dell'AI collegata cambia il livello. */
 fun aiFinalNote(ctx: android.content.Context, s: SavedAiOpinion): String =

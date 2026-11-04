@@ -7,35 +7,41 @@ import app.eye.engine.Verdict
 
 /**
  * Verdetto finale dopo l'analisi automatica dell'AI collegata (controlli manuali). Logica pura.
- * - La decisione richiede confidenza alta ([LegitGate.CONFIDENCE]); il testo del messaggio e' solo un dato e non
- *   influisce mai (un'istruzione nascosta nel messaggio non porta a una confidenza alta per costruzione del prompt).
- * - Senza segnali gravi il livello finale e' quello dell'AI (puo' anche abbassare); alzare e' limitato a un gradino.
- * - Con segnali gravi (vedi [LegitGate.GRAVE_IDS]) l'AI puo' solo alzare.
+ * - Parere PIU' GRAVE delle regole: alza al livello dell'AI con confidenza >= [RAISE_CONFIDENCE] (meglio un raro falso
+ *   positivo di una truffa persa; vince l'AI collegata), anche con segnali gravi.
+ * - Parere meno grave: abbassa solo con confidenza alta ([LegitGate.CONFIDENCE]) e senza segnali gravi (vedi [LegitGate.GRAVE_IDS]).
+ * - Il testo del messaggio e' solo un dato e non influisce mai sulla decisione.
  * - Errore/timeout (parere assente) o eccezione dell'utente: restano le regole.
  */
 object AiFinalVerdict {
     const val REASON_ID = "AI-01"
+    /** Confidenza minima perche' un parere piu' grave delle regole alzi il verdetto. */
+    const val RAISE_CONFIDENCE = 0.5
 
     private fun severity(l: Level) = when (l) { Level.NESSUN_SEGNALE -> 0; Level.SOSPETTO -> 1; Level.PROBABILE_TRUFFA -> 2 }
-    private fun level(s: Int) = when (s) { 0 -> Level.NESSUN_SEGNALE; 1 -> Level.SOSPETTO; else -> Level.PROBABILE_TRUFFA }
+
+    private fun blocked(v: Verdict, o: LlmOpinion?) =
+        o == null || o.confidence.isNaN() || v.reasons.any { it.ruleId == UserExceptions.TRUSTED_ID || it.ruleId == REASON_ID }
+
+    private fun aiLevel(o: LlmOpinion) = when (o.verdict) {
+        LlmVerdict.TRUFFA -> Level.PROBABILE_TRUFFA
+        LlmVerdict.SOSPETTO -> Level.SOSPETTO
+        LlmVerdict.LEGITTIMO -> Level.NESSUN_SEGNALE
+    }
 
     /** Livello finale; coincide con quello delle regole se l'AI non puo' cambiarlo. */
     fun finalLevel(v: Verdict, opinion: LlmOpinion?): Level {
-        if (opinion == null || opinion.confidence.isNaN() || opinion.confidence < LegitGate.CONFIDENCE) return v.level
-        if (v.reasons.any { it.ruleId == UserExceptions.TRUSTED_ID || it.ruleId == REASON_ID }) return v.level
-        val ai = when (opinion.verdict) {
-            LlmVerdict.TRUFFA -> Level.PROBABILE_TRUFFA
-            LlmVerdict.SOSPETTO -> Level.SOSPETTO
-            LlmVerdict.LEGITTIMO -> Level.NESSUN_SEGNALE
-        }
-        val rules = severity(v.level)
-        val target = severity(ai)
+        if (opinion == null || blocked(v, opinion)) return v.level
+        val ai = aiLevel(opinion)
         return when {
-            target > rules -> level(rules + 1)
-            target < rules && !LegitGate.hasGraveSignals(v) -> ai
+            severity(ai) > severity(v.level) && opinion.confidence >= RAISE_CONFIDENCE -> ai
+            severity(ai) < severity(v.level) && opinion.confidence >= LegitGate.CONFIDENCE && !LegitGate.hasGraveSignals(v) -> ai
             else -> v.level
         }
     }
+
+    /** true se il parere alza il livello delle regole. */
+    fun raises(v: Verdict, opinion: LlmOpinion?): Boolean = severity(finalLevel(v, opinion)) > severity(v.level)
 
     /**
      * Verdetto da mostrare/condividere: se il livello cambia aggiunge il motivo [REASON_ID] con [note] e svuota le azioni
@@ -50,6 +56,5 @@ object AiFinalVerdict {
 
     /** L'AI "decide" (parere con confidenza alta e verdetto non gia' bloccato da eccezione/AI precedente): i suoi consigli valgono come "Cosa fare ora". */
     private fun decides(v: Verdict, o: LlmOpinion): Boolean =
-        !o.confidence.isNaN() && o.confidence >= LegitGate.CONFIDENCE &&
-            v.reasons.none { it.ruleId == UserExceptions.TRUSTED_ID || it.ruleId == REASON_ID }
+        !blocked(v, o) && (o.confidence >= LegitGate.CONFIDENCE || raises(v, o))
 }

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ai_autoan_failed">Analisi AI non riuscita</string>
+    <string name="ai_autoan_retry">Riprova</string>
+    <string name="alert_reason_ai_bg">Avviso dall’AI collegata.</string>
+</resources>

@@ -1,15 +1,9 @@
 package app.eye.android.core.notif
 
 import android.content.Context
-import android.os.PowerManager
-import androidx.work.Constraints
 import androidx.work.CoroutineWorker
-import androidx.work.ExistingWorkPolicy
-import androidx.work.NetworkType
-import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import androidx.work.workDataOf
 import app.eye.android.BuildConfig
 import app.eye.android.EyeApp
 import app.eye.android.R
@@ -27,7 +21,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import java.util.concurrent.TimeUnit
 
 /**
  * Verifica opt-in con l'AI dell'utente prima di un avviso (testo oscurato, 8 s a tentativo, un secondo tentativo se la rete
@@ -35,7 +28,7 @@ import java.util.concurrent.TimeUnit
  * Se l'AI ritiene il messaggio legittimo l'analisi finisce in cronologia (se attiva) e l'esito e' [VerifyDecision.Dismiss].
  */
 object AlertVerifier {
-    fun verify(app: EyeApp, text: String, verdict: Verdict, deferrable: Boolean): VerifyDecision = try {
+    fun verify(app: EyeApp, text: String, verdict: Verdict): VerifyDecision = try {
         if (verdict.level == Level.NESSUN_SEGNALE || LegitGate.hasGraveSignals(verdict)) VerifyDecision.Alert(AlertReason.GRAVE)
         else {
             val ctx = app.applicationContext
@@ -49,7 +42,7 @@ object AlertVerifier {
                 // senza permesso di stato rete: la rete "c'e'" se il nome del servizio si risolve
                 AiVerifyRetry({ host != null && runCatching { java.net.InetAddress.getByName(host) }.isSuccess }).run { ms -> svc.ask(cfg, safe, quickMs = ms) }
             }
-            val d = VerifyPolicy.decide(out, deferrable) { op -> LegitGate.mayDismiss(verdict, true, op.confidence) }
+            val d = VerifyPolicy.decide(out) { op -> LegitGate.mayDismiss(verdict, true, op.confidence) }
             if (d is VerifyDecision.Dismiss && st.saveHistory) runBlocking {
                 val note = ctx.getString(R.string.alert_not_sent_note)
                 app.container.history.save(
@@ -62,14 +55,6 @@ object AlertVerifier {
         VerifyDecision.Alert(AlertReason.AI_ERROR)
     }
 
-    /** Telefono a riposo (Doze) o schermo spento: la rete di solito non c'e'. */
-    fun deviceIdle(ctx: Context): Boolean = try {
-        val pm = ctx.getSystemService(PowerManager::class.java)
-        pm != null && (pm.isDeviceIdleMode || !pm.isInteractive)
-    } catch (_: RuntimeException) {
-        false
-    }
-
     /** Pubblica l'avviso gia' salvato in [AlertStore] (stessa notifica di EyeNotificationListener). false se non pubblicato. */
     fun publish(app: EyeApp, id: Int, level: Level, pkg: String, loud: Boolean): Boolean {
         val label = MonitoredApps.presets(BuildConfig.DEBUG).firstOrNull { it.pkg == pkg }?.label ?: pkg
@@ -79,29 +64,13 @@ object AlertVerifier {
     private const val TAG_VERIFY = "alert-verify-"
     private const val TAG_DEADLINE = "alert-deadline-"
 
-    /** Due lavori unici: verifica con rete e scadenza (30 min, senza vincoli). Il primo che parte prende l'avviso. */
-    fun schedule(ctx: Context, id: Int) {
-        val wm = WorkManager.getInstance(ctx)
-        val data = workDataOf(DeferredAlertWorker.KEY_ID to id)
-        wm.enqueueUniqueWork(
-            TAG_VERIFY + id, ExistingWorkPolicy.REPLACE,
-            OneTimeWorkRequestBuilder<DeferredAlertWorker>().setInputData(data)
-                .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()).build(),
-        )
-        wm.enqueueUniqueWork(
-            TAG_DEADLINE + id, ExistingWorkPolicy.REPLACE,
-            OneTimeWorkRequestBuilder<DeferredAlertWorker>()
-                .setInputData(workDataOf(DeferredAlertWorker.KEY_ID to id, DeferredAlertWorker.KEY_DEADLINE to true))
-                .setInitialDelay(VerifyPolicy.DEADLINE_MINUTES, TimeUnit.MINUTES).build(),
-        )
-    }
-
     fun cancelDeadline(ctx: Context, id: Int) { runCatching { WorkManager.getInstance(ctx).cancelUniqueWork(TAG_DEADLINE + id) } }
     fun cancelVerify(ctx: Context, id: Int) { runCatching { WorkManager.getInstance(ctx).cancelUniqueWork(TAG_VERIFY + id) } }
 }
 
 /**
- * Esegue un avviso rimandato. Prende l'avviso in modo atomico ([AlertStore.claimPending]); se e' gia' stato preso da altri
+ * Esegue un avviso rimandato da una versione 1.9.1 (dalla 1.9.2 nulla lo mette piu' in coda: resta per non perdere gli avvisi
+ * ancora in attesa dopo l'aggiornamento). Prende l'avviso in modo atomico ([AlertStore.claimPending]); se e' gia' stato preso da altri
  * non fa nulla. Modo verifica: ripete la verifica AI e poi pubblica o scarta; modo scadenza: pubblica. Qualsiasi errore: avviso.
  */
 class DeferredAlertWorker(ctx: Context, p: WorkerParameters) : CoroutineWorker(ctx, p) {
@@ -118,10 +87,9 @@ class DeferredAlertWorker(ctx: Context, p: WorkerParameters) : CoroutineWorker(c
             if (!deadline) {
                 AlertVerifier.cancelDeadline(applicationContext, id)
                 val verdict = pending.verdictJson?.let { VerdictJson.decode(it) }
-                if (verdict != null) when (val d = AlertVerifier.verify(app, pending.text, verdict, deferrable = false)) {
+                if (verdict != null) when (val d = AlertVerifier.verify(app, pending.text, verdict)) {
                     VerifyDecision.Dismiss -> { store.discard(id); post = false }
                     is VerifyDecision.Alert -> store.setReason(id, d.reason.name)
-                    is VerifyDecision.Defer -> Unit
                 }
             } else AlertVerifier.cancelVerify(applicationContext, id)
         } catch (_: Exception) {

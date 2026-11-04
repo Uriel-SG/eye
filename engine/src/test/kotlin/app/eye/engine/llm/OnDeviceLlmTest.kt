@@ -24,20 +24,21 @@ class OnDeviceLlmTest {
         for (rules in listOf(Level.SOSPETTO, Level.PROBABILE_TRUFFA)) {
             for (v in LlmVerdict.entries) for (c in listOf(0.0, 0.5, 0.99)) {
                 val r = LlmCombiner.combine(rules, op(v, c))
-                assertEquals(rules, r.level)
-                assertFalse(r.raisedByLlm)
+                if (r.raisedByLlm) assertTrue(rules == Level.SOSPETTO && v == LlmVerdict.TRUFFA && c >= 0.5) else assertEquals(rules, r.level)
             }
         }
         assertEquals(Level.NESSUN_SEGNALE, LlmCombiner.combine(Level.NESSUN_SEGNALE, op(LlmVerdict.LEGITTIMO, 1.0)).level)
     }
 
-    @Test fun raisesOnlyOnConfidentScam() {
-        val r = LlmCombiner.combine(Level.NESSUN_SEGNALE, op(LlmVerdict.TRUFFA, 0.8))
+    @Test fun raisesOneStepFromHalfConfidence() {
+        val r = LlmCombiner.combine(Level.NESSUN_SEGNALE, op(LlmVerdict.TRUFFA, 0.5))
         assertEquals(Level.SOSPETTO, r.level)
         assertTrue(r.raisedByLlm)
         assertTrue(r.reason!!.startsWith("Gemini Nano sul telefono ritiene"))
-        assertEquals(Level.NESSUN_SEGNALE, LlmCombiner.combine(Level.NESSUN_SEGNALE, op(LlmVerdict.TRUFFA, 0.79)).level)
-        assertEquals(Level.NESSUN_SEGNALE, LlmCombiner.combine(Level.NESSUN_SEGNALE, op(LlmVerdict.SOSPETTO, 1.0)).level)
+        assertEquals(Level.SOSPETTO, LlmCombiner.combine(Level.NESSUN_SEGNALE, op(LlmVerdict.SOSPETTO, 0.6)).level)
+        assertEquals(Level.PROBABILE_TRUFFA, LlmCombiner.combine(Level.SOSPETTO, op(LlmVerdict.TRUFFA, 0.9)).level)
+        assertEquals(Level.NESSUN_SEGNALE, LlmCombiner.combine(Level.NESSUN_SEGNALE, op(LlmVerdict.TRUFFA, 0.49)).level)
+        assertEquals(Level.SOSPETTO, LlmCombiner.combine(Level.SOSPETTO, op(LlmVerdict.SOSPETTO, 1.0)).level)
         assertEquals(Level.NESSUN_SEGNALE, LlmCombiner.combine(Level.NESSUN_SEGNALE, null).level)
     }
 
@@ -106,11 +107,12 @@ class OnDeviceLlmTest {
         for (l in listOf(Level.SOSPETTO, Level.PROBABILE_TRUFFA)) {
             val b = verdict(l)
             assertEquals(b, LlmCombiner.apply(b, op(LlmVerdict.LEGITTIMO, 1.0)))
-            assertEquals(b, LlmCombiner.apply(b, op(LlmVerdict.TRUFFA, 1.0)))
         }
+        val prob = verdict(Level.PROBABILE_TRUFFA)
+        assertEquals(prob, LlmCombiner.apply(prob, op(LlmVerdict.TRUFFA, 1.0)))
         val none = verdict(Level.NESSUN_SEGNALE)
         assertEquals(none, LlmCombiner.apply(none, null))
-        assertEquals(none, LlmCombiner.apply(none, op(LlmVerdict.TRUFFA, 0.5)))
+        assertEquals(none, LlmCombiner.apply(none, op(LlmVerdict.TRUFFA, 0.49)))
     }
 
     @Test fun applyRespectsUserTrustedException() {

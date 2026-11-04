@@ -163,11 +163,11 @@ class AiService(
     private val transport: HttpTransport = UrlConnectionTransport,
 ) {
     /** Bloccante: chiamare fuori dal thread principale. Mai logga chiave, testo o corpo della risposta. */
-    fun ask(config: AiConfig, text: String, quickMs: Long = 0): AiOutcome {
+    fun ask(config: AiConfig, text: String, quickMs: Long = 0, connectMs: Long = quickMs): AiOutcome {
         val spec = AiRequests.build(config, text) ?: return AiOutcome.Failure(AiError.NOT_CONFIGURED)
         if (quickMs > 0) { // verifica rapida (es. prima di un avviso): nessun nuovo tentativo, scadenza breve
             val ms = quickMs.toInt()
-            return once(config.provider, spec.copy(readTimeoutMs = ms, connectTimeoutMs = ms), false)
+            return once(config.provider, spec.copy(readTimeoutMs = ms, connectTimeoutMs = connectMs.toInt()), false)
         }
         val start = clock()
         var retried = false

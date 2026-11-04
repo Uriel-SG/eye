@@ -39,15 +39,20 @@ data class CombinedLevel(val level: Level, val raisedByLlm: Boolean, val reason:
  * confidenza >= [THRESHOLD]) ma non abbassa MAI il livello deciso dalle regole.
  */
 object LlmCombiner {
-    const val THRESHOLD = 0.8
+    /** Confidenza minima perche' un parere piu' grave delle regole alzi il verdetto di un gradino. */
+    const val THRESHOLD = 0.5
 
     fun combine(rules: Level, opinion: LlmOpinion?): CombinedLevel {
-        if (opinion != null && rules == Level.NESSUN_SEGNALE &&
-            opinion.verdict == LlmVerdict.TRUFFA && opinion.confidence >= THRESHOLD
-        ) {
-            return CombinedLevel(Level.SOSPETTO, true, "Gemini Nano sul telefono ritiene che questo messaggio sia probabilmente una truffa.")
+        if (opinion == null || opinion.confidence.isNaN() || opinion.confidence < THRESHOLD) return CombinedLevel(rules, false, null)
+        return when {
+            rules == Level.NESSUN_SEGNALE && opinion.verdict == LlmVerdict.TRUFFA ->
+                CombinedLevel(Level.SOSPETTO, true, "Gemini Nano sul telefono ritiene che questo messaggio sia probabilmente una truffa.")
+            rules == Level.NESSUN_SEGNALE && opinion.verdict == LlmVerdict.SOSPETTO ->
+                CombinedLevel(Level.SOSPETTO, true, "Gemini Nano sul telefono ritiene sospetto questo messaggio.")
+            rules == Level.SOSPETTO && opinion.verdict == LlmVerdict.TRUFFA ->
+                CombinedLevel(Level.PROBABILE_TRUFFA, true, "Gemini Nano sul telefono ritiene che questo messaggio sia probabilmente una truffa.")
+            else -> CombinedLevel(rules, false, null)
         }
-        return CombinedLevel(rules, false, null)
     }
 
     /** Id del motivo aggiunto quando il modello alza il livello. */
@@ -55,7 +60,7 @@ object LlmCombiner {
 
     /**
      * Verdetto effettivo dopo il parere del modello: se alza NESSUN_SEGNALE -> SOSPETTO il livello vale ovunque
-     * (titolo, azioni del livello, testi condivisi, PDF) e il motivo e' tra i motivi. Mai abbassa. Un'eccezione
+     * (titolo, azioni del livello, testi condivisi, PDF) e il motivo e' tra i motivi. Mai abbassa (un gradino in su). Un'eccezione
      * "affidabile" dell'utente non viene scavalcata dal modello.
      */
     fun apply(verdict: Verdict, opinion: LlmOpinion?): Verdict {

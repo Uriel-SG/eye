@@ -18,7 +18,7 @@ internal object ActionVectors {
             "VEN-01", "CRY-01", "CRY-02", "RIM-01", "SPI-01",
         ),
         ActionVector.PAYMENT to setOf("PAY-01", "PAY-02", "IBN-01", "ANT-01", "REC-01", "SEX-01", "VEN-02", "GEN-04", "PAC-02", "ROM-01", "INV-05", "SHP-02", "AFF-01", "LAV-03"),
-        ActionVector.PHONE to setOf("BAN-07", "SUP-01", "ACC-03", "CALL-01", "PHN-01", "PHN-02"),
+        ActionVector.PHONE to setOf("BAN-07", "SUP-01", "ACC-03", "CALL-01", "CALL-02", "PHN-01", "PHN-02"),
         ActionVector.REPLY to setOf("FAM-01", "FAM-02", "FAM-03", "INV-03"),
         ActionVector.EMAIL to setOf("MAI-01"),
         ActionVector.INSTALL to setOf("URL-09", "RDP-01"),

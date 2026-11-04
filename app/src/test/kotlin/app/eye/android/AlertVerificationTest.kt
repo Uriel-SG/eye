@@ -18,13 +18,11 @@ import org.junit.Test
 
 class AlertVerificationTest {
     private fun op(j: AiJudgement, c: Double) = AiOutcome.Success(AiOpinion(j, emptyList(), "", c))
-    private fun d(o: AiOutcome?, defer: Boolean = true, ok: Boolean = true) = VerifyPolicy.decide(o, defer) { ok }
+    private fun d(o: AiOutcome?, ok: Boolean = true) = VerifyPolicy.decide(o) { ok }
 
-    @Test fun networkAndTimeoutDeferOnlyWhenDeferrable() {
-        assertEquals(VerifyDecision.Defer(AlertReason.NETWORK), d(AiOutcome.Failure(AiError.NETWORK)))
-        assertEquals(VerifyDecision.Defer(AlertReason.TIMEOUT), d(AiOutcome.Failure(AiError.TIMEOUT)))
-        assertEquals(VerifyDecision.Alert(AlertReason.NETWORK), d(AiOutcome.Failure(AiError.NETWORK), defer = false))
-        assertEquals(VerifyDecision.Alert(AlertReason.TIMEOUT), d(AiOutcome.Failure(AiError.TIMEOUT), defer = false))
+    @Test fun networkAndTimeoutAlertImmediately() {
+        assertEquals(VerifyDecision.Alert(AlertReason.NETWORK), d(AiOutcome.Failure(AiError.NETWORK)))
+        assertEquals(VerifyDecision.Alert(AlertReason.TIMEOUT), d(AiOutcome.Failure(AiError.TIMEOUT)))
     }
 
     @Test fun otherOutcomesAlertWithReason() {
@@ -39,6 +37,7 @@ class AlertVerificationTest {
 
     @Test fun reasonParse() {
         assertEquals(AlertReason.GRAVE, AlertReason.parse("GRAVE"))
+        assertEquals(AlertReason.AI_BACKGROUND, AlertReason.parse("AI_BACKGROUND"))
         assertNull(AlertReason.parse("boh")); assertNull(AlertReason.parse(null))
     }
 

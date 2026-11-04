@@ -4,7 +4,7 @@
     <string name="ai_gemini_howto">Per ottenere una chiave gratuita, usare il pulsante qui sotto e accedere con un account Google. Se la chiave viene copiata, al ritorno nell\'app è inserita in automatico. Secondo le condizioni di Google, nell’Unione Europea i testi inviati con il piano gratuito non vengono usati per migliorare i suoi servizi; fuori dall’UE possono esserlo.</string>
     <string name="ai_key_from_clipboard">Chiave inserita dagli appunti</string>
     <string name="ai_verify_label">Verifica con l\'AI collegata prima di inviare un avviso</string>
-    <string name="ai_verify_sub">Prima di un avviso di livello «Sospetto», il testo della notifica, oscurato, viene inviato al servizio scelto. Se l\'AI lo ritiene legittimo con sicurezza, l\'avviso non è inviato e l\'analisi resta in cronologia. Se il servizio non risponde, l\'avviso parte comunque.</string>
+    <string name="ai_verify_sub">Prima di un avviso di livello «Sospetto», il testo della notifica, oscurato, viene inviato al servizio scelto. Se l’AI lo ritiene legittimo con sicurezza, l’avviso non è inviato e l’analisi resta in cronologia. Se il servizio non risponde, l’avviso parte comunque. L’AI controlla anche i messaggi dubbi che chiedono di fare qualcosa e può avvisare quando le regole non lo fanno.</string>
     <string name="ai_provider_pollinations">Servizio gratuito (Pollinations)</string>
     <string name="ai_err_free_limit">Il servizio gratuito accetta una richiesta ogni 30 secondi. Riprovare tra poco.</string>
     <string name="ai_free_consent_title">Inviare il testo al servizio gratuito?</string>
