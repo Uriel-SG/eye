@@ -23,7 +23,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
 /**
- * Verifica opt-in con l'AI dell'utente prima di un avviso (testo oscurato, 8 s a tentativo, un secondo tentativo se la rete
+ * Verifica opt-in con l'AI dell'utente prima di un avviso (testo oscurato, 10 s a tentativo, circa 20 s in tutto, un secondo tentativo se la rete
  * torna, vedi [AiVerifyRetry]). Bloccante: chiamare da un thread di lavoro. Fail-safe: qualsiasi errore = avviso.
  * Se l'AI ritiene il messaggio legittimo l'analisi finisce in cronologia (se attiva) e l'esito e' [VerifyDecision.Dismiss].
  */

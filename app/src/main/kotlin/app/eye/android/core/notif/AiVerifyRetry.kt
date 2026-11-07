@@ -31,10 +31,10 @@ class AiVerifyRetry(
     private fun retryable(o: AiOutcome) = o is AiOutcome.Failure && (o.error == AiError.NETWORK || o.error == AiError.TIMEOUT)
 
     companion object {
-        const val FIRST_MS = 8_000L
+        const val FIRST_MS = 10_000L
         const val POLL_MS = 2_000L
         const val WAIT_MS = 25_000L
-        const val TOTAL_MS = 40_000L
+        const val TOTAL_MS = 30_000L
         const val MIN_RETRY_MS = 6_000L
 
         /** Analisi automatica nei controlli manuali (primo piano): testi lunghi, risposta piu' lenta; un solo secondo tentativo entro ~30 s. */
