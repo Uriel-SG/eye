@@ -103,14 +103,14 @@ interface UpdateNotifyStore {
 object UpdateNotifyPolicy {
     /**
      * Logica pura: una sola notifica discreta per versione, solo se l'aggiornamento e' disponibile, la scheda non e' in pausa
-     * («Più tardi»), non e' gia' stata notificata ne' vista in Home, e il permesso notifiche c'e'.
+     * («Più tardi»), non e' gia' stata notificata, e il permesso notifiche c'e'.
      * Ritorna il versionCode da notificare o null.
      */
     fun versionToNotify(snapshot: UpdateSnapshot?, snooze: UpdateSnooze, state: UpdateNotifyState, canPost: Boolean, now: Long): Int? {
         if (!canPost) return null
         val card = UpdatePolicy.decide(snapshot, snooze, now) as? UpdateCardState.Available ?: return null
         val v = card.versionCode
-        if (v == state.notifiedCode || v == state.cardSeenCode) return null
+        if (v == state.notifiedCode) return null // una sola notifica per versione, anche se la scheda in Home e' gia' stata vista
         return v
     }
 }

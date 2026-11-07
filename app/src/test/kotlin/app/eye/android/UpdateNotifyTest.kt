@@ -33,7 +33,7 @@ class UpdateNotifyTest {
         assertNull(v(s = UpdateSnapshot(UpdatePhase.DOWNLOADED, 10)))
     }
     @Test fun alreadyNotified() = assertNull(v(st = UpdateNotifyState(notifiedCode = 10)))
-    @Test fun alreadySeenInCard() = assertNull(v(st = UpdateNotifyState(cardSeenCode = 10)))
+    @Test fun seenInCardStillNotifiesOnce() = assertEquals(10, v(st = UpdateNotifyState(cardSeenCode = 10)))
     @Test fun newerVersionNotifiesAgain() = assertEquals(10, v(st = UpdateNotifyState(notifiedCode = 9, cardSeenCode = 9)))
     @Test fun permissionDenied() = assertNull(v(can = false))
     @Test fun snoozedVersionSilent() {

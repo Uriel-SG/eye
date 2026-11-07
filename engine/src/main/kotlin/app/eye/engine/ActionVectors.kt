@@ -15,15 +15,15 @@ internal object ActionVectors {
     private val BY_RULE: Map<ActionVector, Set<String>> = mapOf(
         ActionVector.CREDENTIALS to setOf(
             "BAN-03", "BAN-04", "BAN-10", "BAN-11", "BAN-12", "WAP-01", "DOC-01", "DAT-01", "CRD-02", "MBX-01",
-            "VEN-01", "CRY-01", "CRY-02", "RIM-01", "SPI-01",
+            "VEN-01", "CRY-01", "CRY-02", "RIM-01", "SPI-01", "SAN-01", "PAG-01",
         ),
-        ActionVector.PAYMENT to setOf("PAY-01", "PAY-02", "IBN-01", "ANT-01", "REC-01", "SEX-01", "VEN-02", "GEN-04", "PAC-02", "ROM-01", "INV-05", "SHP-02", "AFF-01", "LAV-03"),
-        ActionVector.PHONE to setOf("BAN-07", "SUP-01", "ACC-03", "CALL-01", "CALL-02", "PHN-01", "PHN-02"),
+        ActionVector.PAYMENT to setOf("PAY-01", "PAY-02", "IBN-01", "ANT-01", "REC-01", "SEX-01", "VEN-02", "GEN-04", "PAC-02", "ROM-01", "INV-05", "SHP-02", "AFF-01", "LAV-03", "VEN-03"),
+        ActionVector.PHONE to setOf("BAN-07", "SUP-01", "ACC-03", "CALL-01", "CALL-02", "CALL-03", "PHN-01", "PHN-02"),
         ActionVector.REPLY to setOf("FAM-01", "FAM-02", "FAM-03", "INV-03"),
         ActionVector.EMAIL to setOf("MAI-01"),
         ActionVector.INSTALL to setOf("URL-09", "RDP-01"),
         // link anomali: sono link sospetti per definizione
-        ActionVector.LINK to setOf("URL-01", "URL-02", "URL-05", "URL-06", "URL-10", "BLK-01"),
+        ActionVector.LINK to setOf("QRC-01", "URL-01", "URL-02", "URL-05", "URL-06", "URL-10", "BLK-01"),
     )
 
     private val THREAT_CONTEXT = setOf("URG-02", "URG-03", "URG-04", "BAN-01", "BAN-11", "ACC-01", "ACC-04", "ACC-05", "SPI-01", "TEL-01", "MBX-01")

@@ -14,7 +14,8 @@ import app.eye.android.data.SettingsStore
 
 /** Notifica discreta «È disponibile una nuova versione di Eye»: il tocco apre Eye sulla Home, dove c'e' la scheda Aggiorna. */
 object UpdateAvailableNotifier {
-    const val CHANNEL = "app_updates"
+    const val CHANNEL = "app_updates_v2" // v2: importanza normale (il canale v1 era silenzioso)
+    private const val OLD_CHANNEL = "app_updates"
     private const val NOTIF_ID = 3100
 
     suspend fun check(ctx: Context, settings: SettingsStore) {
@@ -26,8 +27,9 @@ object UpdateAvailableNotifier {
 
     private fun post(ctx: Context) {
         val nm = ctx.getSystemService(NotificationManager::class.java) ?: return
+        runCatching { nm.deleteNotificationChannel(OLD_CHANNEL) }
         nm.createNotificationChannel(
-            NotificationChannel(CHANNEL, ctx.getString(R.string.update_channel), NotificationManager.IMPORTANCE_LOW)
+            NotificationChannel(CHANNEL, ctx.getString(R.string.update_channel), NotificationManager.IMPORTANCE_DEFAULT)
                 .apply { description = ctx.getString(R.string.update_channel_desc) },
         )
         val open = Intent(ctx, MainActivity::class.java).setAction(Intent.ACTION_MAIN)

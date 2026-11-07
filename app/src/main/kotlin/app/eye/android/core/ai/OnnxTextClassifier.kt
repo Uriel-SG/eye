@@ -109,6 +109,7 @@ class OnnxTextClassifier(context: Context) : TextClassifier {
 
     private fun openVerified(model: File, tokenizer: MiniLmTokenizer, autotest: ModelAutotest, source: String): Loaded {
         val env = OrtEnvironment.getEnvironment()
+        runCatching { env.setTelemetry(false) } // nessuna telemetria verso terzi (vedi anche il provider rimosso nel manifest)
         // Autotest all'avvio: i kernel int8 di ONNX Runtime dipendono dalla CPU (x86/arm64, dotprod/i8mm...). Se su QUESTO
         // telefono il modello non riproduce i risultati attesi sul PC si riprova senza ottimizzazioni di grafo; se ancora
         // sbaglia, il modello resta spento (solo regole) invece di alzare avvisi a caso.

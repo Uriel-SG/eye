@@ -37,7 +37,7 @@ object AlertPolicy {
     private val SCAM_PATTERNS = setOf(
         "LAV-01", "LAV-02", "INV-01", "INV-02", "INV-03", "INV-04", "PRE-01", "PRE-02", "PRE-03", "MUL-01", "MUL-02",
         "FIS-01", "FIS-03", "FAM-02", "FAM-03", "CALL-01", "MAI-01", "BAN-01", "ACC-01", "ACC-03", "ACC-04", "PAC-02", "PAC-03", "PAC-05", "RIM-01", "TEL-01",
-        "ROM-01", "INV-05", "SHP-02", "AFF-01", "LAV-03",
+        "ROM-01", "INV-05", "SHP-02", "AFF-01", "LAV-03", "CALL-03", "SAN-01", "PAG-01", "QRC-01", "VEN-03",
     )
 
     val STRONG_RULE_IDS: Set<String> = LINK_SIGNALS + REQUESTS_AND_HARD + SCAM_PATTERNS

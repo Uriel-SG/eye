@@ -1,5 +1,5 @@
 {
- "version": 18,
+ "version": 19,
  "thresholds": {
   "probable": 55,
   "suspect": 25
@@ -1716,7 +1716,7 @@
    "example": "Il tuo SPID è in scadenza",
    "kind": "regex",
    "patterns": [
-    "\\b(?:spid|identità digitale|carta d'identità elettronica|cie|tessera sanitaria|firma digitale)\\b.{0,40}\\b(?:scad[ea]\\w{0,4}|in scadenza|da rinnovare|rinnovo|sospes\\w{1,3}|disattiv\\w{1,5}|bloccat\\w|non (?:più )?valid\\w)"
+    "\\b(?:spid|identità digitale|carta d'identità elettronica|cie|tessera sanitaria|firma digitale)\\b.{0,40}\\b(?:scad(?:[ea]\\w{0,4}|ut\\w)|in scadenza|da rinnovare|rinnovo|sospes\\w{1,3}|disattiv\\w{1,5}|bloccat\\w|non (?:più )?valid\\w)"
    ],
    "keywords": [],
    "unless": null
@@ -2014,7 +2014,8 @@
     "\\bcodice\\b.{0,60}\\b(?:per (?:errore|sbaglio)|mi puoi (?:inoltrare|rimandare|girare)|puoi (?:inoltrare|girare|rimandare|mandarmi|inviarmi))",
     "\\b(?:inoltra|girami|rimandami|mandami|inviami)\\w{0,3}\\b.{0,25}\\bcodice\\b",
     "\\bper (?:errore|sbaglio)\\b.{0,50}\\bcodice\\b.{0,60}\\b(?:giri|girar\\w{1,3}|inoltr\\w{1,4}|rimand\\w{1,4}|mand\\w{1,4}|invi\\w{1,4}|dett\\w{1,4}|pass\\w{1,4}|comunic\\w{1,4})",
-    "\\bcodice\\b.{0,50}\\b(?:me lo|puoi|mi puoi|potresti|mi potresti)\\b.{0,15}\\b(?:gir|inoltr|rimand|mand|invi|dett|pass)\\w{1,4}"
+    "\\bcodice\\b.{0,50}\\b(?:me lo|puoi|mi puoi|potresti|mi potresti)\\b.{0,15}\\b(?:gir|inoltr|rimand|mand|invi|dett|pass)\\w{1,4}",
+    "\\b(?:vota\\w{1,5}|voto)\\b.{0,100}\\b(?:codice|sms)\\b"
    ],
    "keywords": [],
    "unless": null
@@ -2840,7 +2841,8 @@
     "\\b(?:deposit|deposita|depositare|versa|versare)\\b.{0,25}\\b\\d{2,6} ?(?:usdt|btc|eth)\\b|\\bminimum deposit\\b",
     "\\b(?:preleva|prelievo|withdraw|ritira)\\b.{0,25}\\b(?:profitti|guadagni|profits)\\b|\\b(?:il tuo investimento|your investment)\\b.{0,60}\\b(?:ha generato|ha raggiunto|generated|reached)\\b",
     "\\b(?:trasferi\\w{1,3}|sposta\\w{1,3}|transfer|move)\\b.{0,30}\\b(?:crypto\\w{0,6}|fondi|funds|bitcoin|usdt)\\b.{0,30}\\b(?:wallet|portafoglio)\\b.{0,15}\\b(?:sicuro|safe|secure|indic\\w{1,4})\\b",
-    "\\b(?:far crescere i nostri risparmi|piattaforma di cui ti parlavo)\\b|\\b(?:ho gi[àa] guadagnato|i already made)\\b.{0,80}\\b(?:versa|investi|deposita|deposit)\\b"
+    "\\b(?:far crescere i nostri risparmi|piattaforma di cui ti parlavo)\\b|\\b(?:ho gi[àa] guadagnato|i already made)\\b.{0,80}\\b(?:versa|investi|deposita|deposit)\\b",
+    "\\bha guadagnato\\b.{0,40}\\b(?:eur|euro)\\b.{0,60}\\b(?:piattaforma|trading|robot|crypto\\w{0,6}|bitcoin)\\b"
    ],
    "keywords": [],
    "unless": null
@@ -2889,6 +2891,71 @@
     "\\b\\d{1,4} ?(?:euro|eur|€) a task\\b",
     "\\b(?:pagamento anticipato|anticipo|versamento|quota|pagamento)\\b.{0,30}\\b\\d{1,4} ?(?:euro|eur|€)\\b.{0,30}\\b(?:divisa|formazione|kit|corso|materiale|assicurazione)\\b",
     "\\brimborsabil\\w{1,2}\\b.{0,30}\\b(?:primo stipendio|prima busta paga)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "CALL-03",
+   "category": "banca",
+   "weight": 35,
+   "explanation": "Ti dice che carta, conto o dispositivo hanno un problema e ti chiede di chiamare un numero: è la tecnica del falso operatore, che poi ti fa spostare i soldi.",
+   "example": "La sua carta è stata sospesa. Per riattivarla contatti l'assistenza al 06 0000 0000",
+   "kind": "regex",
+   "patterns": [
+    "^(?=.{0,300}?\\b(?:conto|carta|bonifico|dispositivo|accesso|account|postepay|polizia|carabinieri|maresciallo|ispettore|banca|guardia di finanza|finanza|tribunale|procura|procedimento|questura|pc|computer|windows|microsoft)\\b).{0,300}?\\b(?:sospes[ao]|bloccat[ao]|compromess[ao]|non riconosciut[ao]|anomal\\w{1,4}|sospett\\w{1,3}|non autorizzat[ao]|reato|sequestro|indagin\\w{1,4})\\b.{0,150}?\\b(?:contatt|chiam|richiam|telefon|parl|rivolg)\\w{1,6}\\b.{0,60}?(?<!\\d)(?!80[03])(?:\\+|00)?\\d[\\d ./-]{6,14}\\d"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "SAN-01",
+   "category": "identita",
+   "weight": 40,
+   "explanation": "Finto avviso su fascicolo sanitario, referti o tessera sanitaria che chiede di entrare con le credenziali da un link: serve a rubare i dati.",
+   "example": "Nuovi referti disponibili nel tuo fascicolo. Accedi con le tue credenziali",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:fascicolo sanitario|referti?|tessera sanitaria|ricetta elettronica|asl)\\b.{0,100}\\b(?:accedi|accedere|clicca|inserisci|conferma|aggiorna|verifica)\\w{0,6}\\b.{0,60}(?<!mai )(?<!mai le )(?<!mai la )(?<!mai i )(?<!non )(?<!non le )\\b(?:credenziali|password|dati personali|dati della carta|carta di credito|iban)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "PAG-01",
+   "category": "fisco",
+   "weight": 35,
+   "explanation": "Finto avviso di un ente (INPS, NoiPA, Agenzia Entrate) che chiede credenziali, selfie o dati della carta: gli enti veri non li chiedono per messaggio.",
+   "example": "Il cedolino è aggiornato. Accedi con le tue credenziali per verificare",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:noipa|inps|agenzia (?:delle )?entrate|cedolino|emolument\\w{1,3}|certificazione unica|isee|naspi|assegno unico|bonus|pensione)\\b.{0,120}\\b(?:accedi|accedere|clicca|inserisci|conferma|aggiorna|verifica|carica)\\w{0,6}\\b.{0,60}(?<!mai )(?<!mai le )(?<!mai la )(?<!mai i )(?<!non )(?<!non le )\\b(?:credenziali|password|selfie|dati della carta|carta di credito|iban|dati bancari)\\b"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "QRC-01",
+   "category": "banca",
+   "weight": 35,
+   "explanation": "Chiede di inquadrare un codice QR per riattivare conto o carta, avere un rimborso o riprogrammare una consegna: i QR dei messaggi portano a siti falsi.",
+   "example": "Scansiona il QR code per riattivare il tuo conto",
+   "kind": "regex",
+   "patterns": [
+    "\\b(?:scansion\\w{1,6}|inquadr\\w{1,6}|scan)\\b.{0,40}\\b(?:qr|codice qr)\\b.{0,100}\\b(?:conto|account|carta|pagament\\w{1,3}|riattiv\\w{1,6}|sblocc\\w{1,6}|verific\\w{1,6}|rimbors\\w{1,3}|riprogramm\\w{1,6})"
+   ],
+   "keywords": [],
+   "unless": null
+  },
+  {
+   "id": "VEN-03",
+   "category": "vendite",
+   "weight": 35,
+   "explanation": "Chi risponde a un annuncio e chiede IBAN, Postepay o dati della carta per «pagarti» sta preparando una truffa: per incassare non serve mai.",
+   "example": "Ho visto l'annuncio, mi mandi il tuo IBAN o la Postepay per l'accredito?",
+   "kind": "regex",
+   "patterns": [
+    "^(?=.{0,300}?\\b(?:annuncio|inserzione)\\b).{0,300}?\\b(?:mi (?:mandi|invii|dai|dia|passi|dici)|inviami|mandami|dammi|forniscimi)\\b.{0,40}\\b(?:iban|postepay|carta|coordinate|dati bancari)\\b"
    ],
    "keywords": [],
    "unless": null
