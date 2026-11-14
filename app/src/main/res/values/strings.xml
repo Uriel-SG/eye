@@ -92,7 +92,6 @@
     <string name="verdict_domain">Dominio:</string>
     <string name="verdict_card_error">Non sono riuscito a creare la scheda. Riprova.</string>
     <string name="verdict_card_show_message">Includi il messaggio (scheda e report)</string>
-    <string name="verdict_card_alt">Scheda: %1$s. %2$s</string>
     <string name="verdict_family_one_line_scam">Non cliccare e non rispondere. Mostralo a una persona di fiducia.</string>
     <string name="verdict_family_one_line_suspicious">Ci sono segnali strani. Chiedi a una persona di fiducia prima di fare qualcosa.</string>
     <string name="verdict_family_one_line_none">Non abbiamo trovato segnali, ma resta prudente.</string>

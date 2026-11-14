@@ -28,6 +28,8 @@ object LinkDefang {
             if (at < 0) at = 0
             val end = if (at == 0 && !core.startsWith(url.raw)) core.length else at + url.raw.length
             val piece = core.substring(at, end)
+            // abbreviazioni tipo «p.es.», «c.a.»: nome a una lettera, senza schema né percorso, non e' un dominio
+            if (!scheme.containsMatchIn(piece) && piece.none { it == '/' || it == '?' || it == '#' || it == '@' } && piece.substringBefore('.').length < 2) return@replace tok
             val d = defangPiece(piece)
             if (d == piece) return@replace tok
             count++

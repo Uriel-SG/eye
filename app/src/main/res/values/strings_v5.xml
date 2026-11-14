@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="card_analyzed">Cosa ho analizzato</string>
+    <string name="card_analyzed">Messaggio analizzato</string>
     <string name="card_excerpt">Estratto (dati personali oscurati)</string>
     <string name="card_full_message">Messaggio completo</string>
     <string name="card_why_none">Non abbiamo riconosciuto segnali noti, ma non è una garanzia. Se non aspettavi questo messaggio, non cliccare e verifica dai canali ufficiali.</string>

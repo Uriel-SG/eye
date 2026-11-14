@@ -27,6 +27,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import app.eye.android.R
+import app.eye.android.core.CHROME_EXTENSION_URL
 import app.eye.android.core.DONATE_URL
 import app.eye.android.core.ExternalIntents
 import app.eye.android.core.REPO_URL
@@ -86,6 +87,7 @@ fun SupportSection() {
         Spacer(Modifier.height(8.dp))
         Button(onClick = { link = DONATE_URL }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text(stringResource(R.string.support_site)) }
         OutlinedButton(onClick = { link = REPO_URL }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text(stringResource(R.string.support_source)) }
+        OutlinedButton(onClick = { link = CHROME_EXTENSION_URL }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text(stringResource(R.string.support_chrome)) }
     }
     link?.let { url ->
         AlertDialog(

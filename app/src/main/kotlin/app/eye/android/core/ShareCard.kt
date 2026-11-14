@@ -90,13 +90,13 @@ object ShareCard {
         blocks += Block(sub.height.toFloat()) { c, y -> c.drawLayout(sub, M, y) }
         gap(36f)
 
-        // Cosa è stato analizzato (sempre presente), con estratto oscurato o testo integrale
+        // Messaggio analizzato: subito dopo il verdetto (sempre presente), con estratto oscurato o testo integrale
         val label = layout(context.getString(R.string.card_analyzed), tp(28f, p.text, true), textW - 48, 1)
-        val what = layout(sum.line, tp(38f, INK, true), textW - 48, 4)
-        val bodyText = if (showMessage) result.originalText.trim().replace(Regex("""\s+"""), " ").take(700).let { if (it.length < result.originalText.trim().length) "$it…" else it }
+        val what = layout(ShareTexts.defang(sum.line), tp(38f, INK, true), textW - 48, 4)
+        val bodyText = if (showMessage) result.originalText.trim().replace(Regex("""\s+"""), " ").take(700).let { if (it.length < result.originalText.trim().length) "$it…" else it }.let(ShareTexts::defang)
         else sum.excerpt
         val bodyLabel = layout(context.getString(if (showMessage) R.string.card_full_message else R.string.card_excerpt), tp(26f, p.text, true), textW - 48, 1)
-        val body = layout("«$bodyText»", tp(34f, 0xFF3A3A40.toInt()), textW - 48, if (showMessage) 9 else 4)
+        val body = layout("«$bodyText»", tp(36f, INK), textW - 48, if (showMessage) 9 else 4)
         val boxH = 24f + label.height + 8f + what.height + 20f + bodyLabel.height + 6f + body.height + 24f
         blocks += Block(boxH) { c, y ->
             val white = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
@@ -118,7 +118,7 @@ object ShareCard {
             val l = layout(context.getString(R.string.card_why_none), tp(36f, INK), textW, 5)
             blocks += Block(l.height.toFloat()) { c, y -> c.drawLayout(l, M, y) }
         } else reasons.forEach { r ->
-            val l = layout(r, tp(36f, INK), textW - 72, 3)
+            val l = layout(ShareTexts.defang(r), tp(36f, INK), textW - 72, 3)
             val h = maxOf(l.height.toFloat(), 48f)
             blocks += Block(h) { c, y ->
                 val f = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = p.solid }
@@ -133,7 +133,7 @@ object ShareCard {
         blocks += Block(52f) { c, y -> c.drawText(context.getString(R.string.card_todo), M, y + 40f, h40) }
         gap(8f)
         v.todoSteps(context).take(2).forEach { s ->
-            val l = layout("• $s", tp(36f, INK), textW, 3)
+            val l = layout("• " + ShareTexts.defang(s), tp(36f, INK), textW, 3)
             blocks += Block(l.height.toFloat()) { c, y -> c.drawLayout(l, M, y) }
             gap(10f)
         }

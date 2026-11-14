@@ -17,3 +17,6 @@ const val POLIZIA_POSTALE_URL = "https://www.commissariatodips.it"
 
 /** Destinatario delle segnalazioni di verdetto sbagliato (email preparata, inviata solo dall'utente). */
 const val REPORT_EMAIL = "urielsec@salvatoregarasto.com"
+
+/** Estensione «Eye per Chrome» sul Chrome Web Store. */
+const val CHROME_EXTENSION_URL = "https://chromewebstore.google.com/detail/eye-per-chrome/ibglceocjcnplingekdmemefggcblbjg"

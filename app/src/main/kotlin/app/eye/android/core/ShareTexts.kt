@@ -47,6 +47,17 @@ object ShareTexts {
         return if (r.count > 0) r.text.trimEnd() + "\n" + app.eye.engine.LinkDefang.NOTE else text
     }
 
+    /** Solo la disattivazione dei link (nessuna nota): per i testi disegnati nella scheda immagine. */
+    fun defang(text: String): String = app.eye.engine.LinkDefang.apply(text).text
+
+    /** Testo di accompagnamento della scheda immagine: verdetto, messaggio analizzato (oscurato) e motivi, senza link cliccabili. */
+    fun cardAlt(title: String, excerpt: String, reasons: List<String>): String = safeOutgoing(buildString {
+        append("Scheda: ").append(title).append('.')
+        if (excerpt.isNotBlank()) append("\nMessaggio analizzato: «").append(excerpt).append("»")
+        val why = reasons.take(3).joinToString(" ")
+        if (why.isNotBlank()) append('\n').append(why)
+    })
+
     fun kindOf(text: String, source: Source?, hasSingleUrl: Boolean): ContentKind = when {
         source == Source.QR || text.contains("[QR]") -> ContentKind.QR
         source == Source.OCR -> ContentKind.SCREENSHOT
@@ -81,13 +92,14 @@ object ShareTexts {
             sender = sender(text),
             domains = domains.distinct().take(3).map(Redactor::defang),
             amount = amounts.firstOrNull(),
-            excerpt = Redactor.preview(text, 160),
+            excerpt = defang(Redactor.preview(text, 160)),
         )
 
     /** Testo per «Manda a un familiare»: cosa è stato analizzato, verdetto, motivi, cosa fare. */
-    fun familyText(title: String, s: AnalyzedSummary, reasons: List<String>, steps: List<String>): String = buildString {
+    fun familyText(title: String, s: AnalyzedSummary, reasons: List<String>, steps: List<String>): String = safeOutgoing(buildString {
         appendLine("Ho controllato con Eye: ${s.line}.")
         appendLine("Verdetto: $title.")
+        if (s.excerpt.isNotBlank()) appendLine("Messaggio analizzato: «${s.excerpt}»")
         appendLine()
         appendLine("Motivi:")
         if (reasons.isEmpty()) appendLine(PRUDENT) else reasons.take(3).forEach { appendLine("- $it") }
@@ -96,7 +108,7 @@ object ShareTexts {
         steps.take(2).forEach { appendLine("- $it") }
         appendLine()
         append(FOOTER)
-    }
+    })
 
     fun familySubject(title: String, s: AnalyzedSummary): String = "Eye – $title: ${s.line}".take(120)
 
@@ -104,7 +116,7 @@ object ShareTexts {
     fun report(
         title: String, date: String, s: AnalyzedSummary, reasons: List<String>, steps: List<String>,
         rulesVersion: Long, disclaimer: String, fullText: String?,
-    ): String = buildString {
+    ): String = safeOutgoing(buildString {
         appendLine("Report Eye")
         appendLine("Data: $date")
         appendLine("Analizzato: ${s.line}")
@@ -122,7 +134,7 @@ object ShareTexts {
         appendLine("Versione regole: $rulesVersion")
         appendLine(disclaimer)
         append(FOOTER)
-    }
+    })
 
     /** Cosa pensa l'utente del messaggio («Secondo te questo messaggio è…»). */
     enum class UserView(val label: String) { SCAM("Una truffa"), LEGIT("Un messaggio legittimo"), OTHER("Altro") }

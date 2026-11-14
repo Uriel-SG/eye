@@ -125,4 +125,35 @@ class ShareTextsTest {
         assertTrue(block, block.contains("[nome]"))
         for (pii in listOf("Mario", "Rossi", "1234567", "mario@x.it", "IT60X05428", "https://brt")) assertFalse(pii, block.contains(pii))
     }
+
+    private val plainUrl = Regex("""(?i)(https?://|www\.|[a-z0-9-]+\.(com|it|top|xyz|ly))""")
+    private val aiReason = "Il sito poste-verifica-esempio.com imita Poste: apri www.esempio.it o bit.ly/abc000 solo dal sito ufficiale."
+    private val msg = "Gentile cliente, verifica su poste-verifica-esempio.com entro oggi o il conto sara' bloccato."
+
+    @Test fun cardAltHasPreviewRightAfterVerdictAndNoPlainUrl() {
+        val s = ShareTexts.summary(msg, Source.SHARE, listOf("poste-verifica-esempio.com"), emptyList(), emptyList())
+        val alt = ShareTexts.cardAlt("Probabile truffa", s.excerpt, listOf(aiReason))
+        val lines = alt.lines()
+        assertEquals("Scheda: Probabile truffa.", lines[0])
+        assertTrue(alt, lines[1].startsWith("Messaggio analizzato: «"))
+        assertTrue(alt, lines[1].contains("[link nascosto]")) // nell anteprima i link sono nascosti del tutto
+        assertFalse(alt, plainUrl.containsMatchIn(alt))
+        assertTrue(alt, alt.contains("www[.]esempio[.]it") && alt.contains("bit[.]ly/abc000"))
+    }
+
+    @Test fun familyTextHasPreviewAfterVerdictAndNoPlainUrl() {
+        val s = ShareTexts.summary(msg, Source.SHARE, listOf("poste-verifica-esempio.com"), emptyList(), emptyList())
+        val t = ShareTexts.familyText("Probabile truffa", s, listOf(aiReason), listOf("Non cliccare su esempio-banca.top"))
+        val lines = t.lines()
+        assertEquals("Verdetto: Probabile truffa.", lines[1])
+        assertTrue(t, lines[2].startsWith("Messaggio analizzato: «") && lines[2].contains("[link nascosto]"))
+        assertFalse(t, plainUrl.containsMatchIn(t))
+    }
+
+    @Test fun reportHasNoPlainUrlEvenWithFullMessage() {
+        val s = ShareTexts.summary(msg, Source.SHARE, listOf("poste-verifica-esempio.com"), emptyList(), emptyList())
+        val r = ShareTexts.report("Probabile truffa", "14 nov 2026", s, listOf(aiReason), emptyList(), 19, "Disclaimer.", "Vai su https://poste-verifica-esempio.com/x o www.esempio.it ora")
+        assertFalse(r, plainUrl.containsMatchIn(r))
+        assertTrue(r, r.contains("hxxps://poste-verifica-esempio[.]com/x"))
+    }
 }

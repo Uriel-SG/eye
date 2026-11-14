@@ -153,7 +153,7 @@ fun VerdictScreen(result0: CheckResult, vm: AppViewModel, onClose: () -> Unit, f
                 val uri = withContext(Dispatchers.Default) {
                     ShareCard.save(ctx, ShareCard.render(ctx, result, showMessage))
                 }
-                val alt = ctx.getString(R.string.verdict_card_alt, title, reasons.take(3).joinToString(" "))
+                val alt = ShareTexts.cardAlt(title, ReportBuilder.summary(result).excerpt, reasons)
                 ctx.startActivity(ShareCard.shareIntent(ctx, uri, alt).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
             } catch (_: Exception) {
                 Toast.makeText(ctx, cardFail, Toast.LENGTH_SHORT).show()
@@ -190,17 +190,6 @@ fun VerdictScreen(result0: CheckResult, vm: AppViewModel, onClose: () -> Unit, f
             }
         }
 
-        if (excKind > 0) {
-            EyeCard(borderOverride = BorderStroke(2.dp, MaterialTheme.extras.of(Level.NESSUN_SEGNALE).icon)) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(stringResource(R.string.exc_banner), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    TextButton(onClick = onExceptions, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.exc_banner_link)) }
-                }
-            }
-        }
-
-        if (result.truncated) Text(stringResource(R.string.truncated_warning), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
-
         @Composable fun PreviewCard() {
             EyeCard {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -232,6 +221,18 @@ fun VerdictScreen(result0: CheckResult, vm: AppViewModel, onClose: () -> Unit, f
                     }
                 }
             }
+        }
+        @Composable fun ExcAndTruncNotes() {
+            if (excKind > 0) {
+                EyeCard(borderOverride = BorderStroke(2.dp, MaterialTheme.extras.of(Level.NESSUN_SEGNALE).icon)) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(stringResource(R.string.exc_banner), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        TextButton(onClick = onExceptions, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.exc_banner_link)) }
+                    }
+                }
+            }
+
+            if (result.truncated) Text(stringResource(R.string.truncated_warning), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
         }
         @Composable fun WhyCard() {
             EyeCard {
@@ -316,15 +317,16 @@ fun VerdictScreen(result0: CheckResult, vm: AppViewModel, onClose: () -> Unit, f
             }
         }
 
+        // Subito dopo il verdetto: l'anteprima del messaggio analizzato, così è chiaro di cosa parla Eye
+        PreviewCard()
+        ExcAndTruncNotes()
         if (aiDecides) {
             AiExplanationCard()
             VtBlock()
             TodoCard()
-            PreviewCard()
             ProvenanceCard()
             FoundByEyeCard()
         } else {
-            PreviewCard()
             WhyCard()
             VtBlock()
             ProvenanceCard()
