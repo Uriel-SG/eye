@@ -162,4 +162,24 @@ class ActionVectorsTest {
         assertNotEquals(Level.NESSUN_SEGNALE, v.level)
         assertTrue(AlertPolicy.shouldAlert(v))
     }
+
+    // «from <marchio>» conta come presentazione solo a fine frase (firma), non come citazione in mezzo al testo
+    @Test fun quotedBrandAfterFromIsNotAMismatch() {
+        val t = "ExampleCloud: switching from Google Drive to ExampleCloud just got easier. Move your files from Google Drive into ExampleCloud in a few clicks. " +
+            "Your files go straight from Google's servers to ours. https://examplecloud-esempio.com/switch"
+        val v = fg(t, "ExampleCloud")
+        assertFalse(v.reasons.any { it.ruleId == "MIS-02" }, v.reasons.toString())
+    }
+
+    @Test fun yourBrandAccountStillFlagsMismatch() {
+        val v = fg("Il tuo account Google verrà sospeso oggi: verifica i dati su https://google-verifica-esempio.com")
+        assertTrue(v.reasons.any { it.ruleId == "MIS-02" }, v.reasons.toString())
+    }
+
+    @Test fun brandPresentationStillFlagsMismatch() {
+        val v = fg("Security notice from Google. Your account will be suspended, verify at https://google-verifica-esempio.com")
+        assertTrue(v.reasons.any { it.ruleId == "MIS-02" }, v.reasons.toString())
+        val it = fg("Messaggio da parte di Poste Italiane: il tuo conto e' sospeso, verifica su https://sito-non-ufficiale-esempio.example/accesso")
+        assertTrue(it.reasons.any { r -> r.ruleId == "MIS-02" }, it.reasons.toString())
+    }
 }

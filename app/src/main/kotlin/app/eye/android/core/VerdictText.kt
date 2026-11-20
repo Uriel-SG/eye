@@ -28,6 +28,8 @@ data class CheckResult(
     /** Solo avvisi della Protezione automatica: livello con cui e' partito l'avviso e codice del motivo (nessun contenuto). */
     val alertLevel: Level? = null,
     val alertReason: String? = null,
+    /** Parere dell'AI collegata gia' ottenuto al momento dell'avviso: all'apertura si riusa, senza una seconda chiamata. */
+    val alertOpinion: app.eye.android.data.SavedAiOpinion? = null,
 )
 
 fun Level.titleRes(): Int = when (this) {

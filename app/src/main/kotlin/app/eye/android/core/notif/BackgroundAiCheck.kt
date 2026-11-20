@@ -9,6 +9,7 @@ import app.eye.android.core.ai.AiOutcome
 import app.eye.android.core.ai.AiRequests
 import app.eye.android.core.ai.AiService
 import app.eye.android.data.KeyVault
+import app.eye.android.data.SavedAiOpinion
 import app.eye.engine.ActionVector
 import app.eye.engine.Level
 import app.eye.engine.Verdict
@@ -89,8 +90,11 @@ object BackgroundAiCheck {
         }
     }
 
+    /** Avviso deciso dall'AI: livello e parere (da conservare con l'avviso). */
+    class Result(val level: Level, val opinion: SavedAiOpinion)
+
     /** Bloccante (thread di lavoro del listener). Mai lancia. */
-    fun check(app: EyeApp, text: String, verdict: Verdict, limiter: AiCallLimiter? = null): Level? = try {
+    fun check(app: EyeApp, text: String, verdict: Verdict, limiter: AiCallLimiter? = null): Result? = try {
         if (!eligible(verdict)) null
         else {
             val st = runBlocking { app.container.settings.settings.first() }
@@ -102,7 +106,10 @@ object BackgroundAiCheck {
                 val safe = Redactor.redactKeepLinks(text)
                 val svc = AiService()
                 val host = AiRequests.build(cfg, "x")?.url?.let { runCatching { java.net.URI(it).host }.getOrNull() }
-                levelFor(AiVerifyRetry({ host != null && runCatching { java.net.InetAddress.getByName(host) }.isSuccess }).run { ms -> svc.ask(cfg, safe, quickMs = ms) })
+                val out = AiVerifyRetry({ host != null && runCatching { java.net.InetAddress.getByName(host) }.isSuccess }).run { ms -> svc.ask(cfg, safe, quickMs = ms) }
+                val level = levelFor(out)
+                val op = (out as? AiOutcome.Success)?.opinion
+                if (level == null || op == null) null else Result(level, SavedAiOpinion(op, st.aiProvider.id, cfg.model, System.currentTimeMillis(), auto = true))
             }
         }
     } catch (_: Exception) {

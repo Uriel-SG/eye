@@ -13,6 +13,7 @@ import app.eye.android.core.ai.AiOutcome
 import app.eye.android.core.ai.AiRequests
 import app.eye.android.core.ai.AiService
 import app.eye.android.data.KeyVault
+import app.eye.android.data.SavedAiOpinion
 import app.eye.android.data.VerdictJson
 import app.eye.engine.Level
 import app.eye.engine.Verdict
@@ -34,8 +35,10 @@ object AlertVerifier {
             val ctx = app.applicationContext
             val st = runBlocking { app.container.settings.settings.first() }
             val key = if (st.aiVerifyBeforeAlert && st.aiConfigured) st.aiKeyCipher?.let { KeyVault.decrypt(it) } else null
+            var model = st.aiModel
             val out: AiOutcome? = if (key == null) null else {
                 val cfg = AiConfig(st.aiProvider, st.aiModel, st.aiBaseUrl, key)
+                model = cfg.model
                 val safe = Redactor.redactKeepLinks(text)
                 val svc = AiService()
                 val host = AiRequests.build(cfg, "x")?.url?.let { runCatching { java.net.URI(it).host }.getOrNull() }
@@ -49,7 +52,10 @@ object AlertVerifier {
                     verdict.level.name, Redactor.preview(text), listOf(note) + verdict.reasons.map { it.text }, text, VerdictJson.encode(verdict),
                 )
             }
-            d
+            if (d is VerifyDecision.Alert) {
+                val op = (out as? AiOutcome.Success)?.opinion
+                if (op != null) d.copy(opinion = SavedAiOpinion(op, st.aiProvider.id, model, System.currentTimeMillis(), auto = true)) else d
+            } else d
         }
     } catch (_: Exception) {
         VerifyDecision.Alert(AlertReason.AI_ERROR)

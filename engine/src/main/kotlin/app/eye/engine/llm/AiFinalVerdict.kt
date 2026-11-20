@@ -23,7 +23,8 @@ object AiFinalVerdict {
     private fun blocked(v: Verdict, o: LlmOpinion?) =
         o == null || o.confidence.isNaN() || v.reasons.any { it.ruleId == UserExceptions.TRUSTED_ID || it.ruleId == REASON_ID }
 
-    private fun aiLevel(o: LlmOpinion) = when (o.verdict) {
+    /** Livello che corrisponde al parere dell'AI. */
+    fun aiLevel(o: LlmOpinion) = when (o.verdict) {
         LlmVerdict.TRUFFA -> Level.PROBABILE_TRUFFA
         LlmVerdict.SOSPETTO -> Level.SOSPETTO
         LlmVerdict.LEGITTIMO -> Level.NESSUN_SEGNALE
@@ -54,7 +55,22 @@ object AiFinalVerdict {
         return v.copy(level = l, reasons = v.reasons + Reason(REASON_ID, note, 0), actions = steps)
     }
 
-    /** L'AI "decide" (parere con confidenza alta e verdetto non gia' bloccato da eccezione/AI precedente): i suoi consigli valgono come "Cosa fare ora". */
+    /**
+     * L'AI "decide": parere con confidenza alta (o che alza il livello), non bloccato da eccezione/AI precedente, E il livello finale
+     * coincide col suo. Solo allora i suoi consigli valgono come "Cosa fare ora" (con segnali gravi che impediscono di abbassare no).
+     */
     private fun decides(v: Verdict, o: LlmOpinion): Boolean =
-        !blocked(v, o) && (o.confidence >= LegitGate.CONFIDENCE || raises(v, o))
+        !blocked(v, o) && finalLevel(v, o) == aiLevel(o) && (o.confidence >= LegitGate.CONFIDENCE || raises(v, o))
+
+    /** Perche' il parere dell'AI non ha cambiato il verdetto (solo per la scheda; mai un verdetto). */
+    enum class Disagreement { NONE, GRAVE_SIGNALS, LOW_CONFIDENCE }
+
+    /** [v] = verdetto prima del parere. NONE se l'AI e' d'accordo, se manca o se e' bloccata da un'eccezione dell'utente. */
+    fun disagreement(v: Verdict, opinion: LlmOpinion?): Disagreement {
+        if (opinion == null || blocked(v, opinion)) return Disagreement.NONE
+        val ai = aiLevel(opinion)
+        if (finalLevel(v, opinion) == ai) return Disagreement.NONE
+        return if (severity(ai) < severity(v.level) && opinion.confidence >= LegitGate.CONFIDENCE && LegitGate.hasGraveSignals(v)) Disagreement.GRAVE_SIGNALS
+        else Disagreement.LOW_CONFIDENCE
+    }
 }

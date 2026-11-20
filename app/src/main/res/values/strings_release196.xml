@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="analyzing_title">Analisi in corso…</string>
+    <string name="analyzing_cd">Analisi del messaggio in corso</string>
+    <string name="alert_downgraded_note">Questo messaggio aveva fatto partire un avviso. L\'analisi completa non lo conferma.</string>
+    <string name="ai_disagree_grave">L\'AI collegata ritiene il messaggio legittimo, ma Eye ha trovato segnali gravi: resta il verdetto di Eye.</string>
+    <string name="ai_disagree_low">Il parere dell\'AI collegata non è abbastanza sicuro per cambiare il verdetto: resta quello di Eye.</string>
+</resources>

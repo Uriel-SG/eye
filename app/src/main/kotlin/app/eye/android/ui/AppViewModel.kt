@@ -61,8 +61,9 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
     private val controller = CheckController(viewModelScope, useCase, Dispatchers.Default, refine = { refineResult(it) })
     val state: StateFlow<CheckState> = controller.state
 
-    fun onShared(text: String?, origin: String? = null, sender: String? = null, alertLevel: app.eye.engine.Level? = null, alertReason: String? = null) =
-        controller.onShared(text, origin, sender, alertLevel, alertReason)
+    fun onShared(text: String?, origin: String? = null, sender: String? = null, alertLevel: app.eye.engine.Level? = null, alertReason: String? = null,
+        alertOpinion: SavedAiOpinion? = null) =
+        controller.onShared(text, origin, sender, alertLevel, alertReason, alertOpinion)
     fun reset() = controller.reset()
     fun check(text: String, source: Source = Source.PASTE, alreadyTruncated: Boolean = false, provenance: ProvenanceReport? = null,
         nature: app.eye.engine.image.ImageNature = app.eye.engine.image.ImageNature.OTHER, hasQr: Boolean = false) =
@@ -276,7 +277,8 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
     /** Con una chiave AI e l'analisi automatica attiva decide l'AI collegata (la chiave ha la precedenza); altrimenti Nano come in 1.8.0. */
     private suspend fun refineResult(r: app.eye.android.core.CheckResult): app.eye.android.core.CheckResult {
         val st = settings.value
-        return if (st.aiConfigured && st.aiAutoAnalysis) refineWithAi(r, st) else refineWithNano(r)
+        // il parere conservato con un avviso vale sempre (anche con l'analisi automatica spenta): l'avviso e la scheda restano coerenti
+        return if (r.alertOpinion != null || (st.aiConfigured && st.aiAutoAnalysis)) refineWithAi(r, st) else refineWithNano(r)
     }
 
     private val _aiAutoFailed = MutableStateFlow(0)
@@ -291,6 +293,12 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
     private suspend fun refineWithAi(r: app.eye.android.core.CheckResult, st: app.eye.android.data.Settings): app.eye.android.core.CheckResult {
         val text = r.originalText
         if (text.isBlank()) return r
+        // avviso aperto: il parere dell'AI e' gia' stato ottenuto al momento dell'avviso, lo si riusa (stesso esito, nessuna attesa)
+        r.alertOpinion?.let { stored ->
+            _aiAutoFailed.value = 0
+            val nv = applyAutoOpinion(aiKey(text), r.historyId, r.verdict, stored)
+            return if (nv === r.verdict) r else r.copy(verdict = nv)
+        }
         _aiAnalyzing.value = true
         try {
             val nv = runAutoAi(text, r.historyId, r.verdict, st) ?: return r
@@ -310,6 +318,15 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
         }
     }
 
+    /** Parere automatico [saved] (appena ottenuto o conservato con l'avviso): in cronologia, nella sessione AI e nel verdetto finale ([AiFinalVerdict]). */
+    private suspend fun applyAutoOpinion(key: Int, historyId: Long?, verdict: app.eye.engine.Verdict, saved: SavedAiOpinion): app.eye.engine.Verdict {
+        historyId?.let { id -> runCatching { c.history.setAiOpinion(id, AiOpinionJson.encode(saved)) } }
+        _ai.value = AiSession(key, AiUiState.Done(AiOutcome.Success(saved.opinion), saved))
+        val nv = AiFinalVerdict.apply(verdict, saved.opinion.toLlm(), aiFinalNote(c.appContext, saved))
+        if (nv !== verdict) historyId?.let { id -> runCatching { c.history.setFinalLevel(id, nv.level.name) } }
+        return nv
+    }
+
     /** Analisi AI automatica; null se non riuscita (e' segnalata in [aiAutoFailed]). Mai propaga eccezioni. */
     private suspend fun runAutoAi(text: String, historyId: Long?, verdict: app.eye.engine.Verdict, st: app.eye.android.data.Settings): app.eye.engine.Verdict? {
         val failKey = aiKey(text)
@@ -326,12 +343,7 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
             val op = (outcome as? AiOutcome.Success)?.opinion
             if (op == null) { _aiAutoFailed.value = failKey; return null }
             _aiAutoFailed.value = 0
-            val saved = SavedAiOpinion(op, st.aiProvider.id, cfg.model, System.currentTimeMillis(), auto = true)
-            historyId?.let { id -> runCatching { c.history.setAiOpinion(id, AiOpinionJson.encode(saved)) } }
-            _ai.value = AiSession(failKey, AiUiState.Done(outcome, saved))
-            val nv = AiFinalVerdict.apply(verdict, op.toLlm(), aiFinalNote(c.appContext, saved))
-            if (nv !== verdict) historyId?.let { id -> runCatching { c.history.setFinalLevel(id, nv.level.name) } }
-            return nv
+            return applyAutoOpinion(failKey, historyId, verdict, SavedAiOpinion(op, st.aiProvider.id, cfg.model, System.currentTimeMillis(), auto = true))
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (_: Exception) {

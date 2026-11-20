@@ -68,10 +68,12 @@ internal class Ctx(
             val ps = presentationPatterns.computeIfAbsent(n) {
                 listOf(
                     "^[^\\p{L}\\p{N}]{0,15}$q(?:\\s{0,2}[:\\-|,]|\\s(?:ti |vi |la |le )?(?:informa|avvisa|comunica|ricorda|team|support|security|alert|notice))",
-                    "(?<!$l)(?:il tuo|la tua|i tuoi|le tue|il suo|la sua|i suoi|le sue|your|my)\\s(?:\\p{L}{1,15}\\s){0,2}$q(?!$l)",
+                    "(?<!$l)(?:il tuo|la tua|i tuoi|le tue|il suo|la sua|i suoi|le sue|your|my)\\s(?:(?!(?:from|to|into|onto|da|verso|in)\\s)\\p{L}{1,15}\\s){0,2}$q(?!$l)",
                     "(?<!$l)(?:account|conto|carta|profilo|abbonamento|membership|password|accesso|servizio)\\s$q(?!$l)",
                     "(?<!$l)$q\\s(?:team|support|security|customer|assistenza|supporto|servizio clienti|sicurezza|staff)(?!$l)",
-                    "(?<!$l)(?:da parte di|a nome di|from|on behalf of|team|supporto|assistenza|servizio clienti|ufficio)\\s$q(?!$l)",
+                    "(?<!$l)(?:da parte di|a nome di|on behalf of|team|supporto|assistenza|servizio clienti|ufficio)\\s$q(?!$l)",
+                    // «from X» solo come firma o intestazione (fine frase): «from Google Drive» e' una citazione, non chi scrive
+                    "(?<!$l)from\\s$q(?:\\s{0,2}[.,:;!\\n]|\\s*$)",
                     "(?:saluti|regards|sincerely|cordialmente)[,\\s]{1,3}(?:il |the )?(?:team |staff )?$q(?!$l)",
                 ).map { java.util.regex.Pattern.compile(it) }
             }

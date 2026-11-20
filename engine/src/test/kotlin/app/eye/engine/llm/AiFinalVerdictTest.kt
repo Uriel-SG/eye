@@ -82,4 +82,23 @@ class AiFinalVerdictTest {
         val low = v(Level.SOSPETTO, "URG-05")
         assertSame(low, fin(low, LlmOpinion(LlmVerdict.SOSPETTO, 0.79, "ok", listOf("x"))))
     }
+
+    @Test fun aiStepsIgnoredWhenGraveSignalsPreventLowering() {
+        val rules = v(Level.PROBABILE_TRUFFA, "MIS-02")
+        val o = LlmOpinion(LlmVerdict.LEGITTIMO, 0.95, "ok", listOf("Puoi ignorarlo"))
+        val r = fin(rules, o)
+        assertSame(rules, r)
+        assertEquals(listOf("azione"), r.actions)
+        assertEquals(AiFinalVerdict.Disagreement.GRAVE_SIGNALS, AiFinalVerdict.disagreement(rules, o))
+    }
+
+    @Test fun disagreementKinds() {
+        val o = op(LlmVerdict.LEGITTIMO, 0.6)
+        assertEquals(AiFinalVerdict.Disagreement.LOW_CONFIDENCE, AiFinalVerdict.disagreement(v(Level.SOSPETTO, "URG-05"), o))
+        assertEquals(AiFinalVerdict.Disagreement.LOW_CONFIDENCE, AiFinalVerdict.disagreement(v(Level.NESSUN_SEGNALE), op(LlmVerdict.SOSPETTO, 0.3)))
+        assertEquals(AiFinalVerdict.Disagreement.NONE, AiFinalVerdict.disagreement(v(Level.SOSPETTO, "URG-05"), op(LlmVerdict.LEGITTIMO, 0.9)))
+        assertEquals(AiFinalVerdict.Disagreement.NONE, AiFinalVerdict.disagreement(v(Level.SOSPETTO, "URG-05"), op(LlmVerdict.SOSPETTO, 0.4)))
+        assertEquals(AiFinalVerdict.Disagreement.NONE, AiFinalVerdict.disagreement(v(Level.SOSPETTO), null))
+        assertEquals(AiFinalVerdict.Disagreement.NONE, AiFinalVerdict.disagreement(v(Level.NESSUN_SEGNALE, "USR-01"), op(LlmVerdict.TRUFFA, 1.0)))
+    }
 }

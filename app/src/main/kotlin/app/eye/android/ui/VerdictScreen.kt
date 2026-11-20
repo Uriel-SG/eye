@@ -112,7 +112,14 @@ fun VerdictScreen(result0: CheckResult, vm: AppViewModel, onClose: () -> Unit, f
     val nanoV = if (autoAi != null) aiV else app.eye.engine.llm.LegitGate.applyNano(aiV, nanoOp)
     val v = app.eye.engine.llm.LlmCombiner.apply(nanoV, nanoOp)
     val nanoDecided = nanoOp != null && v.reasons.any { it.ruleId == app.eye.engine.llm.LegitGate.NANO_REASON_ID || it.ruleId == app.eye.engine.llm.LlmCombiner.REASON_ID }
-    val aiDecides = autoAi != null || nanoDecided // decide l'AI (chiave o Nano): scheda con spiegazione e consigli dell'AI in alto
+    // «Verdetto dell'AI collegata» solo se il livello finale e' quello dell'AI; altrimenti si dice perche' resta quello di Eye
+    val aiAgrees = autoAi != null && v.level == app.eye.engine.llm.AiFinalVerdict.aiLevel(autoAi.opinion.toLlm())
+    val disagreeRes = if (autoAi == null || aiAgrees) null else when (app.eye.engine.llm.AiFinalVerdict.disagreement(agedV, autoAi.opinion.toLlm())) {
+        app.eye.engine.llm.AiFinalVerdict.Disagreement.GRAVE_SIGNALS -> R.string.ai_disagree_grave
+        app.eye.engine.llm.AiFinalVerdict.Disagreement.LOW_CONFIDENCE -> R.string.ai_disagree_low
+        app.eye.engine.llm.AiFinalVerdict.Disagreement.NONE -> null
+    }
+    val aiDecides = (autoAi != null && aiAgrees) || nanoDecided // decide l'AI (chiave o Nano): scheda con spiegazione e consigli dell'AI in alto
     var foundOpen by remember { mutableStateOf(false) } // «Cosa aveva trovato Eye»: chiusa di default
     val result = if (v !== result0.verdict) result0.copy(verdict = v) else result0 // condivisione, report e PDF riflettono il verdetto aggiornato (eccezione, parere Nano)
     var excDialog by remember { mutableStateOf<app.eye.engine.ExceptionKind?>(null) }
@@ -178,14 +185,18 @@ fun VerdictScreen(result0: CheckResult, vm: AppViewModel, onClose: () -> Unit, f
                 LevelIcon(v.level, iconTint, Modifier.size(if (family) 72.dp else 48.dp), pupil)
                 Text(title, style = MaterialTheme.typography.displaySmall, color = colors.text)
                 Text(if (family) stringResource(v.level.familyLineRes()) else subtitle, style = MaterialTheme.typography.bodyLarge, color = colors.text)
-                if (autoAi != null) {
+                if (autoAi != null && aiAgrees) {
                     Text(stringResource(R.string.ai_final_header, stringResource(app.eye.android.core.ai.AiProvider.fromId(autoAi.providerId).labelRes())), style = MaterialTheme.typography.bodyMedium, color = colors.text)
+                } else if (disagreeRes != null) {
+                    Text(stringResource(disagreeRes), style = MaterialTheme.typography.bodyMedium, color = colors.text)
                 }
-                // nota diagnostica discreta: solo se il verdetto finale e' piu' basso di quello con cui e' partito l'avviso
+                // avviso partito a un livello piu' alto di quello finale: lo si dice con chiarezza, col motivo dell'avviso
                 val alertLv = result0.alertLevel
-                val reasonRes = app.eye.android.core.notif.AlertReason.parse(result0.alertReason)?.labelRes()
-                if (alertLv != null && reasonRes != null && v.level.ordinal > alertLv.ordinal) {
-                    Text(stringResource(reasonRes), style = MaterialTheme.typography.labelSmall, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, color = colors.text.copy(alpha = 0.75f))
+                if (alertLv != null && v.level.ordinal > alertLv.ordinal) {
+                    Text(stringResource(R.string.alert_downgraded_note), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = colors.text)
+                    app.eye.android.core.notif.AlertReason.parse(result0.alertReason)?.labelRes()?.let {
+                        Text(stringResource(it), style = MaterialTheme.typography.bodyMedium, color = colors.text)
+                    }
                 }
             }
         }

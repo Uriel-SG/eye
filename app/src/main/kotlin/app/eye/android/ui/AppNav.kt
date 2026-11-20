@@ -35,6 +35,7 @@ object Route {
     const val PASTE = "paste"
     const val QR = "qr"
     const val VERDICT = "verdict"
+    const val ANALYZING = "analyzing"
     const val CATALOG = "catalog"
     const val CARD = "catalog/{id}"
     const val HISTORY = "history"
@@ -85,11 +86,22 @@ fun AppNav(vm: AppViewModel) {
     LaunchedEffect(qr) {
         if (qr != null && current != Route.QR) nav.navigate(Route.QR) { launchSingleTop = true }
     }
+    // Controllo in corso (anche da avviso): si apre subito la schermata di analisi, tranne dove c'e' gia' l'indicatore (Incolla, QR).
+    LaunchedEffect(state) {
+        if (state is CheckState.Running && current != Route.PASTE && current != Route.QR && current != Route.ANALYZING) {
+            nav.navigate(Route.ANALYZING) { launchSingleTop = true }
+        }
+    }
     LaunchedEffect(state) {
         if (state is CheckState.Done) nav.navigate(Route.VERDICT) {
             if (current == Route.PASTE) popUpTo(Route.PASTE) { inclusive = true }
+            else popUpTo(Route.ANALYZING) { inclusive = true } // Indietro dal verdetto non torna all'attesa
             launchSingleTop = true
         }
+    }
+    // Esito senza verdetto (errore, testo troppo lungo) o controllo annullato: via dalla schermata di attesa
+    LaunchedEffect(state, current) {
+        if (current == Route.ANALYZING && state !is CheckState.Running && state !is CheckState.Done) nav.popBackStack(Route.ANALYZING, true)
     }
 
     val showBar = current in Tabs.map { it.route }
@@ -146,6 +158,7 @@ fun AppNav(vm: AppViewModel) {
             composable(Route.QR) {
                 qr?.let { q -> QrScreen(q, state, aiBusy = vm.aiAnalyzing.collectAsState().value, onCheck = { vm.check(q.raw, Source.QR) }, onBack = { vm.clearQr(); vm.reset(); nav.popBackStack() }) }
             }
+            composable(Route.ANALYZING) { AnalyzingScreen(vm) { nav.popBackStack() } }
             composable(Route.VERDICT) {
                 val s = state
                 if (s is CheckState.Done) VerdictScreen(s.result, vm, onClose = { vm.reset(); nav.popBackStack(Route.HOME, false) }, onExceptions = { nav.navigate(Route.EXCEPTIONS) })

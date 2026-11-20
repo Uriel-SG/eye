@@ -6,6 +6,7 @@ import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import app.eye.android.BuildConfig
 import app.eye.android.EyeApp
+import app.eye.android.data.AiOpinionJson
 import app.eye.engine.Input
 import app.eye.engine.Source
 import kotlinx.coroutines.CoroutineDispatcher
@@ -79,10 +80,11 @@ class EyeNotificationListener : NotificationListenerService() {
             resolvedLinks = app.container.shortLinks.expandBlocking(text, background = true)))
         if (!NotificationGate.shouldAlert(verdict)) {
             // le regole non avvisano: con l'AI collegata, un messaggio dubbio che chiede un'azione puo' ricevere comunque un avviso
-            val aiLevel = BackgroundAiCheck.check(app, text, verdict) ?: return
+            val bg = BackgroundAiCheck.check(app, text, verdict) ?: return
+            val aiLevel = bg.level
             if (!g.allowAlert(n.pkg)) return
             val aid = alertId(n.pkg, n.title)
-            if (!app.container.alerts.put(aid, text, aiLevel.name, n.pkg, n.title?.toString()?.take(120), AlertReason.AI_BACKGROUND.name)) return
+            if (!app.container.alerts.put(aid, text, aiLevel.name, n.pkg, n.title?.toString()?.take(120), AlertReason.AI_BACKGROUND.name, aiOpinionJson = AiOpinionJson.encode(bg.opinion))) return
             if (!AlertVerifier.publish(app, aid, aiLevel, n.pkg, loud = g.allowLoud())) app.container.alerts.discard(aid)
             return
         }
@@ -91,9 +93,10 @@ class EyeNotificationListener : NotificationListenerService() {
         if (decision is VerifyDecision.Dismiss) return
         if (!g.allowAlert(n.pkg)) return
         val id = alertId(n.pkg, n.title)
-        val reason = (decision as? VerifyDecision.Alert)?.reason?.name
+        val alert = decision as? VerifyDecision.Alert
+        val reason = alert?.reason?.name
         // cifrato su disco finché l'avviso non è aperto o scartato; senza cifratura non si avvisa (mai testo in chiaro)
-        if (!app.container.alerts.put(id, text, verdict.level.name, n.pkg, n.title?.toString()?.take(120), reason)) return
+        if (!app.container.alerts.put(id, text, verdict.level.name, n.pkg, n.title?.toString()?.take(120), reason, aiOpinionJson = alert?.opinion?.let(AiOpinionJson::encode))) return
         if (!AlertVerifier.publish(app, id, verdict.level, n.pkg, loud = g.allowLoud())) app.container.alerts.discard(id)
     }
 

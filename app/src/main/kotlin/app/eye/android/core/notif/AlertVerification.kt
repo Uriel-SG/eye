@@ -19,7 +19,8 @@ sealed interface VerifyDecision {
     /** L'AI ritiene il messaggio legittimo (confidenza alta): nessun avviso. */
     data object Dismiss : VerifyDecision
     /** Avviso subito. */
-    data class Alert(val reason: AlertReason) : VerifyDecision
+    /** [opinion]: parere AI gia' ottenuto durante la verifica (riusato all'apertura dell'avviso, nessuna seconda chiamata). */
+    data class Alert(val reason: AlertReason, val opinion: app.eye.android.data.SavedAiOpinion? = null) : VerifyDecision
 }
 
 /** Logica pura (senza Android) che trasforma l'esito della verifica AI in una decisione. Fail-safe: nel dubbio si avvisa. */

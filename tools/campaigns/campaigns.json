@@ -1,6 +1,58 @@
 {
   "campaigns": [
     {
+      "id": "app-io-falso-aggiornamento-malware",
+      "title": "Falso aggiornamento dell'app IO: malware che ruba i dati della banca",
+      "category": "malware",
+      "summary": "Un falso sito che imita l'Agenzia delle Entrate invita a scaricare un «aggiornamento obbligatorio» dell'app IO. Il file è un'app malevola per Android (APK) che può rubare le credenziali della banca, leggere SMS e codici di conferma e prendere il controllo del telefono. L'app IO e i sistemi dell'Agenzia non sono stati violati.",
+      "signals": [
+        "Un messaggio o un sito chiede di aggiornare l'app IO scaricando un file",
+        "Il link scarica un file .apk invece di aprire Google Play",
+        "Il sito sembra quello dell'Agenzia delle Entrate ma l'indirizzo non è agenziaentrate.gov.it",
+        "Una schermata di «aggiornamento obbligatorio» con la scritta «Verified by Google Play Protect»"
+      ],
+      "actions": [
+        "Aggiorna l'app IO solo da Google Play o dall'App Store",
+        "Non installare file .apk ricevuti da link, messaggi o siti",
+        "Se l'hai installato, scollega il telefono dalla rete, chiama la tua banca e fatti aiutare a ripristinarlo",
+        "Segnala la truffa alla Polizia Postale"
+      ],
+      "example": "«Agenzia delle Entrate: aggiornamento obbligatorio dell'app IO. Scarica la nuova versione da https://io-aggiornamento.example/io.apk»",
+      "firstSeen": "2026-11-17",
+      "updatedAt": "2026-11-19",
+      "source": {
+        "name": "Agenzia delle Entrate",
+        "url": "https://www.agenziaentrate.gov.it/portale/-/nuova-campagna-di-phishing-per-rubare-i-dati-degli-utenti.-online-un-falso-sito-dell-agenzia-delle-entrate-ecco-come-difendersi"
+      },
+      "status": "in_corso"
+    },
+    {
+      "id": "agenzia-entrate-false-notifiche-amministrative",
+      "title": "Agenzia delle Entrate: false email di «notifica amministrativa»",
+      "category": "phishing",
+      "summary": "Email che annunciano una «nuova notifica elettronica» dell'Agenzia delle Entrate, con protocolli, codici atto e riferimenti normativi per sembrare ufficiali. Il link sembra portare al portale dell'Agenzia ma apre un sito esterno che chiede dati personali e credenziali di accesso.",
+      "signals": [
+        "Email inattesa che annuncia una notifica o un atto da consultare online",
+        "Numeri di protocollo, codici atto e riferimenti a leggi per sembrare ufficiale",
+        "Il link porta a un sito che non è agenziaentrate.gov.it",
+        "Ti chiedono credenziali di accesso o dati personali per vedere la notifica"
+      ],
+      "actions": [
+        "Non inserire credenziali o dati da link ricevuti per email",
+        "Controlla le comunicazioni entrando da solo nel sito agenziaentrate.gov.it",
+        "In caso di dubbio contatta l'ufficio territoriale con i recapiti del sito ufficiale",
+        "Segnala la truffa alla Polizia Postale"
+      ],
+      "example": "«Agenzia delle Entrate – Nuova notifica elettronica. Protocollo n. 000000/2026. Consulta l'atto: https://notifiche-entrate-esempio.example»",
+      "firstSeen": "2026-10-22",
+      "updatedAt": "2026-10-22",
+      "source": {
+        "name": "Agenzia delle Entrate",
+        "url": "https://www.agenziaentrate.gov.it/portale/avviso-del-22-ottobre-2026-nuova-campagna-di-phishing-con-false-notifiche-amministrative"
+      },
+      "status": "in_corso"
+    },
+    {
       "id": "whatsapp-concorso-ballerina",
       "title": "WhatsApp: falso concorso di danza per rubare l'account",
       "category": "whatsapp",

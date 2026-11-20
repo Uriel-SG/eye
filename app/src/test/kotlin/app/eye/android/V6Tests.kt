@@ -77,6 +77,19 @@ class V6Tests {
         assertEquals("vecchio", old.text); assertNull(old.origin); assertNull(old.sender)
     }
 
+    @Test fun alertKeepsEncryptedAiOpinionAndOldAlertsHaveNone() {
+        val b = MapBackend()
+        val s = AlertStore(b, Rot)
+        val saved = SavedAiOpinion(AiOpinion(AiJudgement.NESSUN_SEGNALE, listOf("motivo esempio"), "consiglio", 0.6), "p", "m", 5L, auto = true)
+        assertTrue(s.put(21, "testo", "SOSPETTO", "com.esempio.app", "Mittente", "AI_LOW_CONF", aiOpinionJson = AiOpinionJson.encode(saved)))
+        assertFalse(b.m.values.any { it.contains("motivo esempio") }) // cifrato come il testo
+        val a = s.takeAlert(21)!!
+        assertEquals(saved, AiOpinionJson.decode(a.aiOpinionJson!!))
+        assertNull(s.takeAlert(21))
+        assertTrue(s.put(22, "testo", "SOSPETTO"))
+        assertNull(s.takeAlert(22)!!.aiOpinionJson)
+    }
+
     @Test fun dismissDeletesAndUnknownIdsAreSafe() {
         val b = MapBackend()
         val s = AlertStore(b, Rot)
