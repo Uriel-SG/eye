@@ -22,6 +22,18 @@ class FakeDao : HistoryDao {
     val rows = MutableStateFlow<List<HistoryEntity>>(emptyList())
     private var next = 1L
     override fun observeAll(): Flow<List<HistoryEntity>> = rows
+    var queries = 0
+    override fun observeById(id: Long): Flow<HistoryEntity?> = rows.map { l -> queries++; l.firstOrNull { it.id == id } }
+    override suspend fun getById(id: Long): HistoryEntity? = rows.value.firstOrNull { it.id == id }
+    private fun visible(l: List<HistoryEntity>, th: Long, mode: Int) =
+        l.filter { (it.saved || it.createdAt >= th) && (mode == 0 || (mode == 1 && it.saved) || (mode == 2 && it.exceptionKind > 0)) }.sortedByDescending { it.createdAt }
+    override fun observeList(threshold: Long, mode: Int, limit: Int): Flow<List<app.eye.android.data.HistoryListItem>> =
+        rows.map { l -> visible(l, threshold, mode).take(limit).map { app.eye.android.data.HistoryListItem(it.id, it.createdAt, it.level, it.preview, it.reasons, it.saved, it.exceptionKind) } }
+    override fun observeSearchRows(threshold: Long, mode: Int): Flow<List<app.eye.android.data.HistorySearchRow>> =
+        rows.map { l -> visible(l, threshold, mode).map { app.eye.android.data.HistorySearchRow(it.id, it.createdAt, it.level, it.preview, it.reasons, it.saved, it.exceptionKind, it.fullText) } }
+    override fun observeCount(threshold: Long): Flow<Int> = rows.map { l -> l.count { it.saved || it.createdAt >= threshold } }
+    override fun observeSavedCount(): Flow<Int> = rows.map { l -> l.count { it.saved } }
+    override suspend fun chunkAfter(afterId: Long, limit: Int): List<HistoryEntity> = rows.value.filter { it.id > afterId }.sortedBy { it.id }.take(limit)
     override fun observeSince(threshold: Long): Flow<List<HistoryEntity>> =
         rows.map { l -> l.filter { it.saved || it.createdAt >= threshold } }
     override suspend fun insert(e: HistoryEntity): Long { val id = next++; rows.value += e.copy(id = id); return id }

@@ -42,7 +42,9 @@ import app.eye.engine.Source
 import app.eye.engine.image.ImageNatureDetector
 import app.eye.engine.provenance.ProvenanceReport
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -54,8 +56,12 @@ import kotlinx.coroutines.withContext
 class AppViewModel(private val c: AppContainer) : ViewModel() {
     val settings: StateFlow<Settings> = c.settings.settings
         .stateIn(viewModelScope, SharingStarted.Eagerly, Settings())
-    val history: StateFlow<List<HistoryEntity>> = c.history.observe()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    /** Voce di cronologia singola (verdetto e schede): decifra una sola riga, fuori dal thread principale. */
+    fun historyEntry(id: Long?): Flow<HistoryEntity?> = if (id == null) flowOf(null) else c.history.observeEntry(id)
+    /** Elenco paginato con filtro e ricerca: nessuna decifratura senza ricerca. */
+    fun historyPage(filter: app.eye.android.data.HistoryFilter, query: String, limit: Int): Flow<app.eye.android.data.HistoryListPage> =
+        c.history.observePage(filter, query, limit)
+    val historyCounts: Flow<app.eye.android.data.HistoryCounts> get() = c.history.observeCounts()
 
     private val useCase = CheckUseCase(c.checker, c.history, { c.settings.settings.first().saveHistory }, expand = { c.shortLinks.expand(it) })
     private val controller = CheckController(viewModelScope, useCase, Dispatchers.Default, refine = { refineResult(it) })
@@ -157,7 +163,7 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
             if (outcome is AiOutcome.Success) {
                 // un parere richiesto a mano NON e' mai "auto": non cambia il verdetto. Se l'analisi aveva gia' il parere
                 // automatico (che decide il verdetto) quello resta salvato e il nuovo si vede solo in questa schermata.
-                val prevAuto = historyId?.let { id -> history.value.firstOrNull { it.id == id }?.aiOpinion }?.let(AiOpinionJson::decode)?.auto == true
+                val prevAuto = historyId?.let { id -> c.history.get(id)?.aiOpinion }?.let(AiOpinionJson::decode)?.auto == true
                 saved = ManualAi.opinion(outcome.opinion, st.aiProvider.id, model, System.currentTimeMillis())
                 if (historyId != null && ManualAi.persist(prevAuto)) runCatching { c.history.setAiOpinion(historyId, AiOpinionJson.encode(saved)) }
             }
@@ -468,7 +474,7 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
     val campaignStaleDays: StateFlow<Long?> = c.campaignStaleDays
 
     /** Impostazioni › Info: versione regole, ultimo aggiornamento e consistenza dell'elenco siti malevoli. */
-    class FeedInfo(val rulesVersion: Long, val lastUpdate: Long, val blocklist: app.eye.android.AppContainer.BlocklistSummary?, val numbers: app.eye.android.AppContainer.BlocklistSummary? = null, val modelVersion: Long = 0L)
+    class FeedInfo(val rulesVersion: Long, val lastUpdate: Long, val blocklist: app.eye.android.AppContainer.BlocklistSummary?, val numbers: app.eye.android.AppContainer.BlocklistSummary? = null, val modelVersion: Long = 0L, val numbersPublished: Boolean? = null)
     private val _feedInfo = MutableStateFlow(FeedInfo(c.rulesVersion.value, c.feedState.lastFeedUpdate(), null))
     val feedInfo: StateFlow<FeedInfo> = _feedInfo
     /** Rilegge le informazioni (carica l'elenco: fuori dal main thread). */
@@ -477,7 +483,7 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
             val bl = withContext(Dispatchers.IO) { runCatching { c.blocklistSummary() }.getOrNull() }
             val nm = withContext(Dispatchers.IO) { runCatching { c.numberlistSummary() }.getOrNull() }
             val mv = withContext(Dispatchers.IO) { runCatching { c.modelVersion() }.getOrDefault(0L) }
-            _feedInfo.value = FeedInfo(c.rulesVersion.value, c.feedState.lastFeedUpdate(), bl, nm, mv)
+            _feedInfo.value = FeedInfo(c.rulesVersion.value, c.feedState.lastFeedUpdate(), bl, nm, mv, c.feedState.numbersPublished())
         }
     }
     fun setRetention(r: app.eye.android.data.HistoryRetention) = viewModelScope.launch { c.settings.setRetention(r); c.history.purge() }

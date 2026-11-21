@@ -143,4 +143,10 @@ class AppContainer(context: Context) {
         db.history(), crypto = app.eye.android.data.HistoryVault,
         retentionDays = settings.settings.map { it.retention.days }.distinctUntilChanged(),
     )
+
+    /** Pulizia della cronologia (secondo la conservazione scelta) e degli avvisi orfani: all'avvio, ogni giorno, al ritorno in primo piano. */
+    suspend fun purgeStorage() {
+        history.purge()
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { alerts.purge() }
+    }
 }

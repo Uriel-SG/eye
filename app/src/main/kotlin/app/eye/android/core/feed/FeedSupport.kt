@@ -27,6 +27,8 @@ class PrefsFeedState(context: Context) : FeedState {
     override fun setLastFeedUpdate(t: Long) { p.edit().putLong("feeds_updated", t).apply() }
     override fun rejectedModel() = p.getLong("model_rejected", 0L)
     override fun setRejectedModel(version: Long) { p.edit().putLong("model_rejected", version).apply() }
+    override fun numbersPublished(): Boolean? = if (p.contains("numbers_published")) p.getBoolean("numbers_published", false) else null
+    override fun setNumbersPublished(v: Boolean) { p.edit().putBoolean("numbers_published", v).apply() }
     override fun clear() { p.edit().clear().apply() }
 }
 
@@ -39,5 +41,23 @@ object NewCampaigns {
         if (seen == null) return emptyList()
         return campaigns.filter { it.status == "in_corso" && it.id !in seen && it.id !in notified }
             .sortedByDescending { it.updatedAt }.take(max)
+    }
+}
+
+/** Come mostrare lo stato dell'elenco numeri spam in Impostazioni. */
+enum class NumbersStatus {
+    /** Elenco installato: si mostrano voci e data. */
+    INSTALLED,
+    /** Pubblicato sul sito ma non ancora scaricato: il download e' automatico. */
+    PENDING_DOWNLOAD,
+    /** L'indice del sito non lo elenca (o non e' ancora stato verificato): niente promessa di download. */
+    NOT_AVAILABLE;
+
+    companion object {
+        fun of(installed: Boolean, publishedInIndex: Boolean?): NumbersStatus = when {
+            installed -> INSTALLED
+            publishedInIndex == true -> PENDING_DOWNLOAD
+            else -> NOT_AVAILABLE
+        }
     }
 }

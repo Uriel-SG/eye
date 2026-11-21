@@ -133,8 +133,9 @@ class HistoryAndNavTest {
         assertEquals(text, read.fullText)
         assertEquals(verdict, VerdictJson.decode(read.verdictJson))
         crypto.alive = false // chiave Keystore invalidata
-        assertTrue(repo.observe().first().isEmpty())
-        assertEquals(1, repo.purge())
+        val afterRestart = HistoryRepository(dao, crypto) // la cache dei testi decifrati vive solo nel processo
+        assertTrue(afterRestart.observe().first().isEmpty())
+        assertEquals(1, afterRestart.purge())
         assertTrue(dao.rows.value.isEmpty())
     }
 }

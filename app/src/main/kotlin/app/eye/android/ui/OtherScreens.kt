@@ -52,6 +52,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -67,24 +69,34 @@ import app.eye.android.BuildConfig
 import app.eye.android.R
 import app.eye.android.core.titleRes
 import app.eye.android.data.HistoryEntity
+import app.eye.android.data.HistoryFilter
+import app.eye.android.data.HistoryListItem
+import app.eye.android.data.HistoryListPage
+import app.eye.android.data.HistoryCounts
 import app.eye.android.ui.theme.extras
 import app.eye.engine.Level
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
 
-private enum class HistoryFilter { ALL, SAVED, EXCEPTIONS }
+
+private const val HISTORY_PAGE = 50
 
 @Composable
 fun HistoryScreen(vm: AppViewModel, onOpen: (Long) -> Unit) {
-    val items by vm.history.collectAsState()
     val settings by vm.settings.collectAsState()
     var confirmAll by remember { mutableStateOf(false) }
     var filter by remember { mutableStateOf(HistoryFilter.ALL) }
     LaunchedEffect(Unit) { vm.purgeHistory() }
     var query by remember { mutableStateOf("") }
-    // ricerca sul testo già decifrato in memoria: nessun indice su disco
-    val shown = items.filter { (filter == HistoryFilter.ALL || (filter == HistoryFilter.SAVED && it.saved) || (filter == HistoryFilter.EXCEPTIONS && it.exceptionKind > 0)) && app.eye.android.core.HistorySearch.matches(query, it.fullText, it.preview, it.reasons) }
+    // la ricerca parte dopo una breve pausa di digitazione; svuotarla e' immediato
+    var activeQuery by remember { mutableStateOf("") }
+    LaunchedEffect(query) { if (query.isNotBlank()) kotlinx.coroutines.delay(250); activeQuery = query }
+    // elenco a pagine: si caricano e si decifrano (solo per la ricerca) le sole voci richieste, fuori dal thread principale
+    var limit by remember(filter, activeQuery) { mutableIntStateOf(HISTORY_PAGE) }
+    val page by remember(filter, activeQuery, limit) { vm.historyPage(filter, activeQuery, limit) }.collectAsState(HistoryListPage.EMPTY)
+    val counts by remember { vm.historyCounts }.collectAsState(HistoryCounts(0, 0))
+    val shown = page.items
 
     ScreenScaffold(stringResource(R.string.history_title), scroll = false, backdrop = true) { pad ->
         LazyColumn(Modifier.fillMaxSize().padding(pad), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -117,7 +129,8 @@ fun HistoryScreen(vm: AppViewModel, onOpen: (Long) -> Unit) {
             items(shown, key = { it.id }) { e ->
                 HistoryRow(e, onOpen = { onOpen(e.id) }, onDelete = { vm.deleteHistory(e.id) }, onToggleSaved = { vm.setSaved(e.id, !e.saved) })
             }
-            if (items.isNotEmpty()) item {
+            if (page.hasMore) item(key = "more") { LaunchedEffect(shown.size) { limit += HISTORY_PAGE } }
+            if (counts.total > 0) item {
                 OutlinedButton(
                     onClick = { confirmAll = true },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
@@ -125,7 +138,7 @@ fun HistoryScreen(vm: AppViewModel, onOpen: (Long) -> Unit) {
             }
         }
     }
-    if (confirmAll) ClearHistoryDialog(items.any { it.saved }, { confirmAll = false }) { vm.deleteAllHistory(it); confirmAll = false }
+    if (confirmAll) ClearHistoryDialog(counts.saved > 0, { confirmAll = false }) { vm.deleteAllHistory(it); confirmAll = false }
 }
 
 /** «Cancella tutto»: chiede se includere anche le analisi salvate (di default no). */
@@ -154,7 +167,7 @@ private fun ClearHistoryDialog(hasSaved: Boolean, onDismiss: () -> Unit, onConfi
 }
 
 @Composable
-private fun HistoryRow(e: HistoryEntity, onOpen: () -> Unit, onDelete: () -> Unit, onToggleSaved: () -> Unit) {
+private fun HistoryRow(e: HistoryListItem, onOpen: () -> Unit, onDelete: () -> Unit, onToggleSaved: () -> Unit) {
     val level = runCatching { Level.valueOf(e.level) }.getOrDefault(Level.SOSPETTO)
     val colors = MaterialTheme.extras.of(level)
     val exc = e.exceptionKind
@@ -187,12 +200,13 @@ private fun HistoryRow(e: HistoryEntity, onOpen: () -> Unit, onDelete: () -> Uni
 /** Riapre il verdetto completo di un controllo salvato; il testo si mostra oscurato finché l'utente non lo scopre. */
 @Composable
 fun HistoryDetailScreen(vm: AppViewModel, id: Long, onBack: () -> Unit, onExceptions: () -> Unit = {}) {
-    val items by vm.history.collectAsState()
-    val e = items.firstOrNull { it.id == id }
+    var loaded by remember(id) { mutableStateOf(false) }
+    val entry by produceState<HistoryEntity?>(null, id) { vm.historyEntry(id).collect { value = it; loaded = true } }
+    val e = entry
     val verdict = e?.let { app.eye.android.data.VerdictJson.decode(it.verdictJson) }
     if (e == null || verdict == null) {
         ScreenScaffold(stringResource(R.string.history_detail_title), onBack = onBack) {
-            Text(stringResource(R.string.history_detail_missing), style = MaterialTheme.typography.bodyLarge)
+            if (loaded) Text(stringResource(R.string.history_detail_missing), style = MaterialTheme.typography.bodyLarge)
         }
         return
     }
@@ -313,7 +327,7 @@ fun SettingsScreen(vm: AppViewModel, onBack: (() -> Unit)?, onAutoInfo: () -> Un
         val nm = feedInfo.numbers
         InfoRow(
             stringResource(R.string.info_numbers_title),
-            if (nm == null) stringResource(R.string.info_numbers_none) else {
+            if (nm == null) stringResource(if (app.eye.android.core.feed.NumbersStatus.of(false, feedInfo.numbersPublished) == app.eye.android.core.feed.NumbersStatus.PENDING_DOWNLOAD) R.string.info_numbers_none else R.string.info_numbers_unavailable) else {
                 val n = java.text.NumberFormat.getIntegerInstance(java.util.Locale.ITALY).format(nm.entries)
                 val day = nm.issuedAt?.let { runCatching { dateFmt.format(java.util.Date(java.time.Instant.parse(it).toEpochMilli())) }.getOrNull() } ?: "?"
                 stringResource(R.string.info_numbers_value, n, day)

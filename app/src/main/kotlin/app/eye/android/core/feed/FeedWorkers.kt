@@ -91,3 +91,28 @@ object FeedScheduler {
         wm.enqueueUniquePeriodicWork(ALERTS, ExistingPeriodicWorkPolicy.KEEP, req)
     }
 }
+
+/**
+ * Pulizia giornaliera anche a processo vivo (il servizio notifiche lo tiene attivo per settimane): cronologia oltre la
+ * conservazione scelta («Sempre» = niente) e avvisi orfani. Nessun vincolo di rete.
+ */
+class HistoryPurgeWorker(ctx: Context, p: WorkerParameters) : CoroutineWorker(ctx, p) {
+    override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
+        runCatching { applicationContext.container.purgeStorage() }
+        Result.success()
+    }
+}
+
+object PurgeScheduler {
+    private const val NAME = "eye_history_purge"
+    fun schedule(ctx: Context) {
+        val req = PeriodicWorkRequestBuilder<HistoryPurgeWorker>(24, TimeUnit.HOURS).build()
+        WorkManager.getInstance(ctx).enqueueUniquePeriodicWork(NAME, ExistingPeriodicWorkPolicy.KEEP, req)
+    }
+}
+
+/** Decide se rifare la pulizia al ritorno in primo piano: al massimo una volta al giorno. */
+object PurgeThrottle {
+    const val DAY_MS = 24L * 60 * 60 * 1000
+    fun due(lastMs: Long, nowMs: Long): Boolean = lastMs <= 0L || nowMs - lastMs >= DAY_MS || nowMs < lastMs
+}

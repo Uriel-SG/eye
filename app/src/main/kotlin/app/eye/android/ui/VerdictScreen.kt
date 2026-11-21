@@ -139,8 +139,7 @@ fun VerdictScreen(result0: CheckResult, vm: AppViewModel, onClose: () -> Unit, f
     var pdfDialog by remember { mutableStateOf(false) }
 
     var createdForBookmark by remember { mutableStateOf(false) }
-    val history by vm.history.collectAsState()
-    val entry = history.firstOrNull { it.id == entryId }
+    val entry by rememberHistoryEntry(vm, entryId)
     val saved = entry?.saved == true
     // eccezione: voce marcata in cronologia oppure motivo USR-01/USR-02 nel verdetto
     val excKind = entry?.exceptionKind?.takeIf { it > 0 } ?: CheckUseCase.exceptionKindOf(v)

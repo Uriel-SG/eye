@@ -154,9 +154,9 @@ private fun nanoFinal(v: Verdict, op: LlmOpinion?): Verdict = LegitGate.applyNan
 /** Parere Nano salvato nella voce di cronologia [historyId], se c'e' (decifrato dal repository). */
 @Composable
 private fun rememberStoredNano(vm: AppViewModel, historyId: Long?): LlmOpinion? {
-    val history by vm.history.collectAsState()
+    val entry by rememberHistoryEntry(vm, historyId)
     if (historyId == null) return null
-    return history.firstOrNull { it.id == historyId }?.nanoOpinion?.let(NanoOpinionJson::decode)
+    return entry?.nanoOpinion?.let(NanoOpinionJson::decode)
 }
 
 /** Parere Nano valido per [text]: quello appena ricevuto, altrimenti quello salvato con la voce di cronologia. */

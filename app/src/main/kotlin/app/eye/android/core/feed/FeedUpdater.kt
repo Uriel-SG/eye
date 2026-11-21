@@ -30,6 +30,9 @@ interface FeedState {
     /** Ultima versione del modello AI scartata (download corrotto o autotest fallito): non si riprova finche' non ne esce una piu' nuova. */
     fun rejectedModel(): Long = 0L
     fun setRejectedModel(version: Long) {}
+    /** L'indice del sito elenca l'elenco numeri spam? null = non ancora verificato. */
+    fun numbersPublished(): Boolean? = null
+    fun setNumbersPublished(v: Boolean) {}
     fun clear()
 }
 
@@ -151,6 +154,7 @@ class FeedUpdater(
             is Idx.New -> i
         }
         val entry = idx.index.numbers
+        state.setNumbersPublished(entry != null)
         if (entry == null || entry.version <= store.installedVersion()) {
             state.setEtag(NUMBERS, idx.etag)
             return FeedResult.UpToDate

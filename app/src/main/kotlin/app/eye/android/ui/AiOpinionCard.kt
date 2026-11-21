@@ -96,9 +96,9 @@ fun AiSecondOpinion(vm: AppViewModel, text: String, rulesLevel: Level, historyId
 @Composable
 fun autoAiFor(vm: AppViewModel, text: String, historyId: Long?, rules: app.eye.engine.Verdict? = null): SavedAiOpinion? {
     val session by vm.ai.collectAsState()
-    val history by vm.history.collectAsState()
+    val entry by rememberHistoryEntry(vm, historyId)
     val live = (if (session.key == aiKey(text)) session.state else null) as? AiUiState.Done
-    val stored = historyId?.let { id -> history.firstOrNull { it.id == id }?.aiOpinion }?.let(AiOpinionJson::decode)
+    val stored = entry?.aiOpinion?.let(AiOpinionJson::decode)
     val auto = live?.saved?.takeIf { it.auto } ?: stored?.takeIf { it.auto }
     if (auto != null || rules == null) return auto
     return (live?.saved ?: stored)?.takeIf { app.eye.engine.llm.AiFinalVerdict.raises(rules, it.opinion.toLlm()) }
@@ -108,7 +108,7 @@ fun autoAiFor(vm: AppViewModel, text: String, historyId: Long?, rules: app.eye.e
 private fun AiKeyOpinion(vm: AppViewModel, text: String, rulesLevel: Level, historyId: Long?) {
     val settings by vm.settings.collectAsState()
     val session by vm.ai.collectAsState()
-    val history by vm.history.collectAsState()
+    val entry by rememberHistoryEntry(vm, historyId)
     var consent by remember { mutableStateOf(false) }
     DisposableEffect(Unit) { onDispose { vm.leaveAi() } }
     androidx.compose.runtime.LaunchedEffect(Unit) { vm.refreshNano() }
@@ -118,7 +118,7 @@ private fun AiKeyOpinion(vm: AppViewModel, text: String, rulesLevel: Level, hist
     if (text.isBlank() || (free && (nanoStatus == null || nanoStatus == app.eye.engine.llm.LlmStatus.AVAILABLE))) return
 
     val state = if (session.key == aiKey(text)) session.state else AiUiState.Idle
-    val stored = historyId?.let { id -> history.firstOrNull { it.id == id }?.aiOpinion }?.let(AiOpinionJson::decode)
+    val stored = entry?.aiOpinion?.let(AiOpinionJson::decode)
     val shown: SavedAiOpinion? = when (state) {
         is AiUiState.Done -> state.saved
         AiUiState.Idle -> stored

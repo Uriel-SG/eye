@@ -52,9 +52,9 @@ import app.eye.engine.enrich.VirusTotal
 /** Eta' del dominio (RDAP) salvata con la voce di cronologia [historyId], se c'e'. */
 @Composable
 private fun rememberStoredAge(vm: AppViewModel, historyId: Long?): DomainAgeResult? {
-    val history by vm.history.collectAsState()
+    val entry by rememberHistoryEntry(vm, historyId)
     if (historyId == null) return null
-    return history.firstOrNull { it.id == historyId }?.domainAge?.let(DomainAgeJson::decode)
+    return entry?.domainAge?.let(DomainAgeJson::decode)
 }
 
 /** Eta' dei domini valida per [text]: quella appena controllata, altrimenti quella salvata con la voce di cronologia. */
