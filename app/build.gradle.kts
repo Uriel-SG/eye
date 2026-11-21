@@ -14,7 +14,7 @@ android {
         applicationId = "com.urielsec.eye"
         minSdk = 26
         targetSdk = 36
-        versionCode = 23
+        versionCode = 24
         versionName = "1.9.7"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Simboli nativi (librerie ML Kit) nell'AAB: Play Console li usa per leggere crash/ANR.
